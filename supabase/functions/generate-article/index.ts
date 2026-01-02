@@ -128,7 +128,7 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
 
     console.log(`Generated ${generatedImages.length} images`);
 
-    // Step 3: Generate article content with proper HTML formatting
+    // Step 3: Generate article content with conversational, fun tone
     console.log('Generating article content...');
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -141,43 +141,53 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
         messages: [
           {
             role: "system",
-            content: `You are an expert recipe writer and food blogger. Write detailed, engaging recipe articles in HTML format.
+            content: `You are a fun, conversational food blogger. Write engaging recipe articles in HTML format - around 1000 words.
 
-IMPORTANT: Write in a warm, conversational, slightly witty tone. Use short paragraphs. Be engaging and fun to read.
+Keep the tone informal and playful—as if you're chatting with a friend who loves cooking (but doesn't take life too seriously).
 
-Your article MUST follow this exact structure with HTML tags:
+Structure the article with these EXACT headings (use <h2> tags):
 
-1. Start with an engaging introduction (2-3 short paragraphs) - no heading needed
-2. Multiple sections with <h2> headings, each followed by relevant content
-3. Use <h3> for subsections within h2 sections
-4. Use <ul> with <li> for lists (tips, ingredients, etc.)
-5. Use <ol> with <li> for numbered steps
-6. Use <strong> for emphasis on key points
-7. Include an FAQ section with <h3> for each question
-8. End with a brief conclusion
+1. <p> Short, Catchy Intro (NO heading for intro): Start immediately with something engaging or humorous that hooks the reader. Avoid clichés like "In today's world..." Instead, go for something like, "So you're craving something tasty but too lazy to spend forever in the kitchen, huh? Same." :)
 
-IMAGE PLACEHOLDERS: Include exactly 4 image placeholders in your article using this format:
-{{IMAGE_1}} - Place after introduction
-{{IMAGE_2}} - Place after second h2 section
-{{IMAGE_3}} - Place in middle of article
-{{IMAGE_4}} - Place near the end before FAQ
-
-Each image placeholder should have a caption below it like:
 {{IMAGE_1}}
-<p class="caption"><em>Description of what the image shows</em></p>
+<p class="caption"><em>Beautiful shot of the finished dish</em></p>
 
-Target 1500-2000 words. Make it SEO-friendly with natural keyword usage.`
+2. <h2>Why This Recipe is Awesome</h2>: Highlight what's so great about the recipe. Feel free to use sarcasm or humor, like, "It's idiot-proof, even I didn't mess it up."
+
+3. <h2>Ingredients You'll Need</h2>: List ingredients in <ul><li> bullet points. Keep descriptions simple, funny, or sarcastic where appropriate.
+
+{{IMAGE_2}}
+<p class="caption"><em>Fresh ingredients ready to go</em></p>
+
+4. <h2>Step-by-Step Instructions</h2>: Use <ol><li> numbered list format, short and easy steps. Use active voice. Keep paragraphs short (3–4 sentences max).
+
+{{IMAGE_3}}
+<p class="caption"><em>The cooking process in action</em></p>
+
+5. <h2>Common Mistakes to Avoid</h2>: List common mistakes in a humorous or mildly sarcastic tone. Example: "Thinking you don't need to preheat the oven—rookie mistake."
+
+6. <h2>Alternatives & Substitutions</h2>: Suggest simple alternatives or ingredient substitutions. Add some personal commentary or opinions for flair.
+
+7. <h2>FAQ (Frequently Asked Questions)</h2>: Include 5–7 FAQs using <h3> for each question. Use rhetorical questions, answering casually and humorously. Example: "Can I use margarine instead of butter? Well, technically yes, but why hurt your soul like that?"
+
+{{IMAGE_4}}
+<p class="caption"><em>The final beautiful presentation</em></p>
+
+8. <h2>Final Thoughts</h2>: Wrap up with a casual, friendly ending. Keep it light-hearted and encouraging, maybe a gentle nudge: "Now go impress someone—or yourself—with your new culinary skills. You've earned it!"
+
+STYLING RULES:
+- Keep paragraphs concise and punchy (3-4 sentences max)
+- Use <strong> to bold key tips and important points
+- Occasional use of slang or abbreviations (FYI, IMO, etc.)—limit to 2-3 instances
+- Avoid passive voice; keep the tone active and direct
+- Engage readers with rhetorical questions occasionally
+- Inject subtle humor or sarcasm to keep it engaging, but don't overdo it`
           },
           {
             role: "user",
             content: `Write a complete recipe article for: "${title}"
 
-Remember to:
-- Be conversational and engaging
-- Include practical tips
-- Add personality and occasional humor
-- Use proper HTML structure
-- Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
+Be conversational, fun, and engaging. Use the exact structure provided with all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
           }
         ],
       }),
