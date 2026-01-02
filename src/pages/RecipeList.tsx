@@ -19,8 +19,11 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye } from 'lucide-react';
+import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye, Clock, Timer } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+
+// Estimated time per article in seconds (based on 4 images + content generation)
+const ESTIMATED_TIME_PER_ARTICLE = 65;
 
 interface Recipe {
   id: string;
@@ -38,7 +41,34 @@ const RecipeList = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
   const [progressData, setProgressData] = useState({ current: 0, total: 0 });
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
   const navigate = useNavigate();
+
+  // Timer effect for countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
+  // Format seconds to mm:ss
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Calculate remaining time
+  const getRemainingTime = () => {
+    const remaining = progressData.total - progressData.current;
+    const estimatedRemaining = remaining * ESTIMATED_TIME_PER_ARTICLE;
+    return estimatedRemaining;
+  };
 
   useEffect(() => {
     fetchRecipes();
@@ -89,6 +119,9 @@ const RecipeList = () => {
     }
 
     setProcessingId(pendingRecipe.id);
+    setElapsedTime(0);
+    setIsTimerRunning(true);
+    
     try {
       const { error } = await supabase.functions.invoke('generate-article', {
         body: { recipeId: pendingRecipe.id, title: pendingRecipe.title },
@@ -101,6 +134,7 @@ const RecipeList = () => {
       toast.error('Failed to start article generation');
     } finally {
       setProcessingId(null);
+      setIsTimerRunning(false);
     }
   };
 
@@ -113,6 +147,8 @@ const RecipeList = () => {
 
     setIsProcessingAll(true);
     setProgressData({ current: 0, total: pendingRecipes.length });
+    setElapsedTime(0);
+    setIsTimerRunning(true);
     toast.info(`Starting generation for ${pendingRecipes.length} recipes...`);
 
     for (let i = 0; i < pendingRecipes.length; i++) {
@@ -134,6 +170,7 @@ const RecipeList = () => {
     }
     setProcessingId(null);
     setIsProcessingAll(false);
+    setIsTimerRunning(false);
     setProgressData({ current: 0, total: 0 });
     toast.success('All articles processed');
   };
@@ -231,23 +268,57 @@ const RecipeList = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Progress Bar */}
-            {isProcessingAll && progressData.total > 0 && (
-              <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">
-                    Processing articles...
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {progressData.current} / {progressData.total} completed
-                  </span>
+            {/* Progress Bar with Timer */}
+            {(isProcessingAll || processingId) && (
+              <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-border">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-5 h-5 text-primary animate-pulse" />
+                    <span className="text-sm font-medium">
+                      {isProcessingAll ? 'Processing articles...' : 'Generating article...'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {isProcessingAll && (
+                      <span className="text-sm text-muted-foreground">
+                        {progressData.current} / {progressData.total} completed
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <Progress 
-                  value={(progressData.current / progressData.total) * 100} 
-                  className="h-3"
-                />
+                
+                {isProcessingAll && (
+                  <Progress 
+                    value={(progressData.current / progressData.total) * 100} 
+                    className="h-3 mb-3"
+                  />
+                )}
+                
+                {/* Timer Display */}
+                <div className="flex items-center justify-between bg-background/50 rounded-md p-3 mt-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Elapsed:</span>
+                    <span className="text-lg font-mono font-bold text-primary">{formatTime(elapsedTime)}</span>
+                  </div>
+                  
+                  {isProcessingAll && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Est. Remaining:</span>
+                      <span className="text-lg font-mono font-bold text-orange-500">{formatTime(getRemainingTime())}</span>
+                    </div>
+                  )}
+                  
+                  {!isProcessingAll && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Est. Time:</span>
+                      <span className="text-lg font-mono font-bold text-orange-500">~{formatTime(ESTIMATED_TIME_PER_ARTICLE)}</span>
+                    </div>
+                  )}
+                </div>
+                
                 <p className="text-xs text-muted-foreground mt-2">
-                  Currently processing: {recipes.find(r => r.id === processingId)?.title || 'Starting...'}
+                  Currently processing: <span className="font-medium">{recipes.find(r => r.id === processingId)?.title || 'Starting...'}</span>
                 </p>
               </div>
             )}
