@@ -295,15 +295,24 @@ const RecipeList = () => {
 
       {/* View Draft Dialog */}
       <Dialog open={!!selectedRecipe} onOpenChange={() => setSelectedRecipe(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedRecipe?.title}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">{selectedRecipe?.title}</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm max-w-none">
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-              {selectedRecipe?.article_content}
-            </pre>
-          </div>
+          <div 
+            className="prose prose-lg max-w-none dark:prose-invert
+              prose-headings:font-bold prose-headings:text-foreground
+              prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:pb-2
+              prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3
+              prose-p:text-muted-foreground prose-p:leading-relaxed prose-p:mb-4
+              prose-ul:my-4 prose-li:text-muted-foreground
+              prose-strong:text-foreground prose-strong:font-semibold
+              prose-img:rounded-lg prose-img:shadow-md prose-img:my-6 prose-img:w-full prose-img:max-h-96 prose-img:object-cover
+              [&_.caption]:text-center [&_.caption]:text-sm [&_.caption]:text-muted-foreground [&_.caption]:italic [&_.caption]:-mt-4 [&_.caption]:mb-6
+              [&_figure]:my-6 [&_figure]:text-center
+              [&_figure_img]:mx-auto [&_figure_img]:rounded-lg [&_figure_img]:shadow-lg"
+            dangerouslySetInnerHTML={{ __html: selectedRecipe?.article_content || '' }}
+          />
         </DialogContent>
       </Dialog>
     </div>
