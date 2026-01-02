@@ -92,29 +92,41 @@ const ArticleView = () => {
       </div>
 
       <style>{`
+        .article-content {
+          font-family: 'Merriweather', serif;
+        }
         .article-content h1 {
-          font-size: 2.5rem;
+          font-family: 'Merriweather', serif;
+          font-size: 32px;
           font-weight: 700;
+          line-height: 48px;
           margin-bottom: 1.5rem;
           color: hsl(var(--foreground));
         }
         .article-content h2 {
-          font-size: 1.75rem;
-          font-weight: 600;
+          font-family: 'Merriweather', serif;
+          font-size: 28px;
+          font-weight: 700;
+          line-height: 42px;
+          font-style: italic;
           margin-top: 2rem;
           margin-bottom: 1rem;
           color: hsl(var(--foreground));
         }
         .article-content h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
+          font-family: 'Merriweather', serif;
+          font-size: 24px;
+          font-weight: 700;
+          line-height: 36px;
           margin-top: 1.5rem;
           margin-bottom: 0.75rem;
           color: hsl(var(--foreground));
         }
         .article-content p {
+          font-family: 'Merriweather', serif;
+          font-size: 17px;
+          line-height: 27px;
           margin-bottom: 1rem;
-          line-height: 1.75;
           color: hsl(var(--foreground));
         }
         .article-content ul, .article-content ol {
@@ -122,6 +134,10 @@ const ArticleView = () => {
           padding-left: 1.5rem;
         }
         .article-content li {
+          font-family: 'Merriweather', serif;
+          font-size: 17px;
+          font-weight: 700;
+          line-height: 27px;
           margin-bottom: 0.5rem;
           color: hsl(var(--foreground));
         }
@@ -132,7 +148,7 @@ const ArticleView = () => {
           margin: 1.5rem 0;
         }
         .article-content strong {
-          font-weight: 600;
+          font-weight: 700;
           color: hsl(var(--foreground));
         }
       `}</style>
