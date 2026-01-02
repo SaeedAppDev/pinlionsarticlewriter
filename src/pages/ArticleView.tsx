@@ -164,64 +164,75 @@ const ArticleView = () => {
 
       <style>{`
         .article-content {
-          font-family: 'Merriweather', serif;
+          font-family: 'Merriweather', Georgia, serif;
+          color: #374151;
         }
         .article-content h1 {
-          font-family: 'Merriweather', serif;
-          font-size: 32px;
-          font-weight: 700;
-          line-height: 48px;
-          margin-bottom: 1.5rem;
-          color: hsl(var(--foreground));
-        }
-        .article-content h2 {
-          font-family: 'Merriweather', serif;
+          font-family: 'Merriweather', Georgia, serif;
           font-size: 28px;
           font-weight: 700;
-          line-height: 42px;
-          font-style: italic;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-          color: hsl(var(--foreground));
+          line-height: 1.3;
+          margin-bottom: 0.5rem;
+          color: #111827;
+          letter-spacing: -0.01em;
         }
-        .article-content h3 {
-          font-family: 'Merriweather', serif;
+        .article-content h2 {
+          font-family: 'Merriweather', Georgia, serif;
           font-size: 24px;
           font-weight: 700;
-          line-height: 36px;
+          line-height: 1.3;
+          margin-top: 2.5rem;
+          margin-bottom: 1rem;
+          color: #111827;
+        }
+        .article-content h3 {
+          font-family: 'Merriweather', Georgia, serif;
+          font-size: 20px;
+          font-weight: 700;
+          line-height: 1.4;
           margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-          color: hsl(var(--foreground));
+          margin-bottom: 0.5rem;
+          color: #111827;
         }
         .article-content p {
-          font-family: 'Merriweather', serif;
-          font-size: 17px;
-          line-height: 27px;
+          font-family: 'Merriweather', Georgia, serif;
+          font-size: 16px;
+          line-height: 1.75;
           margin-bottom: 1rem;
-          color: hsl(var(--foreground));
+          color: #374151;
         }
         .article-content ul, .article-content ol {
-          margin-bottom: 1rem;
-          padding-left: 1.5rem;
+          margin-bottom: 1.5rem;
+          padding-left: 1.25rem;
+          list-style-type: disc;
         }
         .article-content li {
-          font-family: 'Merriweather', serif;
-          font-size: 17px;
+          font-family: 'Merriweather', Georgia, serif;
+          font-size: 16px;
+          line-height: 1.75;
+          margin-bottom: 0.75rem;
+          color: #374151;
+        }
+        .article-content li strong {
           font-weight: 700;
-          line-height: 27px;
-          margin-bottom: 0.5rem;
-          color: hsl(var(--foreground));
+          color: #111827;
         }
         .article-content img {
           max-width: 100%;
           height: auto;
-          border-radius: 0.5rem;
+          border-radius: 8px;
           margin: 1.5rem 0;
-          background: hsl(var(--muted));
         }
         .article-content strong {
           font-weight: 700;
-          color: hsl(var(--foreground));
+          color: #111827;
+        }
+        .article-content a {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+        .article-content a:hover {
+          color: #1d4ed8;
         }
       `}</style>
     </div>
