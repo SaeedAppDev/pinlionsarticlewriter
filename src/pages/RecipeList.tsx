@@ -365,15 +365,12 @@ const RecipeList = () => {
                         <TableCell className="font-medium">{recipe.title}</TableCell>
                         <TableCell>{getStatusBadge(recipe.status)}</TableCell>
                         <TableCell>
-                          {recipe.status === 'completed' ? (
+{recipe.status === 'completed' ? (
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={async () => {
-                                const fullRecipe = await fetchRecipeContent(recipe.id);
-                                if (fullRecipe) {
-                                  setSelectedRecipe(fullRecipe as Recipe);
-                                }
+                              onClick={() => {
+                                window.open(`/article/${recipe.id}`, '_blank');
                               }}
                             >
                               <Eye className="w-4 h-4 mr-1" />
