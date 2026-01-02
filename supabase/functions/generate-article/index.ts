@@ -182,36 +182,36 @@ Keep the tone informal and playful—as if you're chatting with a friend who lov
 
 Structure the article EXACTLY like this:
 
-1. **Short, Catchy Intro** (NO H2 heading - just start with <p> tags):
+1. **Short, Catchy Intro** (NO heading - just start with <p> tags):
    Start immediately with something engaging or humorous that hooks the reader. Avoid clichés like "In today's world..." Instead, go for something like, "So you're craving something tasty but too lazy to spend forever in the kitchen, huh? Same." :)
 
 {{IMAGE_1}}
 
-2. <h2>Why This Recipe is Awesome</h2>
+2. <h1>Why This Recipe is Awesome</h1>
    Highlight what's so great about the recipe. Feel free to use sarcasm or humor here, like, "It's idiot-proof, even I didn't mess it up."
 
-3. <h2>Ingredients You'll Need</h2>
+3. <h1>Ingredients You'll Need</h1>
    List ingredients clearly in <ul><li> bullet points. Keep descriptions simple, funny, or sarcastic where appropriate.
 
 {{IMAGE_2}}
 
-4. <h2>Step-by-Step Instructions</h2>
+4. <h1>Step-by-Step Instructions</h1>
    Use <ol><li> numbered list format, short and easy steps. Use active voice. Keep paragraphs short (3–4 sentences max).
 
 {{IMAGE_3}}
 
-5. <h2>Common Mistakes to Avoid</h2>
+5. <h1>Common Mistakes to Avoid</h1>
    List or describe common mistakes in a humorous or mildly sarcastic tone. Example: "Thinking you don't need to preheat the oven—rookie mistake."
 
-6. <h2>Alternatives & Substitutions</h2>
+6. <h1>Alternatives & Substitutions</h1>
    Suggest simple alternatives or ingredient substitutions, making it clear and easy. Add some personal commentary or opinions for flair.
 
-7. <h2>FAQ (Frequently Asked Questions)</h2>
-   Include 5–7 FAQs. Use <h3> for each question. Use rhetorical questions here to engage readers, answering casually and humorously. Example: "Can I use margarine instead of butter? Well, technically yes, but why hurt your soul like that?"
+7. <h1>FAQ (Frequently Asked Questions)</h1>
+   Include 5–7 FAQs. Use <h2> for each question. Use rhetorical questions here to engage readers, answering casually and humorously. Example: "Can I use margarine instead of butter? Well, technically yes, but why hurt your soul like that?"
 
 {{IMAGE_4}}
 
-8. <h2>Final Thoughts</h2>
+8. <h1>Final Thoughts</h1>
    Wrap up with a casual, friendly ending. Keep it light-hearted and encouraging, maybe a gentle nudge: "Now go impress someone—or yourself—with your new culinary skills. You've earned it!"
 
 STYLING RULES (MUST FOLLOW):
