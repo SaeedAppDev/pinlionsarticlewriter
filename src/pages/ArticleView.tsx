@@ -1,90 +1,63 @@
-import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Copy, Check } from "lucide-react";
+import { ArrowLeft, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [article, setArticle] = useState<{ title: string; article_content: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const fetchArticle = async () => {
-      if (!id) return;
+    if (!id) return;
 
-      try {
-        // Use streaming fetch for faster initial response
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content`,
-          {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-              'Accept-Encoding': 'gzip, deflate',
-            },
-          }
-        );
-
-        // Stream the response for faster processing
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('No reader available');
-        }
-
-        const chunks: Uint8Array[] = [];
-        let done = false;
-
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-          if (value) {
-            chunks.push(value);
-          }
-        }
-
-        // Combine chunks and decode
-        const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-        const combined = new Uint8Array(totalLength);
-        let offset = 0;
-        for (const chunk of chunks) {
-          combined.set(chunk, offset);
-          offset += chunk.length;
-        }
-
-        const text = new TextDecoder().decode(combined);
-        const data = JSON.parse(text);
-
-        if (data && data.length > 0) {
-          setArticle(data[0]);
-        } else {
-          toast.error('Article not found');
-        }
-      } catch (error) {
-        console.error('Error fetching article:', error);
-        toast.error('Failed to load article');
-      } finally {
-        setIsLoading(false);
+    // Use simple fetch - fastest approach
+    const controller = new AbortController();
+    
+    fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content`,
+      {
+        signal: controller.signal,
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
       }
-    };
+    )
+    .then(res => res.json())
+    .then(data => {
+      if (data?.[0]) {
+        setArticle(data[0]);
+      } else {
+        toast.error('Article not found');
+      }
+    })
+    .catch(err => {
+      if (err.name !== 'AbortError') {
+        console.error('Error:', err);
+        toast.error('Failed to load article');
+      }
+    })
+    .finally(() => setIsLoading(false));
 
-    fetchArticle();
+    return () => controller.abort();
   }, [id]);
 
-  // Process HTML to add lazy loading to images for faster rendering
+  // Process HTML - optimize images for lazy loading
   const processedContent = useMemo(() => {
     if (!article?.article_content) return '';
     
-    // Add loading="lazy" and decoding="async" to all images for faster initial render
+    // Replace base64 images with lazy loading and add placeholder
     return article.article_content
-      .replace(/<img /g, '<img loading="lazy" decoding="async" ')
-      .replace(/loading="lazy" loading="lazy"/g, 'loading="lazy"');
+      .replace(/<img([^>]*)(src="data:image[^"]*")([^>]*)>/gi, 
+        '<img$1$2$3 loading="lazy" decoding="async" style="background:#f3f4f6;min-height:200px">')
+      .replace(/<img([^>]*)(src="http[^"]*")([^>]*)>/gi,
+        '<img$1$2$3 loading="lazy" decoding="async">');
   }, [article?.article_content]);
 
-  const handleCopyHTML = async () => {
+  const handleCopyHTML = useCallback(async () => {
     if (!article?.article_content) return;
     
     try {
@@ -92,27 +65,17 @@ const ArticleView = () => {
       setCopied(true);
       toast.success('HTML copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy HTML');
     }
-  };
+  }, [article?.article_content]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-          <Skeleton className="h-8 w-3/4 mb-4" />
-          <Skeleton className="h-64 w-full mb-4" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-2/3 mb-4" />
-          <Skeleton className="h-6 w-1/2 mb-4" />
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-full mb-2" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading article...</p>
         </div>
       </div>
     );
@@ -123,9 +86,9 @@ const ArticleView = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">Article not found</p>
-          <Button onClick={() => navigate('/recipes')}>
+          <Button onClick={() => window.close()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Recipes
+            Close
           </Button>
         </div>
       </div>
