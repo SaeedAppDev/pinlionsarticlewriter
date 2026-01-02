@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const ArticleView = () => {
@@ -10,6 +10,7 @@ const ArticleView = () => {
   const navigate = useNavigate();
   const [article, setArticle] = useState<{ title: string; article_content: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -71,17 +72,40 @@ const ArticleView = () => {
     );
   }
 
+  const handleCopyHTML = async () => {
+    if (!article?.article_content) return;
+    
+    try {
+      await navigator.clipboard.writeText(article.article_content);
+      setCopied(true);
+      toast.success('HTML copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy HTML');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Button 
-          variant="ghost" 
-          onClick={() => window.close()}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Close
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => window.close()}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Close
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={handleCopyHTML}
+            className="gap-2"
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied ? 'Copied!' : 'Copy HTML'}
+          </Button>
+        </div>
 
         <article className="prose prose-lg max-w-none dark:prose-invert">
           <div 
