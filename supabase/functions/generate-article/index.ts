@@ -180,49 +180,54 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
 
 Keep the tone informal and playful—as if you're chatting with a friend who loves cooking (but doesn't take life too seriously).
 
-Structure the article with these EXACT headings (use <h2> tags):
+Structure the article EXACTLY like this:
 
-1. <p> Short, Catchy Intro (NO heading for intro): Start immediately with something engaging or humorous that hooks the reader. Avoid clichés like "In today's world..." Instead, go for something like, "So you're craving something tasty but too lazy to spend forever in the kitchen, huh? Same." :)
+1. **Short, Catchy Intro** (NO H2 heading - just start with <p> tags):
+   Start immediately with something engaging or humorous that hooks the reader. Avoid clichés like "In today's world..." Instead, go for something like, "So you're craving something tasty but too lazy to spend forever in the kitchen, huh? Same." :)
 
 {{IMAGE_1}}
-<p class="caption"><em>Beautiful shot of the finished dish</em></p>
 
-2. <h2>Why This Recipe is Awesome</h2>: Highlight what's so great about the recipe. Feel free to use sarcasm or humor, like, "It's idiot-proof, even I didn't mess it up."
+2. <h2>Why This Recipe is Awesome</h2>
+   Highlight what's so great about the recipe. Feel free to use sarcasm or humor here, like, "It's idiot-proof, even I didn't mess it up."
 
-3. <h2>Ingredients You'll Need</h2>: List ingredients in <ul><li> bullet points. Keep descriptions simple, funny, or sarcastic where appropriate.
+3. <h2>Ingredients You'll Need</h2>
+   List ingredients clearly in <ul><li> bullet points. Keep descriptions simple, funny, or sarcastic where appropriate.
 
 {{IMAGE_2}}
-<p class="caption"><em>Fresh ingredients ready to go</em></p>
 
-4. <h2>Step-by-Step Instructions</h2>: Use <ol><li> numbered list format, short and easy steps. Use active voice. Keep paragraphs short (3–4 sentences max).
+4. <h2>Step-by-Step Instructions</h2>
+   Use <ol><li> numbered list format, short and easy steps. Use active voice. Keep paragraphs short (3–4 sentences max).
 
 {{IMAGE_3}}
-<p class="caption"><em>The cooking process in action</em></p>
 
-5. <h2>Common Mistakes to Avoid</h2>: List common mistakes in a humorous or mildly sarcastic tone. Example: "Thinking you don't need to preheat the oven—rookie mistake."
+5. <h2>Common Mistakes to Avoid</h2>
+   List or describe common mistakes in a humorous or mildly sarcastic tone. Example: "Thinking you don't need to preheat the oven—rookie mistake."
 
-6. <h2>Alternatives & Substitutions</h2>: Suggest simple alternatives or ingredient substitutions. Add some personal commentary or opinions for flair.
+6. <h2>Alternatives & Substitutions</h2>
+   Suggest simple alternatives or ingredient substitutions, making it clear and easy. Add some personal commentary or opinions for flair.
 
-7. <h2>FAQ (Frequently Asked Questions)</h2>: Include 5–7 FAQs using <h3> for each question. Use rhetorical questions, answering casually and humorously. Example: "Can I use margarine instead of butter? Well, technically yes, but why hurt your soul like that?"
+7. <h2>FAQ (Frequently Asked Questions)</h2>
+   Include 5–7 FAQs. Use <h3> for each question. Use rhetorical questions here to engage readers, answering casually and humorously. Example: "Can I use margarine instead of butter? Well, technically yes, but why hurt your soul like that?"
 
 {{IMAGE_4}}
-<p class="caption"><em>The final beautiful presentation</em></p>
 
-8. <h2>Final Thoughts</h2>: Wrap up with a casual, friendly ending. Keep it light-hearted and encouraging, maybe a gentle nudge: "Now go impress someone—or yourself—with your new culinary skills. You've earned it!"
+8. <h2>Final Thoughts</h2>
+   Wrap up with a casual, friendly ending. Keep it light-hearted and encouraging, maybe a gentle nudge: "Now go impress someone—or yourself—with your new culinary skills. You've earned it!"
 
-STYLING RULES:
+STYLING RULES (MUST FOLLOW):
 - Keep paragraphs concise and punchy (3-4 sentences max)
 - Use <strong> to bold key tips and important points
 - Occasional use of slang or abbreviations (FYI, IMO, etc.)—limit to 2-3 instances
 - Avoid passive voice; keep the tone active and direct
 - Engage readers with rhetorical questions occasionally
-- Inject subtle humor or sarcasm to keep it engaging, but don't overdo it`
+- Inject subtle humor or sarcasm to keep it engaging, but don't overdo it
+- Output clean HTML only, no markdown`
           },
           {
             role: "user",
-            content: `Write a complete recipe article for: "${title}"
+            content: `Recipe: "${title}"
 
-Be conversational, fun, and engaging. Use the exact structure provided with all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
+Write a complete, conversational, engaging, and fun-to-read recipe article following the EXACT structure above. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
           }
         ],
       }),
