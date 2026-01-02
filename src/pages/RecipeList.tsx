@@ -20,6 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface Recipe {
   id: string;
@@ -35,6 +36,8 @@ const RecipeList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [progressData, setProgressData] = useState({ current: 0, total: 0 });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -108,21 +111,30 @@ const RecipeList = () => {
       return;
     }
 
+    setIsProcessingAll(true);
+    setProgressData({ current: 0, total: pendingRecipes.length });
     toast.info(`Starting generation for ${pendingRecipes.length} recipes...`);
 
-    for (const recipe of pendingRecipes) {
+    for (let i = 0; i < pendingRecipes.length; i++) {
+      const recipe = pendingRecipes[i];
       setProcessingId(recipe.id);
+      setProgressData({ current: i, total: pendingRecipes.length });
+      
       try {
         await supabase.functions.invoke('generate-article', {
           body: { recipeId: recipe.id, title: recipe.title },
         });
+        setProgressData({ current: i + 1, total: pendingRecipes.length });
         // Small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
         console.error('Error processing recipe:', error);
+        setProgressData({ current: i + 1, total: pendingRecipes.length });
       }
     }
     setProcessingId(null);
+    setIsProcessingAll(false);
+    setProgressData({ current: 0, total: 0 });
     toast.success('All articles processed');
   };
 
@@ -219,6 +231,27 @@ const RecipeList = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Progress Bar */}
+            {isProcessingAll && progressData.total > 0 && (
+              <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">
+                    Processing articles...
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {progressData.current} / {progressData.total} completed
+                  </span>
+                </div>
+                <Progress 
+                  value={(progressData.current / progressData.total) * 100} 
+                  className="h-3"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Currently processing: {recipes.find(r => r.id === processingId)?.title || 'Starting...'}
+                </p>
+              </div>
+            )}
+
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : recipes.length === 0 ? (
