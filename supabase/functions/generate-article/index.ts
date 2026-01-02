@@ -6,6 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Convert base64 to Uint8Array for upload
+function base64ToUint8Array(base64: string): Uint8Array {
+  // Remove data URL prefix if present
+  const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -86,9 +98,9 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
 
     console.log('Image prompts ready:', imagePrompts.length);
 
-    // Step 2: Generate images using Nano banana model
+    // Step 2: Generate images and upload to storage
     console.log('Generating images...');
-    const generatedImages: string[] = [];
+    const imageUrls: string[] = [];
     
     for (let i = 0; i < Math.min(imagePrompts.length, 4); i++) {
       try {
@@ -112,10 +124,33 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
 
         if (imageResponse.ok) {
           const imageData = await imageResponse.json();
-          const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (imageUrl) {
-            generatedImages.push(imageUrl);
-            console.log(`Image ${i + 1} generated successfully`);
+          const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          
+          if (base64Url && base64Url.startsWith('data:image')) {
+            // Upload to Supabase Storage instead of using base64
+            const imageBytes = base64ToUint8Array(base64Url);
+            const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.jpg`;
+            
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('article-images')
+              .upload(fileName, imageBytes, {
+                contentType: 'image/jpeg',
+                upsert: true
+              });
+            
+            if (uploadError) {
+              console.error(`Upload error for image ${i + 1}:`, uploadError);
+            } else {
+              // Get public URL
+              const { data: urlData } = supabase.storage
+                .from('article-images')
+                .getPublicUrl(fileName);
+              
+              if (urlData?.publicUrl) {
+                imageUrls.push(urlData.publicUrl);
+                console.log(`Image ${i + 1} uploaded successfully`);
+              }
+            }
           }
         }
       } catch (imgError) {
@@ -123,10 +158,10 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
       }
       
       // Small delay between image generations
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    console.log(`Generated ${generatedImages.length} images`);
+    console.log(`Generated ${imageUrls.length} images`);
 
     // Step 3: Generate article content with conversational, fun tone
     console.log('Generating article content...');
@@ -229,13 +264,13 @@ Be conversational, fun, and engaging. Use the exact structure provided with all 
       throw new Error("No content generated");
     }
 
-    // Step 4: Replace image placeholders with actual images
+    // Step 4: Replace image placeholders with actual image URLs
     for (let i = 0; i < 4; i++) {
       const placeholder = `{{IMAGE_${i + 1}}}`;
-      if (generatedImages[i]) {
+      if (imageUrls[i]) {
         articleContent = articleContent.replace(
           placeholder,
-          `<figure class="article-image"><img src="${generatedImages[i]}" alt="${title} - Image ${i + 1}" loading="lazy" /></figure>`
+          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${title} - Image ${i + 1}" /></figure>`
         );
       } else {
         // Remove placeholder if no image was generated
@@ -264,7 +299,7 @@ Be conversational, fun, and engaging. Use the exact structure provided with all 
       success: true, 
       recipeId,
       contentLength: articleContent.length,
-      imagesGenerated: generatedImages.length
+      imagesGenerated: imageUrls.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
