@@ -96,18 +96,36 @@ const RecipeList = () => {
 
   const fetchRecipes = async () => {
     try {
+      // Don't fetch article_content in list view - it's too large (contains base64 images)
       const { data, error } = await supabase
         .from('recipes')
-        .select('*')
+        .select('id, title, status, error_message, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRecipes(data || []);
+      setRecipes(data?.map(r => ({ ...r, article_content: null })) || []);
     } catch (error) {
       console.error('Error fetching recipes:', error);
       toast.error('Failed to load recipes');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchRecipeContent = async (recipeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('id, title, article_content')
+        .eq('id', recipeId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching recipe content:', error);
+      toast.error('Failed to load article content');
+      return null;
     }
   };
 
@@ -347,11 +365,16 @@ const RecipeList = () => {
                         <TableCell className="font-medium">{recipe.title}</TableCell>
                         <TableCell>{getStatusBadge(recipe.status)}</TableCell>
                         <TableCell>
-                          {recipe.status === 'completed' && recipe.article_content ? (
+                          {recipe.status === 'completed' ? (
                             <Button
                               variant="link"
                               className="p-0 h-auto text-primary"
-                              onClick={() => setSelectedRecipe(recipe)}
+                              onClick={async () => {
+                                const fullRecipe = await fetchRecipeContent(recipe.id);
+                                if (fullRecipe) {
+                                  setSelectedRecipe(fullRecipe as Recipe);
+                                }
+                              }}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               View Draft
