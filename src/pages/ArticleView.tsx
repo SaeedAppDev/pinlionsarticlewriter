@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,18 +17,45 @@ const ArticleView = () => {
       if (!id) return;
 
       try {
-        // Use raw fetch to avoid JSON parsing issues with large content
+        // Use streaming fetch for faster initial response
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content`,
           {
             headers: {
               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
               'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+              'Accept-Encoding': 'gzip, deflate',
             },
           }
         );
 
-        const text = await response.text();
+        // Stream the response for faster processing
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        const chunks: Uint8Array[] = [];
+        let done = false;
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            chunks.push(value);
+          }
+        }
+
+        // Combine chunks and decode
+        const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+        const combined = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+          combined.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        const text = new TextDecoder().decode(combined);
         const data = JSON.parse(text);
 
         if (data && data.length > 0) {
@@ -47,12 +74,45 @@ const ArticleView = () => {
     fetchArticle();
   }, [id]);
 
+  // Process HTML to add lazy loading to images for faster rendering
+  const processedContent = useMemo(() => {
+    if (!article?.article_content) return '';
+    
+    // Add loading="lazy" and decoding="async" to all images for faster initial render
+    return article.article_content
+      .replace(/<img /g, '<img loading="lazy" decoding="async" ')
+      .replace(/loading="lazy" loading="lazy"/g, 'loading="lazy"');
+  }, [article?.article_content]);
+
+  const handleCopyHTML = async () => {
+    if (!article?.article_content) return;
+    
+    try {
+      await navigator.clipboard.writeText(article.article_content);
+      setCopied(true);
+      toast.success('HTML copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy HTML');
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading article...</p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <Skeleton className="h-8 w-3/4 mb-4" />
+          <Skeleton className="h-64 w-full mb-4" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-2/3 mb-4" />
+          <Skeleton className="h-6 w-1/2 mb-4" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-full mb-2" />
         </div>
       </div>
     );
@@ -71,19 +131,6 @@ const ArticleView = () => {
       </div>
     );
   }
-
-  const handleCopyHTML = async () => {
-    if (!article?.article_content) return;
-    
-    try {
-      await navigator.clipboard.writeText(article.article_content);
-      setCopied(true);
-      toast.success('HTML copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast.error('Failed to copy HTML');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,7 +156,7 @@ const ArticleView = () => {
 
         <article className="prose prose-lg max-w-none dark:prose-invert">
           <div 
-            dangerouslySetInnerHTML={{ __html: article.article_content || '' }}
+            dangerouslySetInnerHTML={{ __html: processedContent }}
             className="article-content"
           />
         </article>
@@ -170,6 +217,7 @@ const ArticleView = () => {
           height: auto;
           border-radius: 0.5rem;
           margin: 1.5rem 0;
+          background: hsl(var(--muted));
         }
         .article-content strong {
           font-weight: 700;
