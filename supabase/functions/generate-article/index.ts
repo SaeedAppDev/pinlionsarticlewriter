@@ -232,22 +232,67 @@ async function generateUniqueImage(
   }
 }
 
-// Fallback using Lorem Picsum (reliable, free, always works)
+// Fallback using Unsplash Source API with context-aware search terms
 function getFallbackImage(dishName: string, imageNumber: number): string {
-  // Use different seed numbers for each image to get variety
-  const seeds = [
-    Math.floor(Math.random() * 1000),
-    Math.floor(Math.random() * 1000) + 1000,
-    Math.floor(Math.random() * 1000) + 2000,
-    Math.floor(Math.random() * 1000) + 3000,
-    Math.floor(Math.random() * 1000) + 4000,
-    Math.floor(Math.random() * 1000) + 5000,
-    Math.floor(Math.random() * 1000) + 6000,
-  ];
+  // Extract key food terms from the dish name for better search
+  const dishLower = dishName.toLowerCase();
   
-  const seed = seeds[imageNumber - 1] || seeds[0];
-  // Lorem Picsum with random seed for unique images
-  return `https://picsum.photos/seed/${seed}/1200/800`;
+  // Determine the main food category/type
+  let mainFoodTerm = 'delicious food';
+  
+  // Check for specific food types and create relevant search terms
+  if (dishLower.includes('pumpkin')) {
+    mainFoodTerm = 'pumpkin dessert';
+  } else if (dishLower.includes('chocolate')) {
+    mainFoodTerm = 'chocolate dessert';
+  } else if (dishLower.includes('cake')) {
+    mainFoodTerm = 'cake dessert';
+  } else if (dishLower.includes('pie')) {
+    mainFoodTerm = 'pie dessert';
+  } else if (dishLower.includes('cookie')) {
+    mainFoodTerm = 'cookies baking';
+  } else if (dishLower.includes('chicken')) {
+    mainFoodTerm = 'chicken dish';
+  } else if (dishLower.includes('pasta')) {
+    mainFoodTerm = 'pasta dish';
+  } else if (dishLower.includes('salad')) {
+    mainFoodTerm = 'fresh salad';
+  } else if (dishLower.includes('soup')) {
+    mainFoodTerm = 'soup bowl';
+  } else if (dishLower.includes('bread')) {
+    mainFoodTerm = 'fresh bread';
+  } else if (dishLower.includes('pizza')) {
+    mainFoodTerm = 'pizza';
+  } else if (dishLower.includes('steak') || dishLower.includes('beef')) {
+    mainFoodTerm = 'steak beef';
+  } else if (dishLower.includes('fish') || dishLower.includes('salmon')) {
+    mainFoodTerm = 'fish dish';
+  } else if (dishLower.includes('rice')) {
+    mainFoodTerm = 'rice dish';
+  } else if (dishLower.includes('breakfast')) {
+    mainFoodTerm = 'breakfast';
+  } else if (dishLower.includes('dessert') || dishLower.includes('sweet')) {
+    mainFoodTerm = 'dessert';
+  }
+  
+  // Different search terms for different image positions to get variety
+  const searchTerms: Record<number, string> = {
+    1: `${mainFoodTerm} plated`, // Hero shot
+    2: `${mainFoodTerm} closeup`, // Texture close-up
+    3: `${mainFoodTerm} ingredients`, // Ingredients
+    4: `cooking ${mainFoodTerm}`, // Cooking action
+    5: `${mainFoodTerm} table setting`, // Table setting
+    6: `${mainFoodTerm} meal prep`, // Storage
+    7: `${mainFoodTerm} beautiful`, // Final beauty shot
+  };
+  
+  const searchTerm = searchTerms[imageNumber] || mainFoodTerm;
+  const encodedSearch = encodeURIComponent(searchTerm);
+  
+  // Use Unsplash Source API - it returns random images matching the search query
+  // Add timestamp to prevent caching and get unique images
+  const timestamp = Date.now() + imageNumber * 1000;
+  return `https://source.unsplash.com/1200x800/?${encodedSearch},food&sig=${timestamp}`;
 }
 
 // Find relevant URLs from sitemap
