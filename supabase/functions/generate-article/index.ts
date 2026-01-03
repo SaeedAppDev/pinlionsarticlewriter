@@ -240,12 +240,12 @@ async function generateFallbackImage(
   }
 }
 
-// Generate UNIQUE AI image for each recipe section using Lovable AI
+// Generate UNIQUE AI image for each recipe section using Replicate Flux
 async function generateUniqueImage(
   dishName: string,
   imageContext: string,
   imageNumber: number,
-  LOVABLE_API_KEY: string,
+  REPLICATE_API_KEY: string,
   supabase: any
 ): Promise<string> {
   try {
@@ -264,41 +264,72 @@ async function generateUniqueImage(
 
     const prompt = imagePrompts[imageNumber] || imagePrompts[1];
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call Replicate API with Flux Schnell model
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${REPLICATE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
-        messages: [{ role: 'user', content: prompt }],
-        modalities: ['image', 'text'],
+        version: "black-forest-labs/flux-schnell",
+        input: {
+          prompt: prompt,
+          go_fast: true,
+          megapixels: "1",
+          num_outputs: 1,
+          aspect_ratio: "4:3",
+          output_format: "webp",
+          output_quality: 80,
+          num_inference_steps: 4
+        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Lovable AI error for image ${imageNumber}:`, response.status, errorText);
+      console.error(`Replicate API error for image ${imageNumber}:`, response.status, errorText);
       return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
     }
 
-    const data = await response.json();
-    const base64Url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const prediction = await response.json();
+    
+    // Poll for result (Replicate is async)
+    let result = prediction;
+    let attempts = 0;
+    const maxAttempts = 30;
+    
+    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+        headers: {
+          'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+        },
+      });
+      
+      if (statusResponse.ok) {
+        result = await statusResponse.json();
+      }
+      attempts++;
+    }
 
-    if (!base64Url) {
-      console.error(`No image generated for position ${imageNumber}`);
+    if (result.status !== 'succeeded' || !result.output || result.output.length === 0) {
+      console.error(`Replicate generation failed for image ${imageNumber}:`, result.status, result.error);
       return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
     }
 
-    // Upload to Storage
-    const base64Data = base64Url.replace(/^data:image\/\w+;base64,/, '');
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+    console.log(`Replicate generated image ${imageNumber}:`, imageUrl);
+
+    // Download and upload to Supabase Storage for persistence
+    const imgResp = await fetch(imageUrl);
+    if (!imgResp.ok) {
+      console.error(`Failed to download Replicate image ${imageNumber}`);
+      return imageUrl; // Return Replicate URL directly as fallback
     }
 
+    const bytes = new Uint8Array(await imgResp.arrayBuffer());
     const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
 
     const { error: uploadError } = await supabase.storage
@@ -310,8 +341,7 @@ async function generateUniqueImage(
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
-      // Return the original base64 as last resort (it will still render in <img>)
-      return base64Url;
+      return imageUrl; // Return Replicate URL if upload fails
     }
 
     const { data: urlData } = supabase.storage
@@ -319,7 +349,7 @@ async function generateUniqueImage(
       .getPublicUrl(fileName);
 
     console.log(`Image ${imageNumber} generated and uploaded successfully`);
-    return urlData?.publicUrl || base64Url;
+    return urlData?.publicUrl || imageUrl;
   } catch (error) {
     console.error(`Error generating image ${imageNumber}:`, error);
     return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
@@ -377,9 +407,9 @@ serve(async (req) => {
       throw new Error("GROQ_API_KEY is not configured");
     }
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    if (!REPLICATE_API_KEY) {
+      throw new Error("REPLICATE_API_KEY is not configured");
     }
 
     // Initialize Supabase client
@@ -432,7 +462,7 @@ Return ONLY the title, nothing else.`;
     }
 
     // Step 1: Generate UNIQUE AI images for each section
-    console.log('Generating UNIQUE AI images with Lovable AI...');
+    console.log('Generating UNIQUE AI images with Replicate Flux...');
 
     // IMPORTANT: Use a short food/topic phrase for images (not the full clickbait title)
     const imageSubject = getImageSubject(focusKeyword, seoTitle);
@@ -457,7 +487,7 @@ Return ONLY the title, nothing else.`;
         imageSubject,
         imageContexts[i],
         i + 1,
-        LOVABLE_API_KEY,
+        REPLICATE_API_KEY,
         supabase
       );
       imageUrls.push(imageUrl);
