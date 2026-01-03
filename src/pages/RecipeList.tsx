@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye, Clock, Timer } from 'lucide-react';
+import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye, Clock, Timer, Settings } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 // Estimated time per article in seconds (based on 4 images + content generation)
@@ -129,6 +129,19 @@ const RecipeList = () => {
     }
   };
 
+  // Get settings from localStorage
+  const getSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('recipe_settings');
+      if (savedSettings) {
+        return JSON.parse(savedSettings);
+      }
+    } catch (e) {
+      console.error('Failed to parse settings:', e);
+    }
+    return { sitemapUrl: '', imageQuality: 'medium', aspectRatio: '16:9' };
+  };
+
   const processNextRecipe = async () => {
     const pendingRecipe = recipes.find(r => r.status === 'pending');
     if (!pendingRecipe) {
@@ -140,15 +153,17 @@ const RecipeList = () => {
     setElapsedTime(0);
     setIsTimerRunning(true);
     
-    // Get sitemap URL from localStorage
-    const sitemapUrl = localStorage.getItem('recipe_sitemap_url') || undefined;
+    // Get settings from localStorage
+    const settings = getSettings();
     
     try {
       const { error } = await supabase.functions.invoke('generate-article', {
         body: { 
           recipeId: pendingRecipe.id, 
           title: pendingRecipe.title,
-          sitemapUrl 
+          sitemapUrl: settings.sitemapUrl || undefined,
+          imageQuality: settings.imageQuality,
+          aspectRatio: settings.aspectRatio
         },
       });
 
@@ -176,8 +191,8 @@ const RecipeList = () => {
     setIsTimerRunning(true);
     toast.info(`Starting generation for ${pendingRecipes.length} recipes...`);
 
-    // Get sitemap URL from localStorage
-    const sitemapUrl = localStorage.getItem('recipe_sitemap_url') || undefined;
+    // Get settings from localStorage
+    const settings = getSettings();
 
     for (let i = 0; i < pendingRecipes.length; i++) {
       const recipe = pendingRecipes[i];
@@ -189,7 +204,9 @@ const RecipeList = () => {
           body: { 
             recipeId: recipe.id, 
             title: recipe.title,
-            sitemapUrl 
+            sitemapUrl: settings.sitemapUrl || undefined,
+            imageQuality: settings.imageQuality,
+            aspectRatio: settings.aspectRatio
           },
         });
         setProgressData({ current: i + 1, total: pendingRecipes.length });
@@ -271,8 +288,17 @@ const RecipeList = () => {
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="bg-primary text-primary-foreground py-3 px-4">
-        <div className="container mx-auto">
+        <div className="container mx-auto flex items-center justify-between">
           <h1 className="text-xl font-semibold">Recipe Writer</h1>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/settings')}
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
         </div>
       </header>
 
