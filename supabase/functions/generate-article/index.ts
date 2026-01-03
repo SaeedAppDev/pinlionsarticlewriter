@@ -141,26 +141,62 @@ async function callGroqAI(prompt: string, systemPrompt: string, GROQ_API_KEY: st
   return data.choices?.[0]?.message?.content || '';
 }
 
-// Get free food images from Unsplash
-async function getUnsplashImages(query: string, count: number = 4): Promise<string[]> {
+// Get free food images from Pexels API (15,000 requests/month free)
+async function getPexelsImages(query: string, count: number = 7): Promise<string[]> {
+  const PEXELS_API_KEY = Deno.env.get('PEXELS_API_KEY');
+  
+  if (!PEXELS_API_KEY) {
+    console.log('No Pexels API key, using Picsum fallback...');
+    return getPicsumFallback(count);
+  }
+  
   try {
-    // Using Unsplash Source (free, no API key required)
-    const images: string[] = [];
-    const searchTerms = query.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(' ').slice(0, 3).join(',');
+    const searchQuery = encodeURIComponent(`${query} food recipe`);
+    const response = await fetch(
+      `https://api.pexels.com/v1/search?query=${searchQuery}&per_page=${count}&orientation=landscape`,
+      {
+        headers: {
+          'Authorization': PEXELS_API_KEY
+        }
+      }
+    );
     
-    for (let i = 0; i < count; i++) {
-      // Random seed to get different images
-      const seed = Date.now() + i;
-      const imageUrl = `https://source.unsplash.com/1200x800/?food,${searchTerms}&sig=${seed}`;
-      images.push(imageUrl);
+    if (!response.ok) {
+      console.error('Pexels API error:', response.status);
+      return getPicsumFallback(count);
     }
     
-    console.log(`Generated ${images.length} Unsplash image URLs`);
+    const data = await response.json();
+    const images = data.photos?.map((photo: any) => photo.src.large) || [];
+    
+    console.log(`Got ${images.length} images from Pexels`);
+    
+    // If not enough images, fill with Picsum
+    if (images.length < count) {
+      const fallback = getPicsumFallback(count - images.length);
+      images.push(...fallback);
+    }
+    
     return images;
   } catch (error) {
-    console.error('Error getting Unsplash images:', error);
-    return [];
+    console.error('Error getting Pexels images:', error);
+    return getPicsumFallback(count);
   }
+}
+
+// Fallback to Picsum (always works, random food-related images)
+function getPicsumFallback(count: number): string[] {
+  const images: string[] = [];
+  // Using specific Picsum IDs that look like food/cooking
+  const foodImageIds = [292, 493, 674, 1080, 1099, 225, 326, 429, 488, 835];
+  
+  for (let i = 0; i < count; i++) {
+    const id = foodImageIds[i % foodImageIds.length];
+    images.push(`https://picsum.photos/id/${id}/1200/800`);
+  }
+  
+  console.log(`Generated ${images.length} Picsum fallback images`);
+  return images;
 }
 
 // Find relevant URLs from sitemap
@@ -267,9 +303,9 @@ Return ONLY the title, nothing else.`;
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
-    // Step 1: Get FREE images from Unsplash
-    console.log('Getting FREE images from Unsplash...');
-    const imageUrls = await getUnsplashImages(seoTitle, 4);
+    // Step 1: Get FREE images from Pexels
+    console.log('Getting FREE images from Pexels...');
+    const imageUrls = await getPexelsImages(seoTitle, 7);
     console.log(`Got ${imageUrls.length} images`);
 
     // Build internal links section
@@ -287,7 +323,7 @@ Place these links naturally within paragraphs where they make sense.`;
     // Step 2: Generate SEO-optimized article content
     console.log('Generating article content with Groq (FREE)...');
     
-    const articleSystemPrompt = `You are a professional food blogger. Write a complete SEO-optimized recipe article in English using the exact structure below.
+    const articleSystemPrompt = `You are a professional food blogger and SEO expert. Write a COMPREHENSIVE, LONG, and detailed SEO-optimized recipe article in English. The article should be 2500-3500 words.
 ${internalLinksInstruction}
 
 STRUCTURE TO FOLLOW:
@@ -297,67 +333,131 @@ STRUCTURE TO FOLLOW:
 {{IMAGE_1}}
 
 <h2>Introduction</h2>
-<p>Brief overview of the dish. 2-3 paragraphs.</p>
+<p>Engaging overview of the dish. 3-4 paragraphs covering why this recipe is special, perfect occasions to make it, and what makes it unique. Hook the reader.</p>
 
-<h2>Why You'll Love This Recipe</h2>
-<ul><li>3-5 bullet points highlighting key benefits</li></ul>
-
-<h2>Ingredients</h2>
-<p>Brief intro line</p>
-<ul><li>Full ingredient list with exact measurements</li></ul>
-
-<h2>Equipment Needed</h2>
-<ul><li>List required kitchen tools</li></ul>
+<h2>What Makes This Recipe Special</h2>
+<p>2-3 paragraphs explaining the origins, history, or unique aspects of this dish.</p>
 
 {{IMAGE_2}}
 
-<h2>Instructions</h2>
-<p>Brief intro line</p>
-<ol><li>Step-by-step cooking instructions. Use <strong> for key actions.</li></ol>
+<h2>Why You'll Love This Recipe</h2>
+<ul>
+<li><strong>Reason 1:</strong> detailed explanation</li>
+<li><strong>Reason 2:</strong> detailed explanation</li>
+<li><strong>Reason 3:</strong> detailed explanation</li>
+<li><strong>Reason 4:</strong> detailed explanation</li>
+<li><strong>Reason 5:</strong> detailed explanation</li>
+</ul>
+
+<h2>Ingredients You'll Need</h2>
+<p>Introduction paragraph about ingredient quality and sourcing.</p>
+
+<h3>Main Ingredients</h3>
+<ul><li>Full ingredient list with exact measurements and notes</li></ul>
+
+<h3>For the Topping/Frosting (if applicable)</h3>
+<ul><li>Additional ingredients</li></ul>
+
+<h3>Optional Add-ins</h3>
+<ul><li>Extra flavor options</li></ul>
 
 {{IMAGE_3}}
 
-<h2>Tips & Variations</h2>
-<ul>
-<li><strong>Cooking tips:</strong> practical advice</li>
-<li><strong>Ingredient substitutions:</strong> alternatives</li>
-<li><strong>Flavor variations:</strong> different ways to customize</li>
-</ul>
+<h2>Equipment Needed</h2>
+<p>Brief intro about kitchen tools.</p>
+<ul><li>List each required tool with explanation of why it's needed</li></ul>
 
-<h2>How to Serve</h2>
-<p>Serving suggestions, side dishes, toppings, garnishes.</p>
+<h2>Step-by-Step Instructions</h2>
+<p>Let me walk you through the entire process in detail.</p>
 
-<h2>Storage & Reheating</h2>
-<ul>
-<li><strong>Storage:</strong> How to store leftovers</li>
-<li><strong>Reheating:</strong> Best reheating instructions</li>
-</ul>
+<h3>Step 1: Preparation</h3>
+<p>Detailed preparation instructions. 2-3 sentences with tips.</p>
 
-<h2>Nutrition Information</h2>
-<p>Estimated calories and basic macros per serving.</p>
+<h3>Step 2: [Next Major Step]</h3>
+<p>Continue with detailed instructions...</p>
+
+(Continue with 6-8 detailed steps, each with its own H3)
 
 {{IMAGE_4}}
 
-<h2>FAQs</h2>
-<h3>Question 1?</h3>
-<p>Answer</p>
-(Include 3-5 common questions)
+<h2>Pro Tips for Perfect Results</h2>
+<p>Introduction to tips section.</p>
+<ul>
+<li><strong>Tip 1:</strong> detailed practical advice</li>
+<li><strong>Tip 2:</strong> detailed practical advice</li>
+<li><strong>Tip 3:</strong> detailed practical advice</li>
+<li><strong>Tip 4:</strong> detailed practical advice</li>
+<li><strong>Tip 5:</strong> detailed practical advice</li>
+</ul>
+
+{{IMAGE_5}}
+
+<h2>Ingredient Substitutions & Variations</h2>
+<h3>Dietary Modifications</h3>
+<ul>
+<li><strong>Gluten-free:</strong> how to modify</li>
+<li><strong>Dairy-free:</strong> how to modify</li>
+<li><strong>Vegan:</strong> how to modify</li>
+</ul>
+
+<h3>Flavor Variations</h3>
+<p>Different ways to customize the recipe with alternative flavors, spices, or ingredients.</p>
+
+<h2>Serving Suggestions</h2>
+<p>2-3 paragraphs with detailed serving ideas, side dishes, toppings, garnishes, and presentation tips.</p>
+
+{{IMAGE_6}}
+
+<h2>Storage & Meal Prep</h2>
+<h3>Short-term Storage</h3>
+<p>How to store for a few days, container recommendations.</p>
+
+<h3>Freezing Instructions</h3>
+<p>How to freeze, how long it lasts, thawing instructions.</p>
+
+<h3>Reheating Tips</h3>
+<p>Best methods to reheat while maintaining quality.</p>
+
+<h2>Nutrition Information</h2>
+<p>Detailed nutritional breakdown per serving with calories, protein, carbs, fat, fiber, sugar.</p>
+
+<h2>Frequently Asked Questions</h2>
+
+<h3>Can I make this ahead of time?</h3>
+<p>Detailed answer about meal prep options.</p>
+
+<h3>How do I know when it's done?</h3>
+<p>Signs of doneness and testing methods.</p>
+
+<h3>What if I don't have [key ingredient]?</h3>
+<p>Substitution advice.</p>
+
+<h3>Can I double this recipe?</h3>
+<p>Scaling instructions and tips.</p>
+
+<h3>Why did my [dish] turn out [common problem]?</h3>
+<p>Troubleshooting common issues.</p>
+
+{{IMAGE_7}}
 
 <h2>Final Thoughts</h2>
-<p>Short summary with call-to-action.</p>
+<p>2-3 paragraphs summarizing the recipe, encouraging readers to try it, and inviting them to comment or share their results. Include a call-to-action.</p>
 
-GUIDELINES:
-- Use proper H1, H2, H3 headings
-- Keep paragraphs short (2-3 sentences)
-- Natural, human-like English
+CRITICAL GUIDELINES:
+- Write 2500-3500 words minimum
+- Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
+- Use proper H1, H2, H3 headings hierarchy
+- Keep paragraphs detailed but readable (3-5 sentences each)
+- Natural, conversational English like a real food blogger
 - No emojis
-- Use <strong> for key points
-- Output clean HTML only`;
+- Use <strong> to emphasize key points
+- Output clean HTML only
+- Include the focus keyword naturally 10-15 times throughout`;
 
     const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a complete SEO-optimized recipe article following the structure above. Include the focus keyword "${focusKeyword}" naturally. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`;
+Write a COMPREHENSIVE, LONG (2500-3500 words), SEO-optimized recipe article following the structure above. Include the focus keyword "${focusKeyword}" naturally 10-15 times throughout. Include ALL 7 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}`;
 
     const articleContent = await callGroqAI(articlePrompt, articleSystemPrompt, GROQ_API_KEY);
 
@@ -365,9 +465,9 @@ Write a complete SEO-optimized recipe article following the structure above. Inc
       throw new Error("No content generated");
     }
 
-    // Step 3: Replace image placeholders with Unsplash URLs
+    // Step 3: Replace image placeholders with real image URLs
     let finalContent = articleContent;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 7; i++) {
       const placeholder = `{{IMAGE_${i + 1}}}`;
       if (imageUrls[i]) {
         finalContent = finalContent.replace(
