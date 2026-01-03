@@ -163,7 +163,7 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
 
     console.log(`Generated ${imageUrls.length} images`);
 
-    // Step 3: Generate article content with conversational, fun tone
+    // Step 3: Generate SEO-optimized article content
     console.log('Generating article content...');
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -176,59 +176,83 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
         messages: [
           {
             role: "system",
-            content: `You are a friendly, helpful food blogger. Write clear, easy-to-follow recipe articles in HTML format - around 800-1000 words.
+            content: `You are a professional food blogger. Write a complete SEO-optimized recipe article in English using the exact structure below.
 
-Keep the tone warm and encouraging—perfect for beginner cooks who want simple, reliable instructions.
+Follow a food-blog style similar to professional recipe websites. Output clean HTML only, no markdown.
 
-Structure the article EXACTLY like this:
+STRUCTURE TO FOLLOW (use these EXACT headings):
 
-1. **Short, Catchy Intro** (NO heading - just start with <p> tags):
-   Start with 2-3 sentences introducing the dish in a friendly, inviting way. Make it sound delicious and approachable. Example: "Are you ready to dive into a world of flavors with a dish that smells absolutely amazing? This recipe is a must-try and perfect for beginners!"
+<h1>[Recipe Title]</h1>
 
 {{IMAGE_1}}
 
-2. <h2>Ingredients List</h2>
-   <p>Brief intro line like "Gather these simple ingredients:"</p>
-   List all ingredients clearly in <ul><li> bullet points. Include exact measurements.
+<h2>Introduction</h2>
+<p>Brief overview of the dish. Mention taste, aroma, and why readers will love it. 2-3 paragraphs.</p>
 
-3. <h2>Step-by-Step Instructions</h2>
-   <p>Brief intro like "Follow these easy steps:"</p>
-   Use <ol><li> numbered list format. Each step should be clear and detailed, using <strong> to bold key actions. Keep paragraphs short (2-3 sentences per step).
+<h2>Why You'll Love This Recipe</h2>
+<ul><li> 3-5 bullet points highlighting key benefits (easy to make, budget-friendly, crowd-pleaser, etc.)</li></ul>
+
+<h2>Ingredients</h2>
+<p>Brief intro line</p>
+<ul><li>Full ingredient list with exact measurements in bullet points</li></ul>
+
+<h2>Equipment Needed</h2>
+<ul><li>List required kitchen tools</li></ul>
 
 {{IMAGE_2}}
 
-4. <h2>Tips for Better Results</h2>
-   <p>Brief intro like "Here are some handy tips:"</p>
-   List 4-5 helpful tips using <ul><li> bullet points. Use <strong> at the start of each tip. Make tips practical and actionable.
+<h2>Instructions</h2>
+<p>Brief intro line</p>
+<ol><li>Step-by-step cooking instructions. Numbered steps. Clear and simple language. Use <strong> for key actions.</li></ol>
 
 {{IMAGE_3}}
 
-5. <h2>Variations (Optional Add-ons)</h2>
-   <p>Brief intro like "Want to switch things up? Here are some fun variations:"</p>
-   List 3-4 creative variations using <ul><li> bullet points. Use <strong> for variation names.
+<h2>Tips & Variations</h2>
+<p>Brief intro</p>
+<ul>
+<li><strong>Cooking tips:</strong> practical advice</li>
+<li><strong>Ingredient substitutions:</strong> alternatives</li>
+<li><strong>Flavor variations:</strong> different ways to customize</li>
+</ul>
 
-6. <h2>Serving Suggestions</h2>
-   <p>Brief intro like "Presentation matters! Here's how to serve:"</p>
-   List 3-4 serving ideas using <ul><li> bullet points or short paragraph.
+<h2>How to Serve</h2>
+<p>Serving suggestions, side dishes, toppings, garnishes.</p>
+
+<h2>Storage & Reheating</h2>
+<ul>
+<li><strong>Storage:</strong> How to store leftovers</li>
+<li><strong>Reheating:</strong> Best reheating instructions</li>
+</ul>
+
+<h2>Nutrition Information</h2>
+<p>Estimated calories and basic macros per serving (approximate values).</p>
 
 {{IMAGE_4}}
 
-7. <h2>Conclusion</h2>
-   Wrap up with an encouraging 2-3 sentence paragraph. Mention the recipe name in <strong>. End with something like "Happy cooking!"
+<h2>FAQs (Frequently Asked Questions)</h2>
+<h3>Question 1?</h3>
+<p>Answer</p>
+<h3>Question 2?</h3>
+<p>Answer</p>
+(Include 3-5 common questions with clear answers)
 
-STYLING RULES (MUST FOLLOW):
-- Keep paragraphs short and easy to read
-- Use <strong> to bold key tips, ingredients, and important points
-- Keep the tone warm, friendly, and encouraging
-- Write for beginners who want clear, reliable instructions
-- Avoid passive voice; use active, direct language
-- Output clean HTML only, no markdown`
+<h2>Final Thoughts</h2>
+<p>Short summary. Encourage readers to try or save the recipe. End with a friendly call-to-action.</p>
+
+IMPORTANT GUIDELINES:
+- Use proper H1, H2, H3 headings as shown
+- Keep paragraphs short and readable (2-3 sentences max)
+- Use natural, human-like English
+- Avoid emojis
+- Make the content 100% original
+- Use <strong> to bold key points and tips
+- Output clean HTML only`
           },
           {
             role: "user",
-            content: `Recipe: "${title}"
+            content: `RECIPE TOPIC: "${title}"
 
-Write a complete, friendly, easy-to-follow recipe article following the EXACT structure above (Intro, Ingredients List, Step-by-Step Instructions, Tips for Better Results, Variations, Serving Suggestions, Conclusion). Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
+Write a complete SEO-optimized recipe article following the EXACT structure above. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
           }
         ],
       }),
