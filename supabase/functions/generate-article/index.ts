@@ -45,31 +45,80 @@ async function fetchSitemapUrls(sitemapUrl: string): Promise<string[]> {
   }
 }
 
+// Call Gemini API for text generation
+async function callGeminiText(prompt: string, systemPrompt: string, GEMINI_API_KEY: string): Promise<string> {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        { role: "user", parts: [{ text: systemPrompt + "\n\n" + prompt }] }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8192,
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API error:", response.status, errorText);
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+// Call Gemini API for image generation
+async function callGeminiImage(prompt: string, GEMINI_API_KEY: string): Promise<string | null> {
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          { role: "user", parts: [{ text: prompt }] }
+        ],
+        generationConfig: {
+          responseModalities: ["image", "text"],
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini Image API error:", response.status, errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Gemini Image generation error:", error);
+    return null;
+  }
+}
+
 // Find relevant URLs from sitemap based on recipe topic
 async function findRelevantUrls(
   sitemapUrls: string[], 
   topic: string, 
-  LOVABLE_API_KEY: string
+  GEMINI_API_KEY: string
 ): Promise<Array<{ url: string; anchorText: string }>> {
   if (sitemapUrls.length === 0) return [];
   
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.`
-          },
-          {
-            role: "user",
-            content: `Topic: "${topic}"
+    const prompt = `Topic: "${topic}"
 
 Available URLs:
 ${sitemapUrls.slice(0, 50).join('\n')}
@@ -77,16 +126,9 @@ ${sitemapUrls.slice(0, 50).join('\n')}
 Find 3-5 URLs most relevant to this topic for internal linking. Return JSON array:
 [{"url": "full_url", "anchorText": "natural anchor text for the link"}]
 
-Only return valid JSON array, nothing else.`
-          }
-        ],
-      }),
-    });
+Only return valid JSON array, nothing else.`;
 
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
+    const content = await callGeminiText(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', GEMINI_API_KEY);
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     
     if (jsonMatch) {
@@ -128,9 +170,10 @@ serve(async (req) => {
     console.log(`Generating article for: ${title} (ID: ${recipeId})`);
     console.log(`Image settings: quality=${imageQuality}, aspectRatio=${aspectRatio}`);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Use direct Gemini API key instead of Lovable AI
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
 
     // Get dimensions for aspect ratio
@@ -152,24 +195,14 @@ serve(async (req) => {
     let relevantLinks: Array<{ url: string; anchorText: string }> = [];
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl);
-      relevantLinks = await findRelevantUrls(sitemapUrls, title, LOVABLE_API_KEY);
+      relevantLinks = await findRelevantUrls(sitemapUrls, title, GEMINI_API_KEY);
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
     // Step 1: Generate REALISTIC image prompts for the article
     console.log('Generating image prompts...');
-    const imagePromptsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You generate HYPER-REALISTIC food photography prompts. The goal is to create images that look like REAL photographs taken by a professional food photographer, NOT AI-generated looking images.
+    
+    const imagePromptsSystemPrompt = `You generate HYPER-REALISTIC food photography prompts. The goal is to create images that look like REAL photographs taken by a professional food photographer, NOT AI-generated looking images.
 
 CRITICAL REQUIREMENTS for realistic images:
 - Specify REAL camera and lens (Canon 5D Mark IV, Sony A7III, 85mm f/1.4, 50mm f/1.8)
@@ -180,22 +213,16 @@ CRITICAL REQUIREMENTS for realistic images:
 - Describe NATURAL food appearance: slightly uneven browning, natural color variations, visible texture
 - Avoid: perfect symmetry, unnaturally vibrant colors, floating food, fake-looking steam
 
-Return exactly 4 prompts as JSON array.`
-          },
-          {
-            role: "user",
-            content: `Generate 4 HYPER-REALISTIC food photography prompts for: "${title}"
+Return exactly 4 prompts as JSON array.`;
+
+    const imagePromptsPrompt = `Generate 4 HYPER-REALISTIC food photography prompts for: "${title}"
 
 1. Hero shot - overhead or 45-degree, looks like editorial food magazine
 2. Ingredient close-up - raw ingredients with natural imperfections
 3. Cooking action - steam, sizzle, motion blur, real kitchen environment
 4. Served dish - on a real table with authentic styling, human presence
 
-Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`
-          }
-        ],
-      }),
-    });
+Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`;
 
     let imagePrompts = [
       `Hyper-realistic food photography of ${title}, shot on Canon 5D Mark IV with 50mm f/1.4 lens, natural window light casting soft shadows, overhead angle on weathered oak table with visible grain, rustic ceramic plate with slight imperfections, fresh herbs scattered naturally with some fallen leaves, slight steam rising naturally, shallow depth of field, editorial food magazine quality, NOT AI generated, real photograph`,
@@ -204,17 +231,14 @@ Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`
       `${title} served on vintage stoneware plate with hairline cracks, real dining table setting with wrinkled linen napkin, fork resting naturally with food partially eaten, wine glass with fingerprints, breadcrumbs scattered on table, warm evening light from nearby window, human presence implied, lifestyle food photography, magazine editorial quality`
     ];
 
-    if (imagePromptsResponse.ok) {
-      try {
-        const promptsData = await imagePromptsResponse.json();
-        const promptsText = promptsData.choices?.[0]?.message?.content || '';
-        const jsonMatch = promptsText.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          imagePrompts = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.log('Using default realistic image prompts');
+    try {
+      const promptsText = await callGeminiText(imagePromptsPrompt, imagePromptsSystemPrompt, GEMINI_API_KEY);
+      const jsonMatch = promptsText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        imagePrompts = JSON.parse(jsonMatch[0]);
       }
+    } catch (e) {
+      console.log('Using default realistic image prompts');
     }
 
     console.log('Image prompts ready:', imagePrompts.length);
@@ -228,52 +252,31 @@ Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`
         // Add realism boosters and quality/aspect ratio to each prompt
         const realismBooster = ` Captured with professional DSLR camera, natural lighting with visible shadows, authentic food styling with intentional imperfections, NOT computer generated, real photograph with film grain texture, slightly desaturated natural colors. ${qualitySuffix}. ${aspectRatio} aspect ratio, ${dimensions.width}x${dimensions.height} pixels.`;
         
-        const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: imagePrompts[i] + realismBooster
-              }
-            ],
-            modalities: ["image", "text"]
-          }),
-        });
-
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json();
-          const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        const base64Url = await callGeminiImage(imagePrompts[i] + realismBooster, GEMINI_API_KEY);
+        
+        if (base64Url && base64Url.startsWith('data:image')) {
+          // Upload to Supabase Storage as WEBP
+          const imageBytes = base64ToUint8Array(base64Url);
+          const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.webp`;
           
-          if (base64Url && base64Url.startsWith('data:image')) {
-            // Upload to Supabase Storage as WEBP
-            const imageBytes = base64ToUint8Array(base64Url);
-            const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.webp`;
-            
-            const { data: uploadData, error: uploadError } = await supabase.storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('article-images')
+            .upload(fileName, imageBytes, {
+              contentType: 'image/webp',
+              upsert: true
+            });
+          
+          if (uploadError) {
+            console.error(`Upload error for image ${i + 1}:`, uploadError);
+          } else {
+            // Get public URL
+            const { data: urlData } = supabase.storage
               .from('article-images')
-              .upload(fileName, imageBytes, {
-                contentType: 'image/webp',
-                upsert: true
-              });
+              .getPublicUrl(fileName);
             
-            if (uploadError) {
-              console.error(`Upload error for image ${i + 1}:`, uploadError);
-            } else {
-              // Get public URL
-              const { data: urlData } = supabase.storage
-                .from('article-images')
-                .getPublicUrl(fileName);
-              
-              if (urlData?.publicUrl) {
-                imageUrls.push(urlData.publicUrl);
-                console.log(`Image ${i + 1} uploaded successfully as WebP`);
-              }
+            if (urlData?.publicUrl) {
+              imageUrls.push(urlData.publicUrl);
+              console.log(`Image ${i + 1} uploaded successfully as WebP`);
             }
           }
         }
@@ -301,18 +304,8 @@ Place these links naturally within paragraphs where they make sense. Do not crea
 
     // Step 3: Generate SEO-optimized article content
     console.log('Generating article content...');
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional food blogger. Write a complete SEO-optimized recipe article in English using the exact structure below.
+    
+    const articleSystemPrompt = `You are a professional food blogger. Write a complete SEO-optimized recipe article in English using the exact structure below.
 
 Follow a food-blog style similar to professional recipe websites. Output clean HTML only, no markdown.
 ${internalLinksInstruction}
@@ -383,65 +376,30 @@ IMPORTANT GUIDELINES:
 - Avoid emojis
 - Make the content 100% original
 - Use <strong> to bold key points and tips
-- Output clean HTML only`
-          },
-          {
-            role: "user",
-            content: `RECIPE TOPIC: "${title}"
+- Output clean HTML only`;
 
-Write a complete SEO-optimized recipe article following the EXACT structure above. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
-          }
-        ],
-      }),
-    });
+    const articlePrompt = `RECIPE TOPIC: "${title}"
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        await supabase
-          .from('recipes')
-          .update({ status: 'error', error_message: 'Rate limit exceeded. Please try again later.' })
-          .eq('id', recipeId);
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      if (response.status === 402) {
-        await supabase
-          .from('recipes')
-          .update({ status: 'error', error_message: 'Payment required. Please add credits.' })
-          .eq('id', recipeId);
-        return new Response(JSON.stringify({ error: "Payment required" }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+Write a complete SEO-optimized recipe article following the EXACT structure above. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`;
 
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    let articleContent = data.choices?.[0]?.message?.content;
+    const articleContent = await callGeminiText(articlePrompt, articleSystemPrompt, GEMINI_API_KEY);
 
     if (!articleContent) {
       throw new Error("No content generated");
     }
 
     // Step 4: Replace image placeholders with actual image URLs
+    let finalContent = articleContent;
     for (let i = 0; i < 4; i++) {
       const placeholder = `{{IMAGE_${i + 1}}}`;
       if (imageUrls[i]) {
-        articleContent = articleContent.replace(
+        finalContent = finalContent.replace(
           placeholder,
           `<figure class="article-image"><img src="${imageUrls[i]}" alt="${title} - Image ${i + 1}" loading="lazy" /></figure>`
         );
       } else {
         // Remove placeholder if no image was generated
-        articleContent = articleContent.replace(placeholder, '');
+        finalContent = finalContent.replace(placeholder, '');
       }
     }
 
@@ -452,47 +410,48 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
       .from('recipes')
       .update({ 
         status: 'completed', 
-        article_content: articleContent,
+        article_content: finalContent,
         error_message: null 
       })
       .eq('id', recipeId);
 
     if (updateError) {
-      console.error("Update error:", updateError);
       throw updateError;
     }
 
     return new Response(JSON.stringify({ 
       success: true, 
-      recipeId,
-      contentLength: articleContent.length,
-      imagesGenerated: imageUrls.length,
-      internalLinksAdded: relevantLinks.length
+      message: 'Article generated successfully',
+      imageCount: imageUrls.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-article function:', error);
+    console.error('Error in generate-article:', error);
     
-    // Try to update status to error
+    // Try to update recipe status to error
     try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { recipeId } = await req.clone().json().catch(() => ({}));
+      const { recipeId } = await req.clone().json();
       if (recipeId) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
         await supabase
           .from('recipes')
-          .update({ status: 'error', error_message: error instanceof Error ? error.message : 'Unknown error' })
+          .update({ 
+            status: 'error', 
+            error_message: error instanceof Error ? error.message : 'Unknown error' 
+          })
           .eq('id', recipeId);
       }
     } catch (e) {
-      console.error('Could not update error status:', e);
+      console.error('Failed to update error status:', e);
     }
-    
+
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
