@@ -140,9 +140,16 @@ const RecipeList = () => {
     setElapsedTime(0);
     setIsTimerRunning(true);
     
+    // Get sitemap URL from localStorage
+    const sitemapUrl = localStorage.getItem('recipe_sitemap_url') || undefined;
+    
     try {
       const { error } = await supabase.functions.invoke('generate-article', {
-        body: { recipeId: pendingRecipe.id, title: pendingRecipe.title },
+        body: { 
+          recipeId: pendingRecipe.id, 
+          title: pendingRecipe.title,
+          sitemapUrl 
+        },
       });
 
       if (error) throw error;
@@ -169,6 +176,9 @@ const RecipeList = () => {
     setIsTimerRunning(true);
     toast.info(`Starting generation for ${pendingRecipes.length} recipes...`);
 
+    // Get sitemap URL from localStorage
+    const sitemapUrl = localStorage.getItem('recipe_sitemap_url') || undefined;
+
     for (let i = 0; i < pendingRecipes.length; i++) {
       const recipe = pendingRecipes[i];
       setProcessingId(recipe.id);
@@ -176,7 +186,11 @@ const RecipeList = () => {
       
       try {
         await supabase.functions.invoke('generate-article', {
-          body: { recipeId: recipe.id, title: recipe.title },
+          body: { 
+            recipeId: recipe.id, 
+            title: recipe.title,
+            sitemapUrl 
+          },
         });
         setProgressData({ current: i + 1, total: pendingRecipes.length });
         // Small delay between requests to avoid rate limiting

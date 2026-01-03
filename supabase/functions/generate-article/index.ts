@@ -18,13 +18,94 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+// Fetch and parse sitemap to get relevant URLs
+async function fetchSitemapUrls(sitemapUrl: string): Promise<string[]> {
+  try {
+    console.log('Fetching sitemap from:', sitemapUrl);
+    const response = await fetch(sitemapUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
+    });
+    
+    if (!response.ok) {
+      console.log('Sitemap fetch failed:', response.status);
+      return [];
+    }
+    
+    const text = await response.text();
+    
+    // Parse URLs from XML sitemap
+    const urlMatches = text.match(/<loc>([^<]+)<\/loc>/g) || [];
+    const urls = urlMatches.map(match => match.replace(/<\/?loc>/g, ''));
+    
+    console.log(`Found ${urls.length} URLs in sitemap`);
+    return urls.slice(0, 100); // Limit to first 100 URLs
+  } catch (error) {
+    console.error('Error fetching sitemap:', error);
+    return [];
+  }
+}
+
+// Find relevant URLs from sitemap based on recipe topic
+async function findRelevantUrls(
+  sitemapUrls: string[], 
+  topic: string, 
+  LOVABLE_API_KEY: string
+): Promise<Array<{ url: string; anchorText: string }>> {
+  if (sitemapUrls.length === 0) return [];
+  
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.`
+          },
+          {
+            role: "user",
+            content: `Topic: "${topic}"
+
+Available URLs:
+${sitemapUrls.slice(0, 50).join('\n')}
+
+Find 3-5 URLs most relevant to this topic for internal linking. Return JSON array:
+[{"url": "full_url", "anchorText": "natural anchor text for the link"}]
+
+Only return valid JSON array, nothing else.`
+          }
+        ],
+      }),
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (error) {
+    console.error('Error finding relevant URLs:', error);
+  }
+  
+  return [];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { recipeId, title } = await req.json();
+    const { recipeId, title, sitemapUrl } = await req.json();
     console.log(`Generating article for: ${title} (ID: ${recipeId})`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -43,7 +124,15 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', recipeId);
 
-    // Step 1: Generate image prompts for the article
+    // Fetch sitemap URLs if provided
+    let relevantLinks: Array<{ url: string; anchorText: string }> = [];
+    if (sitemapUrl) {
+      const sitemapUrls = await fetchSitemapUrls(sitemapUrl);
+      relevantLinks = await findRelevantUrls(sitemapUrls, title, LOVABLE_API_KEY);
+      console.log(`Found ${relevantLinks.length} relevant internal links`);
+    }
+
+    // Step 1: Generate REALISTIC image prompts for the article
     console.log('Generating image prompts...');
     const imagePromptsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -56,31 +145,39 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You generate image prompts for food blog articles. Return exactly 4 image prompts as a JSON array.
-Each prompt should be detailed, photographic style, food photography focused.
-Return ONLY valid JSON array, no other text.`
+            content: `You generate HYPER-REALISTIC food photography prompts. The goal is to create images that look like REAL photographs taken by a professional food photographer, NOT AI-generated looking images.
+
+CRITICAL REQUIREMENTS for realistic images:
+- Specify REAL camera and lens (Canon 5D Mark IV, Sony A7III, 85mm f/1.4, 50mm f/1.8)
+- Include IMPERFECTIONS: slight steam blur, natural shadows, crumbs on table, sauce drips
+- Describe REAL lighting: window light, golden hour, kitchen lighting with shadows
+- Mention AUTHENTIC props: used wooden cutting boards with knife marks, vintage ceramic plates with minor chips, linen napkins with wrinkles
+- Include human elements: hand reaching for food, fork mid-bite, napkin slightly askew
+- Describe NATURAL food appearance: slightly uneven browning, natural color variations, visible texture
+- Avoid: perfect symmetry, unnaturally vibrant colors, floating food, fake-looking steam
+
+Return exactly 4 prompts as JSON array.`
           },
           {
             role: "user",
-            content: `Generate 4 food photography image prompts for an article about: "${title}"
+            content: `Generate 4 HYPER-REALISTIC food photography prompts for: "${title}"
 
-The images should be:
-1. Hero image - beautiful overhead or 45-degree shot of the finished dish
-2. Ingredient/prep shot - closeup of key ingredients or preparation step
-3. Cooking process - action shot showing technique
-4. Final presentation - styled plate with garnish
+1. Hero shot - overhead or 45-degree, looks like editorial food magazine
+2. Ingredient close-up - raw ingredients with natural imperfections
+3. Cooking action - steam, sizzle, motion blur, real kitchen environment
+4. Served dish - on a real table with authentic styling, human presence
 
-Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
+Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`
           }
         ],
       }),
     });
 
     let imagePrompts = [
-      `Professional food photography of ${title}, overhead shot, natural lighting, rustic wooden table, fresh ingredients visible, ultra high resolution`,
-      `Closeup of ingredients for ${title}, kitchen prep scene, soft lighting, shallow depth of field`,
-      `Cooking process shot for ${title}, steam rising, action shot, warm kitchen lighting`,
-      `Beautifully plated ${title}, restaurant style presentation, garnished, food magazine quality`
+      `Hyper-realistic food photography of ${title}, shot on Canon 5D Mark IV with 50mm f/1.4 lens, natural window light casting soft shadows, overhead angle on weathered oak table with visible grain, rustic ceramic plate with slight imperfections, fresh herbs scattered naturally with some fallen leaves, slight steam rising naturally, shallow depth of field, editorial food magazine quality, NOT AI generated, real photograph`,
+      `Close-up of fresh ingredients for ${title}, shot on Sony A7III with 85mm lens, morning kitchen light, ingredients on worn wooden cutting board with knife marks, some moisture droplets on vegetables, natural color variations, slightly uneven arrangement, real textures visible, professional food photography, authentic imperfections`,
+      `Action shot of ${title} being cooked, real kitchen environment with visible stovetop, natural steam and sizzle with slight motion blur, chef's hand visible stirring or flipping, warm tungsten kitchen lighting mixed with daylight, oil splatter on pan edges, authentic cooking moment, documentary style food photography`,
+      `${title} served on vintage stoneware plate with hairline cracks, real dining table setting with wrinkled linen napkin, fork resting naturally with food partially eaten, wine glass with fingerprints, breadcrumbs scattered on table, warm evening light from nearby window, human presence implied, lifestyle food photography, magazine editorial quality`
     ];
 
     if (imagePromptsResponse.ok) {
@@ -92,18 +189,21 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
           imagePrompts = JSON.parse(jsonMatch[0]);
         }
       } catch (e) {
-        console.log('Using default image prompts');
+        console.log('Using default realistic image prompts');
       }
     }
 
     console.log('Image prompts ready:', imagePrompts.length);
 
-    // Step 2: Generate images and upload to storage
-    console.log('Generating images...');
+    // Step 2: Generate images in WEBP format and upload to storage
+    console.log('Generating images in WebP format...');
     const imageUrls: string[] = [];
     
     for (let i = 0; i < Math.min(imagePrompts.length, 4); i++) {
       try {
+        // Add realism boosters to each prompt
+        const realismBooster = " Captured with professional DSLR camera, natural lighting with visible shadows, authentic food styling with intentional imperfections, NOT computer generated, real photograph with film grain texture, slightly desaturated natural colors.";
+        
         const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -115,7 +215,7 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
             messages: [
               {
                 role: "user",
-                content: imagePrompts[i] + ". Professional food photography, 16:9 aspect ratio, ultra high resolution."
+                content: imagePrompts[i] + realismBooster
               }
             ],
             modalities: ["image", "text"]
@@ -127,14 +227,14 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
           const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
           
           if (base64Url && base64Url.startsWith('data:image')) {
-            // Upload to Supabase Storage instead of using base64
+            // Upload to Supabase Storage as WEBP
             const imageBytes = base64ToUint8Array(base64Url);
-            const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.jpg`;
+            const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.webp`;
             
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from('article-images')
               .upload(fileName, imageBytes, {
-                contentType: 'image/jpeg',
+                contentType: 'image/webp',
                 upsert: true
               });
             
@@ -148,7 +248,7 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
               
               if (urlData?.publicUrl) {
                 imageUrls.push(urlData.publicUrl);
-                console.log(`Image ${i + 1} uploaded successfully`);
+                console.log(`Image ${i + 1} uploaded successfully as WebP`);
               }
             }
           }
@@ -162,6 +262,18 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
     }
 
     console.log(`Generated ${imageUrls.length} images`);
+
+    // Build internal links section for the prompt
+    let internalLinksInstruction = '';
+    if (relevantLinks.length > 0) {
+      internalLinksInstruction = `
+
+INTERNAL LINKING REQUIREMENT:
+Naturally incorporate these internal links within the article content where contextually relevant:
+${relevantLinks.map(link => `- <a href="${link.url}">${link.anchorText}</a>`).join('\n')}
+
+Place these links naturally within paragraphs where they make sense. Do not create a separate "Related Links" section.`;
+    }
 
     // Step 3: Generate SEO-optimized article content
     console.log('Generating article content...');
@@ -179,6 +291,7 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
             content: `You are a professional food blogger. Write a complete SEO-optimized recipe article in English using the exact structure below.
 
 Follow a food-blog style similar to professional recipe websites. Output clean HTML only, no markdown.
+${internalLinksInstruction}
 
 STRUCTURE TO FOLLOW (use these EXACT headings):
 
@@ -300,7 +413,7 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
       if (imageUrls[i]) {
         articleContent = articleContent.replace(
           placeholder,
-          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${title} - Image ${i + 1}" /></figure>`
+          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${title} - Image ${i + 1}" loading="lazy" /></figure>`
         );
       } else {
         // Remove placeholder if no image was generated
@@ -329,7 +442,8 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
       success: true, 
       recipeId,
       contentLength: articleContent.length,
-      imagesGenerated: imageUrls.length
+      imagesGenerated: imageUrls.length,
+      internalLinksAdded: relevantLinks.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
