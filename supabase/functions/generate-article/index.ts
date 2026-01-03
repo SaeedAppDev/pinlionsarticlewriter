@@ -8,7 +8,6 @@ const corsHeaders = {
 
 // Convert base64 to Uint8Array for upload
 function base64ToUint8Array(base64: string): Uint8Array {
-  // Remove data URL prefix if present
   const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
   const binaryString = atob(base64Data);
   const bytes = new Uint8Array(binaryString.length);
@@ -18,10 +17,9 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-// Fetch and parse sitemap to get relevant URLs - supports nested WordPress/Yoast sitemaps
+// Fetch and parse sitemap to get relevant URLs
 async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'): Promise<string[]> {
   try {
-    // Build the actual sitemap URL based on type
     let actualUrl = sitemapUrl.replace(/\/$/, '');
     
     if (sitemapType === 'wordpress') {
@@ -31,7 +29,6 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
     } else if (sitemapType === 'standard') {
       actualUrl = `${actualUrl}/sitemap.xml`;
     } else if (sitemapType === 'auto') {
-      // Try to detect the sitemap type
       const tryUrls = [
         `${actualUrl}/wp-sitemap.xml`,
         `${actualUrl}/sitemap_index.xml`,
@@ -53,7 +50,6 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
         }
       }
     }
-    // If custom type, use the URL as-is
     
     console.log('Fetching sitemap from:', actualUrl);
     const response = await fetch(actualUrl, {
@@ -66,32 +62,24 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
     }
     
     const text = await response.text();
-    
-    // Check if this is a sitemap index (WordPress/Yoast/RankMath style)
     const isSitemapIndex = text.includes('<sitemapindex') || text.includes('sitemap-posts') || text.includes('wp-sitemap-posts');
     
     if (isSitemapIndex) {
       console.log('Detected sitemap index, fetching child sitemaps...');
       
-      // Extract child sitemap URLs
       const sitemapMatches = text.match(/<loc>([^<]+\.xml)<\/loc>/g) || [];
       const childSitemaps = sitemapMatches.map(match => match.replace(/<\/?loc>/g, ''));
       
-      // Filter to only get post/page sitemaps (not users, taxonomies, etc.)
       const relevantSitemaps = childSitemaps.filter(url => 
-        url.includes('post') || 
-        url.includes('page') || 
-        url.includes('article') ||
-        url.includes('recipe') ||
-        url.includes('blog')
+        url.includes('post') || url.includes('page') || url.includes('article') ||
+        url.includes('recipe') || url.includes('blog')
       );
       
       console.log(`Found ${relevantSitemaps.length} relevant child sitemaps out of ${childSitemaps.length} total`);
       
-      // Fetch URLs from each child sitemap
       const allUrls: string[] = [];
       
-      for (const childUrl of relevantSitemaps.slice(0, 5)) { // Limit to first 5 sitemaps
+      for (const childUrl of relevantSitemaps.slice(0, 5)) {
         try {
           const childResponse = await fetch(childUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
@@ -102,7 +90,7 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
             const urlMatches = childText.match(/<loc>([^<]+)<\/loc>/g) || [];
             const urls = urlMatches
               .map(match => match.replace(/<\/?loc>/g, ''))
-              .filter(url => !url.endsWith('.xml')); // Exclude sitemap references
+              .filter(url => !url.endsWith('.xml'));
             
             allUrls.push(...urls);
             console.log(`Fetched ${urls.length} URLs from ${childUrl}`);
@@ -113,92 +101,119 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
       }
       
       console.log(`Total URLs collected: ${allUrls.length}`);
-      return allUrls.slice(0, 200); // Limit total URLs
+      return allUrls.slice(0, 200);
     }
     
-    // Standard sitemap - parse URLs directly
     const urlMatches = text.match(/<loc>([^<]+)<\/loc>/g) || [];
     const urls = urlMatches
       .map(match => match.replace(/<\/?loc>/g, ''))
-      .filter(url => !url.endsWith('.xml')); // Exclude nested sitemap references
+      .filter(url => !url.endsWith('.xml'));
     
     console.log(`Found ${urls.length} URLs in sitemap`);
-    return urls.slice(0, 200); // Limit to first 200 URLs
+    return urls.slice(0, 200);
   } catch (error) {
     console.error('Error fetching sitemap:', error);
     return [];
   }
 }
 
-// Call Gemini API for text generation
-async function callGeminiText(prompt: string, systemPrompt: string, GEMINI_API_KEY: string): Promise<string> {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+// Call Lovable AI Gateway for text generation
+async function callLovableAI(prompt: string, systemPrompt: string, LOVABLE_API_KEY: string): Promise<string> {
+  console.log('Calling Lovable AI Gateway...');
+  
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
-      contents: [
-        { role: "user", parts: [{ text: systemPrompt + "\n\n" + prompt }] }
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
       ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 8192,
-      }
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Gemini API error:", response.status, errorText);
-    throw new Error(`Gemini API error: ${response.status}`);
+    console.error('Lovable AI error:', response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error('Rate limit exceeded. Please try again later.');
+    }
+    if (response.status === 402) {
+      throw new Error('Payment required. Please add credits to your Lovable workspace.');
+    }
+    throw new Error(`Lovable AI error: ${response.status}`);
   }
 
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return data.choices?.[0]?.message?.content || '';
 }
 
-// Call Gemini API for image generation
-async function callGeminiImage(prompt: string, GEMINI_API_KEY: string): Promise<string | null> {
+// Call Lovable AI for image generation
+async function callLovableImageAI(prompt: string, LOVABLE_API_KEY: string): Promise<string | null> {
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    console.log('Generating image with Lovable AI...');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: prompt }] }
+        model: 'google/gemini-2.5-flash-image',
+        messages: [
+          { role: 'user', content: prompt }
         ],
-        generationConfig: {
-          responseModalities: ["image", "text"],
-        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini Image API error:", response.status, errorText);
+      console.error('Lovable AI image error:', response.status, errorText);
       return null;
     }
 
     const data = await response.json();
-    const parts = data.candidates?.[0]?.content?.parts || [];
+    const content = data.choices?.[0]?.message?.content;
     
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+    // Check if the response contains base64 image data
+    if (content && typeof content === 'string') {
+      // The image might be in different formats, check for base64
+      if (content.startsWith('data:image')) {
+        return content;
+      }
+      // Try to extract base64 from markdown image format
+      const base64Match = content.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
+      if (base64Match) {
+        return base64Match[0];
       }
     }
     
+    // Check if there's an image in the response structure
+    if (data.choices?.[0]?.message?.images?.[0]) {
+      const imageData = data.choices[0].message.images[0];
+      if (imageData.url) return imageData.url;
+      if (imageData.base64) return `data:image/webp;base64,${imageData.base64}`;
+    }
+    
+    console.log('No image found in response');
     return null;
   } catch (error) {
-    console.error("Gemini Image generation error:", error);
+    console.error('Lovable AI image generation error:', error);
     return null;
   }
 }
 
-// Find relevant URLs from sitemap based on recipe topic
+// Find relevant URLs from sitemap
 async function findRelevantUrls(
   sitemapUrls: string[], 
   topic: string, 
-  GEMINI_API_KEY: string
+  LOVABLE_API_KEY: string
 ): Promise<Array<{ url: string; anchorText: string }>> {
   if (sitemapUrls.length === 0) return [];
   
@@ -213,7 +228,7 @@ Find 3-5 URLs most relevant to this topic for internal linking. Return JSON arra
 
 Only return valid JSON array, nothing else.`;
 
-    const content = await callGeminiText(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', GEMINI_API_KEY);
+    const content = await callLovableAI(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', LOVABLE_API_KEY);
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     
     if (jsonMatch) {
@@ -238,7 +253,6 @@ const ASPECT_RATIO_DIMENSIONS: Record<string, { width: number; height: number }>
   '21:9': { width: 1680, height: 720 },
 };
 
-// Quality to prompt suffix mapping
 const QUALITY_SUFFIXES: Record<string, string> = {
   low: '512px resolution, quick render',
   medium: '1024px resolution, balanced quality',
@@ -250,18 +264,22 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Store request body for error handling
+  let requestBody: any = null;
+  
   try {
-    const { recipeId, title: focusKeyword, sitemapUrl, sitemapType = 'auto', imageQuality = 'medium', aspectRatio = '16:9' } = await req.json();
+    requestBody = await req.json();
+    const { recipeId, title: focusKeyword, sitemapUrl, sitemapType = 'auto', imageQuality = 'medium', aspectRatio = '16:9' } = requestBody;
+    
     console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
     console.log(`Image settings: quality=${imageQuality}, aspectRatio=${aspectRatio}, sitemapType=${sitemapType}`);
 
-    // Use direct Gemini API key instead of Lovable AI
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
+    // Use Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Get dimensions for aspect ratio
     const dimensions = ASPECT_RATIO_DIMENSIONS[aspectRatio] || ASPECT_RATIO_DIMENSIONS['16:9'];
     const qualitySuffix = QUALITY_SUFFIXES[imageQuality] || QUALITY_SUFFIXES['medium'];
 
@@ -289,21 +307,18 @@ serve(async (req) => {
 Examples:
 - Focus: "chocolate chip cookies" → "Perfect Chocolate Chip Cookies – Soft, Chewy, and Irresistible"
 - Focus: "easy dinner recipes" → "Easy Dinner Recipes for Busy Weeknights – Ready in 30 Minutes"
-- Focus: "Easter brunch ideas" → "Easter Brunch Ideas Everyone Will Love – Simple & Elegant Recipes"
 
 Return ONLY the title, nothing else.`;
 
     const titlePrompt = `Generate an SEO-optimized, beautiful title for this focus keyword: "${focusKeyword}"`;
     
-    let seoTitle = focusKeyword; // Default to focus keyword if generation fails
+    let seoTitle = focusKeyword;
     try {
-      const generatedTitle = await callGeminiText(titlePrompt, titleSystemPrompt, GEMINI_API_KEY);
+      const generatedTitle = await callLovableAI(titlePrompt, titleSystemPrompt, LOVABLE_API_KEY);
       if (generatedTitle && generatedTitle.trim().length > 0) {
-        // Clean up the title - remove quotes, extra whitespace
         seoTitle = generatedTitle.trim().replace(/^["']|["']$/g, '').trim();
         console.log(`Generated SEO title: ${seoTitle}`);
         
-        // Update the recipe title in database with the generated SEO title
         await supabase
           .from('recipes')
           .update({ title: seoTitle })
@@ -317,44 +332,42 @@ Return ONLY the title, nothing else.`;
     let relevantLinks: Array<{ url: string; anchorText: string }> = [];
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
-      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, GEMINI_API_KEY);
+      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, LOVABLE_API_KEY);
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
-    // Step 1: Generate REALISTIC image prompts for the article
+    // Step 1: Generate realistic image prompts
     console.log('Generating image prompts...');
     
-    const imagePromptsSystemPrompt = `You generate HYPER-REALISTIC food photography prompts. The goal is to create images that look like REAL photographs taken by a professional food photographer, NOT AI-generated looking images.
+    const imagePromptsSystemPrompt = `You generate HYPER-REALISTIC food photography prompts for AI image generation.
 
-CRITICAL REQUIREMENTS for realistic images:
-- Specify REAL camera and lens (Canon 5D Mark IV, Sony A7III, 85mm f/1.4, 50mm f/1.8)
-- Include IMPERFECTIONS: slight steam blur, natural shadows, crumbs on table, sauce drips
-- Describe REAL lighting: window light, golden hour, kitchen lighting with shadows
-- Mention AUTHENTIC props: used wooden cutting boards with knife marks, vintage ceramic plates with minor chips, linen napkins with wrinkles
-- Include human elements: hand reaching for food, fork mid-bite, napkin slightly askew
-- Describe NATURAL food appearance: slightly uneven browning, natural color variations, visible texture
-- Avoid: perfect symmetry, unnaturally vibrant colors, floating food, fake-looking steam
+CRITICAL REQUIREMENTS:
+- Specify REAL camera and lens (Canon 5D Mark IV, Sony A7III, 85mm f/1.4)
+- Include IMPERFECTIONS: slight steam blur, natural shadows, crumbs on table
+- Describe REAL lighting: window light, golden hour, kitchen lighting
+- Mention AUTHENTIC props: wooden cutting boards, ceramic plates, linen napkins
+- Include human elements: hand reaching for food, fork mid-bite
 
 Return exactly 4 prompts as JSON array.`;
 
     const imagePromptsPrompt = `Generate 4 HYPER-REALISTIC food photography prompts for: "${seoTitle}"
 
-1. Hero shot - overhead or 45-degree, looks like editorial food magazine
-2. Ingredient close-up - raw ingredients with natural imperfections
-3. Cooking action - steam, sizzle, motion blur, real kitchen environment
-4. Served dish - on a real table with authentic styling, human presence
+1. Hero shot - overhead or 45-degree angle
+2. Ingredient close-up - raw ingredients 
+3. Cooking action - steam, sizzle, motion
+4. Served dish - on table with authentic styling
 
 Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`;
 
     let imagePrompts = [
-      `Hyper-realistic food photography of ${seoTitle}, shot on Canon 5D Mark IV with 50mm f/1.4 lens, natural window light casting soft shadows, overhead angle on weathered oak table with visible grain, rustic ceramic plate with slight imperfections, fresh herbs scattered naturally with some fallen leaves, slight steam rising naturally, shallow depth of field, editorial food magazine quality, NOT AI generated, real photograph`,
-      `Close-up of fresh ingredients for ${seoTitle}, shot on Sony A7III with 85mm lens, morning kitchen light, ingredients on worn wooden cutting board with knife marks, some moisture droplets on vegetables, natural color variations, slightly uneven arrangement, real textures visible, professional food photography, authentic imperfections`,
-      `Action shot of ${seoTitle} being cooked, real kitchen environment with visible stovetop, natural steam and sizzle with slight motion blur, chef's hand visible stirring or flipping, warm tungsten kitchen lighting mixed with daylight, oil splatter on pan edges, authentic cooking moment, documentary style food photography`,
-      `${seoTitle} served on vintage stoneware plate with hairline cracks, real dining table setting with wrinkled linen napkin, fork resting naturally with food partially eaten, wine glass with fingerprints, breadcrumbs scattered on table, warm evening light from nearby window, human presence implied, lifestyle food photography, magazine editorial quality`
+      `Hyper-realistic food photography of ${seoTitle}, shot on Canon 5D Mark IV with 50mm f/1.4 lens, natural window light, overhead angle on weathered oak table, rustic ceramic plate, fresh herbs scattered naturally, slight steam rising, shallow depth of field, editorial food magazine quality`,
+      `Close-up of fresh ingredients for ${seoTitle}, shot on Sony A7III with 85mm lens, morning kitchen light, worn wooden cutting board, moisture droplets on vegetables, natural color variations`,
+      `Action shot of ${seoTitle} being cooked, real kitchen environment, natural steam and sizzle, chef's hand visible, warm kitchen lighting, oil splatter on pan edges`,
+      `${seoTitle} served on vintage stoneware plate, real dining table setting with linen napkin, fork resting naturally, warm evening light, lifestyle food photography`
     ];
 
     try {
-      const promptsText = await callGeminiText(imagePromptsPrompt, imagePromptsSystemPrompt, GEMINI_API_KEY);
+      const promptsText = await callLovableAI(imagePromptsPrompt, imagePromptsSystemPrompt, LOVABLE_API_KEY);
       const jsonMatch = promptsText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         imagePrompts = JSON.parse(jsonMatch[0]);
@@ -365,88 +378,90 @@ Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`;
 
     console.log('Image prompts ready:', imagePrompts.length);
 
-    // Step 2: Generate images in WEBP format and upload to storage
-    console.log('Generating images in WebP format...');
+    // Step 2: Generate images and upload to storage
+    console.log('Generating images...');
     const imageUrls: string[] = [];
     
     for (let i = 0; i < Math.min(imagePrompts.length, 4); i++) {
       try {
-        // Add realism boosters and quality/aspect ratio to each prompt
-        const realismBooster = ` Captured with professional DSLR camera, natural lighting with visible shadows, authentic food styling with intentional imperfections, NOT computer generated, real photograph with film grain texture, slightly desaturated natural colors. ${qualitySuffix}. ${aspectRatio} aspect ratio, ${dimensions.width}x${dimensions.height} pixels.`;
+        const realismBooster = ` Professional DSLR camera, natural lighting with visible shadows, authentic food styling. ${qualitySuffix}. ${aspectRatio} aspect ratio, ${dimensions.width}x${dimensions.height} pixels.`;
         
-        const base64Url = await callGeminiImage(imagePrompts[i] + realismBooster, GEMINI_API_KEY);
+        const base64Url = await callLovableImageAI(imagePrompts[i] + realismBooster, LOVABLE_API_KEY);
         
-        if (base64Url && base64Url.startsWith('data:image')) {
-          // Upload to Supabase Storage as WEBP
-          const imageBytes = base64ToUint8Array(base64Url);
-          const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.webp`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('article-images')
-            .upload(fileName, imageBytes, {
-              contentType: 'image/webp',
-              upsert: true
-            });
-          
-          if (uploadError) {
-            console.error(`Upload error for image ${i + 1}:`, uploadError);
-          } else {
-            // Get public URL
-            const { data: urlData } = supabase.storage
-              .from('article-images')
-              .getPublicUrl(fileName);
+        if (base64Url && (base64Url.startsWith('data:image') || base64Url.startsWith('http'))) {
+          if (base64Url.startsWith('data:image')) {
+            // Upload base64 to Supabase Storage
+            const imageBytes = base64ToUint8Array(base64Url);
+            const fileName = `${recipeId}/image-${i + 1}-${Date.now()}.webp`;
             
-            if (urlData?.publicUrl) {
-              imageUrls.push(urlData.publicUrl);
-              console.log(`Image ${i + 1} uploaded successfully as WebP`);
+            const { error: uploadError } = await supabase.storage
+              .from('article-images')
+              .upload(fileName, imageBytes, {
+                contentType: 'image/webp',
+                upsert: true
+              });
+            
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage
+                .from('article-images')
+                .getPublicUrl(fileName);
+              
+              if (urlData?.publicUrl) {
+                imageUrls.push(urlData.publicUrl);
+                console.log(`Image ${i + 1} uploaded successfully`);
+              }
+            } else {
+              console.error(`Upload error for image ${i + 1}:`, uploadError);
             }
+          } else {
+            // Use URL directly
+            imageUrls.push(base64Url);
+            console.log(`Image ${i + 1} ready (URL)`);
           }
         }
       } catch (imgError) {
         console.error(`Error generating image ${i + 1}:`, imgError);
       }
       
-      // Small delay between image generations
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Delay between image generations to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log(`Generated ${imageUrls.length} images`);
 
-    // Build internal links section for the prompt
+    // Build internal links section
     let internalLinksInstruction = '';
     if (relevantLinks.length > 0) {
       internalLinksInstruction = `
 
 INTERNAL LINKING REQUIREMENT:
-Naturally incorporate these internal links within the article content where contextually relevant:
+Naturally incorporate these internal links within the article content:
 ${relevantLinks.map(link => `- <a href="${link.url}">${link.anchorText}</a>`).join('\n')}
 
-Place these links naturally within paragraphs where they make sense. Do not create a separate "Related Links" section.`;
+Place these links naturally within paragraphs where they make sense.`;
     }
 
     // Step 3: Generate SEO-optimized article content
     console.log('Generating article content...');
     
     const articleSystemPrompt = `You are a professional food blogger. Write a complete SEO-optimized recipe article in English using the exact structure below.
-
-Follow a food-blog style similar to professional recipe websites. Output clean HTML only, no markdown.
 ${internalLinksInstruction}
 
-STRUCTURE TO FOLLOW (use these EXACT headings):
+STRUCTURE TO FOLLOW:
 
 <h1>[Recipe Title]</h1>
 
 {{IMAGE_1}}
 
 <h2>Introduction</h2>
-<p>Brief overview of the dish. Mention taste, aroma, and why readers will love it. 2-3 paragraphs.</p>
+<p>Brief overview of the dish. 2-3 paragraphs.</p>
 
 <h2>Why You'll Love This Recipe</h2>
-<ul><li> 3-5 bullet points highlighting key benefits (easy to make, budget-friendly, crowd-pleaser, etc.)</li></ul>
+<ul><li>3-5 bullet points highlighting key benefits</li></ul>
 
 <h2>Ingredients</h2>
 <p>Brief intro line</p>
-<ul><li>Full ingredient list with exact measurements in bullet points</li></ul>
+<ul><li>Full ingredient list with exact measurements</li></ul>
 
 <h2>Equipment Needed</h2>
 <ul><li>List required kitchen tools</li></ul>
@@ -455,12 +470,11 @@ STRUCTURE TO FOLLOW (use these EXACT headings):
 
 <h2>Instructions</h2>
 <p>Brief intro line</p>
-<ol><li>Step-by-step cooking instructions. Numbered steps. Clear and simple language. Use <strong> for key actions.</li></ol>
+<ol><li>Step-by-step cooking instructions. Use <strong> for key actions.</li></ol>
 
 {{IMAGE_3}}
 
 <h2>Tips & Variations</h2>
-<p>Brief intro</p>
 <ul>
 <li><strong>Cooking tips:</strong> practical advice</li>
 <li><strong>Ingredient substitutions:</strong> alternatives</li>
@@ -477,41 +491,38 @@ STRUCTURE TO FOLLOW (use these EXACT headings):
 </ul>
 
 <h2>Nutrition Information</h2>
-<p>Estimated calories and basic macros per serving (approximate values).</p>
+<p>Estimated calories and basic macros per serving.</p>
 
 {{IMAGE_4}}
 
-<h2>FAQs (Frequently Asked Questions)</h2>
+<h2>FAQs</h2>
 <h3>Question 1?</h3>
 <p>Answer</p>
-<h3>Question 2?</h3>
-<p>Answer</p>
-(Include 3-5 common questions with clear answers)
+(Include 3-5 common questions)
 
 <h2>Final Thoughts</h2>
-<p>Short summary. Encourage readers to try or save the recipe. End with a friendly call-to-action.</p>
+<p>Short summary with call-to-action.</p>
 
-IMPORTANT GUIDELINES:
-- Use proper H1, H2, H3 headings as shown
-- Keep paragraphs short and readable (2-3 sentences max)
-- Use natural, human-like English
-- Avoid emojis
-- Make the content 100% original
-- Use <strong> to bold key points and tips
+GUIDELINES:
+- Use proper H1, H2, H3 headings
+- Keep paragraphs short (2-3 sentences)
+- Natural, human-like English
+- No emojis
+- Use <strong> for key points
 - Output clean HTML only`;
 
     const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a complete SEO-optimized recipe article following the EXACT structure above. Make sure to naturally include the focus keyword "${focusKeyword}" in the content for SEO purposes. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`;
+Write a complete SEO-optimized recipe article following the structure above. Include the focus keyword "${focusKeyword}" naturally. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`;
 
-    const articleContent = await callGeminiText(articlePrompt, articleSystemPrompt, GEMINI_API_KEY);
+    const articleContent = await callLovableAI(articlePrompt, articleSystemPrompt, LOVABLE_API_KEY);
 
     if (!articleContent) {
       throw new Error("No content generated");
     }
 
-    // Step 4: Replace image placeholders with actual image URLs
+    // Step 4: Replace image placeholders with actual URLs
     let finalContent = articleContent;
     for (let i = 0; i < 4; i++) {
       const placeholder = `{{IMAGE_${i + 1}}}`;
@@ -521,7 +532,6 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
           `<figure class="article-image"><img src="${imageUrls[i]}" alt="${seoTitle} - Image ${i + 1}" loading="lazy" /></figure>`
         );
       } else {
-        // Remove placeholder if no image was generated
         finalContent = finalContent.replace(placeholder, '');
       }
     }
@@ -555,7 +565,7 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
     
     // Try to update recipe status to error
     try {
-      const { recipeId } = await req.clone().json();
+      const recipeId = requestBody?.recipeId;
       if (recipeId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
