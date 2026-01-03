@@ -411,6 +411,14 @@ async function generateUniqueImage(
   try {
     console.log(`Generating image ${imageNumber} with contextual prompt: ${prompt.substring(0, 100)}...`);
 
+    // Create enhanced photorealistic prompt - REAL food photography style
+    const realisticPrompt = `Professional food photography, DSLR camera shot, ${prompt}. 
+STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art.
+CAMERA: Shot on Canon EOS R5, 50mm f/1.8 lens, natural lighting from window.
+COMPOSITION: Overhead or 45-degree angle, wooden cutting board or marble surface, rustic kitchen background.
+DETAILS: Visible texture, natural imperfections, authentic food styling, soft shadows.
+QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or Food Network.`;
+
     // Call Replicate API (async). Add backoff retries on 429 to prevent random/unrelated fallbacks.
     let prediction: any | null = null;
     const maxCreateAttempts = 8;
@@ -425,13 +433,13 @@ async function generateUniqueImage(
         body: JSON.stringify({
           version: "black-forest-labs/flux-schnell",
           input: {
-            prompt,
+            prompt: realisticPrompt,
             go_fast: true,
             megapixels: "1",
             num_outputs: 1,
             aspect_ratio: aspectRatio,
             output_format: "webp",
-            output_quality: 80,
+            output_quality: 90,
             num_inference_steps: 4,
           },
         }),
