@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Settings as SettingsIcon, Save, Image, Link2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Save, Image, Link2, Sparkles, FileCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Aspect ratio options
@@ -28,14 +29,26 @@ const QUALITY_OPTIONS = [
   { value: 'high', label: 'High', desc: 'Best quality, slower generation' },
 ];
 
+// Sitemap type options
+const SITEMAP_TYPES = [
+  { value: 'auto', label: 'Auto Detect', desc: 'Automatically detect sitemap format' },
+  { value: 'standard', label: 'Standard XML', desc: 'sitemap.xml - Standard XML sitemap' },
+  { value: 'wordpress', label: 'WordPress Native', desc: 'wp-sitemap.xml - WordPress default sitemap index' },
+  { value: 'yoast', label: 'Yoast SEO', desc: 'sitemap_index.xml - Yoast SEO plugin sitemap' },
+  { value: 'rankmath', label: 'RankMath', desc: 'sitemap_index.xml - RankMath plugin sitemap' },
+  { value: 'custom', label: 'Custom URL', desc: 'Enter your exact sitemap URL' },
+];
+
 interface SettingsData {
   sitemapUrl: string;
+  sitemapType: 'auto' | 'standard' | 'wordpress' | 'yoast' | 'rankmath' | 'custom';
   imageQuality: 'low' | 'medium' | 'high';
   aspectRatio: string;
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
   sitemapUrl: '',
+  sitemapType: 'auto',
   imageQuality: 'medium',
   aspectRatio: '16:9',
 };
@@ -122,27 +135,81 @@ const Settings = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-6 max-w-4xl">
-        {/* Sitemap URL */}
+        {/* Sitemap Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Link2 className="w-5 h-5" />
-              Default Sitemap URL
+              Sitemap Configuration
             </CardTitle>
             <CardDescription>
-              Set your website's sitemap URL for automatic internal linking in generated articles.
+              Configure your website's sitemap for automatic internal linking in generated articles.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Input
-              type="url"
-              placeholder="https://yourwebsite.com/sitemap.xml"
-              value={settings.sitemapUrl}
-              onChange={(e) => setSettings({ ...settings, sitemapUrl: e.target.value })}
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              This URL will be used by default when generating articles to add relevant internal links.
-            </p>
+          <CardContent className="space-y-4">
+            {/* Sitemap Type */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <FileCode className="w-4 h-4" />
+                Sitemap Type
+              </Label>
+              <Select
+                value={settings.sitemapType}
+                onValueChange={(value) => setSettings({ ...settings, sitemapType: value as SettingsData['sitemapType'] })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select sitemap type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SITEMAP_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{type.label}</span>
+                        <span className="text-xs text-muted-foreground">{type.desc}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {settings.sitemapType === 'wordpress' && 'WordPress native sitemap index at /wp-sitemap.xml with child sitemaps for posts, pages, and taxonomies.'}
+                {settings.sitemapType === 'yoast' && 'Yoast SEO creates sitemap_index.xml with separate sitemaps for posts, pages, categories.'}
+                {settings.sitemapType === 'rankmath' && 'RankMath creates sitemap_index.xml similar to Yoast structure.'}
+                {settings.sitemapType === 'standard' && 'Standard XML sitemap with all URLs in a single file.'}
+                {settings.sitemapType === 'auto' && 'Will automatically detect and parse the correct sitemap format.'}
+                {settings.sitemapType === 'custom' && 'Enter the complete URL to your sitemap file.'}
+              </p>
+            </div>
+
+            {/* Sitemap URL */}
+            <div className="space-y-2">
+              <Label>
+                {settings.sitemapType === 'custom' ? 'Complete Sitemap URL' : 'Website Base URL'}
+              </Label>
+              <Input
+                type="url"
+                placeholder={
+                  settings.sitemapType === 'custom' 
+                    ? "https://yourwebsite.com/custom-sitemap.xml"
+                    : "https://yourwebsite.com"
+                }
+                value={settings.sitemapUrl}
+                onChange={(e) => setSettings({ ...settings, sitemapUrl: e.target.value })}
+              />
+              {settings.sitemapType !== 'custom' && settings.sitemapUrl && (
+                <div className="text-sm bg-muted/50 p-2 rounded">
+                  <span className="text-muted-foreground">Sitemap URL: </span>
+                  <code className="text-primary">
+                    {settings.sitemapUrl.replace(/\/$/, '')}
+                    {settings.sitemapType === 'wordpress' && '/wp-sitemap.xml'}
+                    {settings.sitemapType === 'yoast' && '/sitemap_index.xml'}
+                    {settings.sitemapType === 'rankmath' && '/sitemap_index.xml'}
+                    {settings.sitemapType === 'standard' && '/sitemap.xml'}
+                    {settings.sitemapType === 'auto' && ' (auto-detect)'}
+                  </code>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
