@@ -18,11 +18,45 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-// Fetch and parse sitemap to get relevant URLs
-async function fetchSitemapUrls(sitemapUrl: string): Promise<string[]> {
+// Fetch and parse sitemap to get relevant URLs - supports nested WordPress/Yoast sitemaps
+async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'): Promise<string[]> {
   try {
-    console.log('Fetching sitemap from:', sitemapUrl);
-    const response = await fetch(sitemapUrl, {
+    // Build the actual sitemap URL based on type
+    let actualUrl = sitemapUrl.replace(/\/$/, '');
+    
+    if (sitemapType === 'wordpress') {
+      actualUrl = `${actualUrl}/wp-sitemap.xml`;
+    } else if (sitemapType === 'yoast' || sitemapType === 'rankmath') {
+      actualUrl = `${actualUrl}/sitemap_index.xml`;
+    } else if (sitemapType === 'standard') {
+      actualUrl = `${actualUrl}/sitemap.xml`;
+    } else if (sitemapType === 'auto') {
+      // Try to detect the sitemap type
+      const tryUrls = [
+        `${actualUrl}/wp-sitemap.xml`,
+        `${actualUrl}/sitemap_index.xml`,
+        `${actualUrl}/sitemap.xml`,
+      ];
+      
+      for (const tryUrl of tryUrls) {
+        try {
+          const testResponse = await fetch(tryUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
+          });
+          if (testResponse.ok) {
+            actualUrl = tryUrl;
+            console.log('Auto-detected sitemap at:', actualUrl);
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+    }
+    // If custom type, use the URL as-is
+    
+    console.log('Fetching sitemap from:', actualUrl);
+    const response = await fetch(actualUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
     });
     
@@ -33,12 +67,63 @@ async function fetchSitemapUrls(sitemapUrl: string): Promise<string[]> {
     
     const text = await response.text();
     
-    // Parse URLs from XML sitemap
+    // Check if this is a sitemap index (WordPress/Yoast/RankMath style)
+    const isSitemapIndex = text.includes('<sitemapindex') || text.includes('sitemap-posts') || text.includes('wp-sitemap-posts');
+    
+    if (isSitemapIndex) {
+      console.log('Detected sitemap index, fetching child sitemaps...');
+      
+      // Extract child sitemap URLs
+      const sitemapMatches = text.match(/<loc>([^<]+\.xml)<\/loc>/g) || [];
+      const childSitemaps = sitemapMatches.map(match => match.replace(/<\/?loc>/g, ''));
+      
+      // Filter to only get post/page sitemaps (not users, taxonomies, etc.)
+      const relevantSitemaps = childSitemaps.filter(url => 
+        url.includes('post') || 
+        url.includes('page') || 
+        url.includes('article') ||
+        url.includes('recipe') ||
+        url.includes('blog')
+      );
+      
+      console.log(`Found ${relevantSitemaps.length} relevant child sitemaps out of ${childSitemaps.length} total`);
+      
+      // Fetch URLs from each child sitemap
+      const allUrls: string[] = [];
+      
+      for (const childUrl of relevantSitemaps.slice(0, 5)) { // Limit to first 5 sitemaps
+        try {
+          const childResponse = await fetch(childUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' }
+          });
+          
+          if (childResponse.ok) {
+            const childText = await childResponse.text();
+            const urlMatches = childText.match(/<loc>([^<]+)<\/loc>/g) || [];
+            const urls = urlMatches
+              .map(match => match.replace(/<\/?loc>/g, ''))
+              .filter(url => !url.endsWith('.xml')); // Exclude sitemap references
+            
+            allUrls.push(...urls);
+            console.log(`Fetched ${urls.length} URLs from ${childUrl}`);
+          }
+        } catch (e) {
+          console.error(`Error fetching child sitemap ${childUrl}:`, e);
+        }
+      }
+      
+      console.log(`Total URLs collected: ${allUrls.length}`);
+      return allUrls.slice(0, 200); // Limit total URLs
+    }
+    
+    // Standard sitemap - parse URLs directly
     const urlMatches = text.match(/<loc>([^<]+)<\/loc>/g) || [];
-    const urls = urlMatches.map(match => match.replace(/<\/?loc>/g, ''));
+    const urls = urlMatches
+      .map(match => match.replace(/<\/?loc>/g, ''))
+      .filter(url => !url.endsWith('.xml')); // Exclude nested sitemap references
     
     console.log(`Found ${urls.length} URLs in sitemap`);
-    return urls.slice(0, 100); // Limit to first 100 URLs
+    return urls.slice(0, 200); // Limit to first 200 URLs
   } catch (error) {
     console.error('Error fetching sitemap:', error);
     return [];
@@ -166,9 +251,9 @@ serve(async (req) => {
   }
 
   try {
-    const { recipeId, title, sitemapUrl, imageQuality = 'medium', aspectRatio = '16:9' } = await req.json();
+    const { recipeId, title, sitemapUrl, sitemapType = 'auto', imageQuality = 'medium', aspectRatio = '16:9' } = await req.json();
     console.log(`Generating article for: ${title} (ID: ${recipeId})`);
-    console.log(`Image settings: quality=${imageQuality}, aspectRatio=${aspectRatio}`);
+    console.log(`Image settings: quality=${imageQuality}, aspectRatio=${aspectRatio}, sitemapType=${sitemapType}`);
 
     // Use direct Gemini API key instead of Lovable AI
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
@@ -194,7 +279,7 @@ serve(async (req) => {
     // Fetch sitemap URLs if provided
     let relevantLinks: Array<{ url: string; anchorText: string }> = [];
     if (sitemapUrl) {
-      const sitemapUrls = await fetchSitemapUrls(sitemapUrl);
+      const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
       relevantLinks = await findRelevantUrls(sitemapUrls, title, GEMINI_API_KEY);
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }

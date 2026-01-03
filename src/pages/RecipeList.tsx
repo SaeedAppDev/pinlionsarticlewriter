@@ -139,7 +139,7 @@ const RecipeList = () => {
     } catch (e) {
       console.error('Failed to parse settings:', e);
     }
-    return { sitemapUrl: '', imageQuality: 'medium', aspectRatio: '16:9' };
+    return { sitemapUrl: '', sitemapType: 'auto', imageQuality: 'medium', aspectRatio: '16:9' };
   };
 
   const processNextRecipe = async () => {
@@ -162,6 +162,7 @@ const RecipeList = () => {
           recipeId: pendingRecipe.id, 
           title: pendingRecipe.title,
           sitemapUrl: settings.sitemapUrl || undefined,
+          sitemapType: settings.sitemapType || 'auto',
           imageQuality: settings.imageQuality,
           aspectRatio: settings.aspectRatio
         },
@@ -205,6 +206,7 @@ const RecipeList = () => {
             recipeId: recipe.id, 
             title: recipe.title,
             sitemapUrl: settings.sitemapUrl || undefined,
+            sitemapType: settings.sitemapType || 'auto',
             imageQuality: settings.imageQuality,
             aspectRatio: settings.aspectRatio
           },
