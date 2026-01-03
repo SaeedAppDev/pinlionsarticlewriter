@@ -106,7 +106,7 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
   }
 }
 
-// Call Groq API for text generation (FREE tier - 14,000+ requests/day)
+// Call Groq API for text generation (FREE tier)
 async function callGroqAI(prompt: string, systemPrompt: string, GROQ_API_KEY: string): Promise<string> {
   console.log('Calling Groq API (FREE tier)...');
   
@@ -141,62 +141,112 @@ async function callGroqAI(prompt: string, systemPrompt: string, GROQ_API_KEY: st
   return data.choices?.[0]?.message?.content || '';
 }
 
-// Get free food images from Pexels API (15,000 requests/month free)
-async function getPexelsImages(query: string, count: number = 7): Promise<string[]> {
-  const PEXELS_API_KEY = Deno.env.get('PEXELS_API_KEY');
-  
-  if (!PEXELS_API_KEY) {
-    console.log('No Pexels API key, using Picsum fallback...');
-    return getPicsumFallback(count);
-  }
-  
+// Generate UNIQUE AI image for each recipe section using Lovable AI
+async function generateUniqueImage(
+  dishName: string, 
+  imageContext: string, 
+  imageNumber: number,
+  LOVABLE_API_KEY: string,
+  supabase: any
+): Promise<string> {
   try {
-    const searchQuery = encodeURIComponent(`${query} food recipe`);
-    const response = await fetch(
-      `https://api.pexels.com/v1/search?query=${searchQuery}&per_page=${count}&orientation=landscape`,
-      {
-        headers: {
-          'Authorization': PEXELS_API_KEY
-        }
-      }
-    );
+    console.log(`Generating unique image ${imageNumber} for: ${dishName} - ${imageContext}`);
     
+    // Create UNIQUE, SPECIFIC prompts for each image position
+    const imagePrompts: Record<number, string> = {
+      1: `Professional food photography of ${dishName}. Hero shot, overhead angle 45 degrees, the dish beautifully plated on a rustic wooden table. Natural window light, shallow depth of field. Steam rising if hot. Fresh garnishes. Magazine quality, appetizing, mouthwatering. NO text, NO watermarks.`,
+      2: `Close-up macro food photography of ${dishName} showing texture details. Focus on the most appealing part - crispy edges, gooey center, glossy sauce, or flaky layers. Soft natural lighting, creamy bokeh background. Professional food styling. NO text.`,
+      3: `Ingredients flat lay for ${dishName}. All raw ingredients beautifully arranged on marble or wooden surface. Fresh vegetables, spices in small bowls, eggs, flour. Bright natural lighting from above. Clean, organized, Pinterest-worthy composition. NO text.`,
+      4: `Action cooking shot of ${dishName} being prepared. Hands stirring, pouring sauce, or sprinkling toppings. Motion blur on action, sharp focus on food. Warm kitchen lighting, homey atmosphere. Authentic cooking moment. NO text.`,
+      5: `Lifestyle food photography of ${dishName} on a dining table setting. Beautiful ceramic plates, linen napkins, cutlery, wine glass nearby. Warm golden hour lighting. Cozy, inviting dinner scene. Magazine editorial style. NO text.`,
+      6: `${dishName} storage and meal prep photo. Food in glass containers, some portions wrapped, organized in fridge or on counter. Clean, organized kitchen background. Meal prep inspiration style. Bright lighting. NO text.`,
+      7: `Final beauty shot of ${dishName}. Single serving perfectly plated. Dramatic lighting with soft shadows. Sauce artfully drizzled. Fresh herb garnish. One bite taken to show inside texture. Restaurant quality presentation. NO text.`
+    };
+    
+    const prompt = imagePrompts[imageNumber] || imagePrompts[1];
+    
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        modalities: ["image", "text"]
+      }),
+    });
+
     if (!response.ok) {
-      console.error('Pexels API error:', response.status);
-      return getPicsumFallback(count);
+      const errorText = await response.text();
+      console.error(`Lovable AI error for image ${imageNumber}:`, response.status, errorText);
+      return getFallbackImage(dishName, imageNumber);
     }
-    
+
     const data = await response.json();
-    const images = data.photos?.map((photo: any) => photo.src.large) || [];
+    const base64Url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
-    console.log(`Got ${images.length} images from Pexels`);
-    
-    // If not enough images, fill with Picsum
-    if (images.length < count) {
-      const fallback = getPicsumFallback(count - images.length);
-      images.push(...fallback);
+    if (!base64Url) {
+      console.error(`No image generated for position ${imageNumber}`);
+      return getFallbackImage(dishName, imageNumber);
+    }
+
+    // Upload to Supabase Storage
+    const base64Data = base64Url.replace(/^data:image\/\w+;base64,/, '');
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
     
-    return images;
+    const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('article-images')
+      .upload(fileName, bytes, {
+        contentType: 'image/webp',
+        upsert: true
+      });
+    
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      return base64Url; // Return base64 as fallback
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('article-images')
+      .getPublicUrl(fileName);
+    
+    console.log(`Image ${imageNumber} generated and uploaded successfully`);
+    return urlData?.publicUrl || base64Url;
+    
   } catch (error) {
-    console.error('Error getting Pexels images:', error);
-    return getPicsumFallback(count);
+    console.error(`Error generating image ${imageNumber}:`, error);
+    return getFallbackImage(dishName, imageNumber);
   }
 }
 
-// Fallback to Picsum (always works, random food-related images)
-function getPicsumFallback(count: number): string[] {
-  const images: string[] = [];
-  // Using specific Picsum IDs that look like food/cooking
-  const foodImageIds = [292, 493, 674, 1080, 1099, 225, 326, 429, 488, 835];
+// Fallback using Unsplash (high quality, free, unique per search)
+function getFallbackImage(dishName: string, imageNumber: number): string {
+  const searchTerms = [
+    encodeURIComponent(dishName),
+    'cooking-' + encodeURIComponent(dishName),
+    'recipe-ingredients',
+    'kitchen-cooking',
+    'food-plating',
+    'meal-prep-containers',
+    'dessert-closeup'
+  ];
   
-  for (let i = 0; i < count; i++) {
-    const id = foodImageIds[i % foodImageIds.length];
-    images.push(`https://picsum.photos/id/${id}/1200/800`);
-  }
-  
-  console.log(`Generated ${images.length} Picsum fallback images`);
-  return images;
+  const term = searchTerms[imageNumber - 1] || searchTerms[0];
+  // Unsplash Source API for unique images
+  return `https://source.unsplash.com/1200x800/?${term},food&sig=${Date.now()}-${imageNumber}`;
 }
 
 // Find relevant URLs from sitemap
@@ -244,10 +294,14 @@ serve(async (req) => {
     
     console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
 
-    // Use FREE Groq API
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY is not configured. Get a FREE key from console.groq.com");
+      throw new Error("GROQ_API_KEY is not configured");
+    }
+    
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     // Initialize Supabase client
@@ -270,10 +324,6 @@ serve(async (req) => {
 3. Is between 50-70 characters
 4. Uses power words like "Easy", "Best", "Ultimate", "Simple", "Delicious", "Perfect"
 5. Can include a dash with a subtitle
-
-Examples:
-- Focus: "chocolate chip cookies" → "Perfect Chocolate Chip Cookies – Soft, Chewy, and Irresistible"
-- Focus: "easy dinner recipes" → "Easy Dinner Recipes for Busy Weeknights – Ready in 30 Minutes"
 
 Return ONLY the title, nothing else.`;
 
@@ -303,10 +353,40 @@ Return ONLY the title, nothing else.`;
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
-    // Step 1: Get FREE images from Pexels
-    console.log('Getting FREE images from Pexels...');
-    const imageUrls = await getPexelsImages(seoTitle, 7);
-    console.log(`Got ${imageUrls.length} images`);
+    // Step 1: Generate UNIQUE AI images for each section
+    console.log('Generating UNIQUE AI images with Lovable AI...');
+    
+    const imageContexts = [
+      'hero shot',
+      'texture close-up',
+      'ingredients flat lay',
+      'cooking action',
+      'table setting',
+      'storage and meal prep',
+      'final beauty shot'
+    ];
+    
+    const imageUrls: string[] = [];
+    
+    // Generate images sequentially to avoid rate limits
+    for (let i = 0; i < 7; i++) {
+      console.log(`Generating image ${i + 1}/7...`);
+      const imageUrl = await generateUniqueImage(
+        seoTitle,
+        imageContexts[i],
+        i + 1,
+        LOVABLE_API_KEY,
+        supabase
+      );
+      imageUrls.push(imageUrl);
+      
+      // Small delay between image generations
+      if (i < 6) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log(`Generated ${imageUrls.length} unique images`);
 
     // Build internal links section
     let internalLinksInstruction = '';
@@ -321,7 +401,7 @@ Place these links naturally within paragraphs where they make sense.`;
     }
 
     // Step 2: Generate SEO-optimized article content
-    console.log('Generating article content with Groq (FREE)...');
+    console.log('Generating article content with Groq...');
     
     const articleSystemPrompt = `You are a fun, relatable food blogger writing for friends. Write a detailed, conversational, SEO-optimized recipe article in English (1000-1200 words).
 ${internalLinksInstruction}
@@ -329,7 +409,7 @@ ${internalLinksInstruction}
 TONE & STYLE RULES:
 - Informal, playful tone like talking to a friend
 - Use humor, mild sarcasm, and relatability
-- Avoid clichés like "In today's world"
+- Avoid cliches like "In today's world"
 - Keep paragraphs SHORT and engaging (2-3 sentences max)
 - Use bold to highlight key tips
 - Use occasional slang like FYI or IMO (but limit to 2-3 times)
@@ -353,7 +433,7 @@ EXACT STRUCTURE TO FOLLOW:
 <li><strong>Comfort food level:</strong> 100/10</li>
 <li><strong>Customizable:</strong> playful note</li>
 <li><strong>Budget-friendly:</strong> basic ingredients, big flavor</li>
-<li><strong>Crowd-pleaser:</strong> everyone's happy</li>
+<li><strong>Crowd-pleaser:</strong> everyone is happy</li>
 <li><strong>Reheats beautifully:</strong> future-you will thank present-you</li>
 </ul>
 
@@ -368,14 +448,14 @@ EXACT STRUCTURE TO FOLLOW:
 <li><strong>Flavor:</strong> describe flavor profile</li>
 </ul>
 
-<h2>Ingredients You'll Need</h2>
+<h2>Ingredients You Will Need</h2>
 <p>Brief playful intro about ingredients.</p>
 <ul>
 <li>Ingredient 1 with measurement</li>
 <li>Ingredient 2 with measurement</li>
 (list all ingredients)
 </ul>
-<p><strong>Important tip:</strong> 👉 Season your food. Bland food is the villain of every kitchen story.</p>
+<p><strong>Important tip:</strong> Season your food. Bland food is the villain of every kitchen story.</p>
 
 {{IMAGE_3}}
 
@@ -394,25 +474,25 @@ EXACT STRUCTURE TO FOLLOW:
 <h2>Common Mistakes to Avoid</h2>
 <p>A few traps people fall into (learn from them):</p>
 <ul>
-<li>❌ mistake 1 with humorous explanation</li>
-<li>❌ mistake 2 with humorous explanation</li>
-<li>❌ mistake 3 with humorous explanation</li>
-<li>❌ mistake 4 with humorous explanation</li>
+<li>mistake 1 with humorous explanation</li>
+<li>mistake 2 with humorous explanation</li>
+<li>mistake 3 with humorous explanation</li>
+<li>mistake 4 with humorous explanation</li>
 </ul>
-<p><strong>Golden rule:</strong> 👉 Taste as you cook. Your tongue is your best tool.</p>
+<p><strong>Golden rule:</strong> Taste as you cook. Your tongue is your best tool.</p>
 
 {{IMAGE_5}}
 
-<h2>Alternatives & Substitutions</h2>
-<p>This recipe is flexible — vibe with it:</p>
+<h2>Alternatives and Substitutions</h2>
+<p>This recipe is flexible - vibe with it:</p>
 <ul>
-<li><strong>No [ingredient]?</strong> → use [alternative]</li>
-<li><strong>Vegetarian version:</strong> → replace with [option]</li>
-<li><strong>Gluten-free:</strong> → use [alternative]</li>
-<li><strong>Low-carb:</strong> → use [alternative]</li>
-<li><strong>Extra cheesy:</strong> → add [option] (you're welcome)</li>
+<li><strong>No [ingredient]?</strong> use [alternative]</li>
+<li><strong>Vegetarian version:</strong> replace with [option]</li>
+<li><strong>Gluten-free:</strong> use [alternative]</li>
+<li><strong>Low-carb:</strong> use [alternative]</li>
+<li><strong>Extra cheesy:</strong> add [option] (you are welcome)</li>
 </ul>
-<p>Cooking is not a contract — it's controlled chaos.</p>
+<p>Cooking is not a contract - it is controlled chaos.</p>
 
 <h2>Serving Suggestions</h2>
 <p>Want to make it feel fancy without actually trying?</p>
@@ -421,11 +501,11 @@ EXACT STRUCTURE TO FOLLOW:
 <li>Side option 2</li>
 <li>Side option 3</li>
 </ul>
-<p>Or straight out of the baking dish while standing over the stove… zero judgment.</p>
+<p>Or straight out of the baking dish while standing over the stove - zero judgment.</p>
 
 {{IMAGE_6}}
 
-<h2>Storage, Freezing & Reheating</h2>
+<h2>Storage, Freezing and Reheating</h2>
 <h3>Refrigeration</h3>
 <p>Store leftovers up to X days in an airtight container.</p>
 
@@ -437,7 +517,7 @@ EXACT STRUCTURE TO FOLLOW:
 
 <p><strong>Fun fact:</strong> it somehow tastes even better the next day.</p>
 
-<h2>FAQ – [Recipe Name]</h2>
+<h2>FAQ - [Recipe Name]</h2>
 
 <h3>Is this [dish] spicy?</h3>
 <p>Conversational answer with humor.</p>
@@ -457,15 +537,15 @@ EXACT STRUCTURE TO FOLLOW:
 {{IMAGE_7}}
 
 <h2>Final Thoughts</h2>
-<p>2-3 short paragraphs with friendly encouragement. Keep tone playful and motivating. End with something like "Now go impress someone, even if it's just yourself."</p>
-<p>And yes, licking the spoon is technically optional… but highly recommended.</p>
+<p>2-3 short paragraphs with friendly encouragement. Keep tone playful and motivating. End with something like "Now go impress someone, even if it is just yourself."</p>
+<p>And yes, licking the spoon is technically optional - but highly recommended.</p>
 
 CRITICAL GUIDELINES:
 - Write 1000-1200 words
 - Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
 - Keep it FUN, conversational, like a friend sharing a recipe
 - Use proper H1, H2, H3 headings hierarchy
-- No emojis except ❌ for mistakes and 👉 for tips
+- No emojis
 - Output clean HTML only
 - Include the focus keyword naturally 8-12 times throughout`;
 
@@ -517,7 +597,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Article generated successfully (FREE tier)',
+      message: 'Article generated with UNIQUE AI images',
       imageCount: imageUrls.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
