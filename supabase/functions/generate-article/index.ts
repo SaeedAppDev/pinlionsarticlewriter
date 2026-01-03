@@ -268,8 +268,9 @@ async function analyzeArticleForImagePrompts(
   AI_API_KEY: string,
   aiProvider: string
 ): Promise<string[]> {
-  console.log('Analyzing article content to generate contextual image prompts...');
+  console.log('🔍 AI OCR-Style Analysis: Reading and extracting key content from article...');
   
+  // Step 1: Deep OCR-style text extraction - extract ALL meaningful content
   const analysisText = articleContent
     .replace(/\{\{IMAGE_\d\}\}/g, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -278,37 +279,83 @@ async function analyzeArticleForImagePrompts(
     .replace(/\s+/g, ' ')
     .trim();
 
+  // Step 2: Extract key elements for better AI understanding
+  const h1Match = articleContent.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+  const h2Matches = articleContent.match(/<h2[^>]*>([^<]+)<\/h2>/gi) || [];
+  const extractedTitle = h1Match ? h1Match[1].trim() : dishName;
+  const extractedHeadings = h2Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).join(', ');
+  
+  // Step 3: Identify specific food items mentioned
+  const foodKeywords = analysisText.toLowerCase();
+  const identifiedFoods: string[] = [];
+  
+  // Common dessert/food patterns
+  const dessertPatterns = [
+    'cake', 'cookie', 'brownie', 'pie', 'tart', 'cupcake', 'muffin', 'cheesecake',
+    'pudding', 'mousse', 'ice cream', 'parfait', 'truffle', 'fudge', 'candy',
+    'chocolate', 'vanilla', 'caramel', 'strawberry', 'blueberry', 'apple', 'pumpkin',
+    'cinnamon', 'cream', 'frosting', 'glaze', 'ganache', 'filling'
+  ];
+  
+  for (const pattern of dessertPatterns) {
+    if (foodKeywords.includes(pattern)) {
+      identifiedFoods.push(pattern);
+    }
+  }
+
+  console.log(`📖 Extracted title: "${extractedTitle}"`);
+  console.log(`📋 Identified foods: ${identifiedFoods.join(', ')}`);
+  console.log(`📑 Article sections: ${extractedHeadings}`);
+
   const excerpt = analysisText.length > 9000
     ? `${analysisText.slice(0, 4500)} ... ${analysisText.slice(-4500)}`
     : analysisText;
 
   const systemPrompt = `You are an expert food photographer and AI image prompt engineer.
-Generate prompts ONLY for food/dessert photography that matches the provided article.
+Your job is to READ THE ARTICLE CONTENT CAREFULLY and generate image prompts that EXACTLY match what is described.
 
-CRITICAL:
-- NEVER include people, faces, portraits, landscapes, sky, animals, or non-food scenes.
-- Every prompt MUST clearly describe a FOOD/DESSERT scene.
-- NO text, NO logos, NO watermarks.
+CRITICAL OCR-STYLE ANALYSIS RULES:
+1. READ the article title: "${extractedTitle}" - this is THE MAIN SUBJECT
+2. IDENTIFY the specific food items mentioned: ${identifiedFoods.length > 0 ? identifiedFoods.join(', ') : 'analyze from content'}
+3. NEVER generate prompts for foods NOT mentioned in the article
+4. If the title says "Holiday Desserts" - generate DESSERTS (cakes, cookies, pies, etc.)
+5. If the title says "Chicken Curry" - generate CHICKEN CURRY images
+6. MATCH the article topic EXACTLY - no generic food images
 
-Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt 40-70 words.`;
+FORBIDDEN:
+- People, faces, portraits, landscapes, sky, animals
+- Generic food that doesn't match the article topic
+- Text, logos, watermarks
+- Scenes unrelated to the article content
 
-  const userPrompt = `Create 7 highly relevant image prompts for this recipe/article.
+Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt 40-70 words.
+EVERY prompt MUST reference "${extractedTitle}" or the specific foods mentioned.`;
 
-TOPIC (short): ${dishName}
+  const userPrompt = `PERFORM OCR-STYLE CONTENT ANALYSIS and create 7 image prompts.
 
-ARTICLE (cleaned excerpt):
+MAIN TOPIC FROM TITLE: "${extractedTitle}"
+DISH NAME: "${dishName}"
+IDENTIFIED FOOD ITEMS: ${identifiedFoods.join(', ') || 'analyze from article content'}
+ARTICLE SECTIONS: ${extractedHeadings}
+
+FULL ARTICLE CONTENT TO ANALYZE:
 ${excerpt}
 
-Create prompts for:
-1. Hero shot (main dessert scene)
-2. Texture close-up (dessert texture)
-3. Ingredients flat lay (ingredients actually mentioned)
-4. Cooking action (a real step from the article)
-5. Table setting / lifestyle (serving / party vibe)
-6. Storage / meal prep (only if mentioned, otherwise a second hero variation)
-7. Final beauty shot (finished desserts on a plate)
+INSTRUCTIONS:
+- READ the article carefully
+- IDENTIFY the EXACT foods/dishes described
+- CREATE prompts that show THOSE SPECIFIC foods
 
-Return only the 7 numbered lines.`;
+Create prompts for:
+1. Hero shot of "${extractedTitle}" - the MAIN dish/food from the title
+2. Texture close-up of the specific ${identifiedFoods[0] || 'dessert/food'} mentioned
+3. Ingredients flat lay showing ONLY ingredients from this article
+4. Cooking/preparation action shot for "${extractedTitle}"
+5. Party/serving scene featuring "${extractedTitle}" 
+6. Multiple ${identifiedFoods[0] || 'items'} arranged together
+7. Final beauty shot of "${extractedTitle}" ready to serve
+
+Return only the 7 numbered lines. EVERY prompt MUST be about "${extractedTitle}".`;
 
   try {
     const response = await callAI(userPrompt, systemPrompt, AI_API_KEY, aiProvider as 'lovable' | 'groq' | 'openai');
