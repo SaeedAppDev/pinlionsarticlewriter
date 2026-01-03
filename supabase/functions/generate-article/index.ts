@@ -106,18 +106,42 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
   }
 }
 
-// Call Lovable AI Gateway for text generation (no rate limits!)
-async function callLovableAI(prompt: string, systemPrompt: string, LOVABLE_API_KEY: string): Promise<string> {
-  console.log('Calling Lovable AI Gateway...');
+// Call AI API for text generation - supports multiple providers
+async function callAI(
+  prompt: string, 
+  systemPrompt: string, 
+  apiKey: string, 
+  provider: 'lovable' | 'groq' | 'openai' = 'lovable'
+): Promise<string> {
+  console.log(`Calling ${provider.toUpperCase()} AI...`);
   
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  let url: string;
+  let model: string;
+  
+  switch (provider) {
+    case 'groq':
+      url = 'https://api.groq.com/openai/v1/chat/completions';
+      model = 'llama-3.3-70b-versatile';
+      break;
+    case 'openai':
+      url = 'https://api.openai.com/v1/chat/completions';
+      model = 'gpt-4o-mini';
+      break;
+    case 'lovable':
+    default:
+      url = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+      model = 'google/gemini-2.5-flash';
+      break;
+  }
+  
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt }
@@ -129,8 +153,12 @@ async function callLovableAI(prompt: string, systemPrompt: string, LOVABLE_API_K
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Lovable AI error:', response.status, errorText);
-    throw new Error(`Lovable AI error: ${response.status}`);
+    console.error(`${provider.toUpperCase()} AI error:`, response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error(`Rate limit exceeded for ${provider}. Please switch to a different API provider in Settings or wait and try again.`);
+    }
+    throw new Error(`${provider.toUpperCase()} AI error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -358,7 +386,8 @@ async function generateUniqueImage(
 async function findRelevantUrls(
   sitemapUrls: string[], 
   topic: string, 
-  LOVABLE_API_KEY: string
+  apiKey: string,
+  aiProvider: 'lovable' | 'groq' | 'openai' = 'lovable'
 ): Promise<Array<{ url: string; anchorText: string }>> {
   if (sitemapUrls.length === 0) return [];
   
@@ -373,7 +402,7 @@ Find 3-5 URLs most relevant to this topic for internal linking. Return JSON arra
 
 Only return valid JSON array, nothing else.`;
 
-    const content = await callLovableAI(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', LOVABLE_API_KEY);
+    const content = await callAI(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', apiKey, aiProvider);
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     
     if (jsonMatch) {
@@ -461,18 +490,36 @@ serve(async (req) => {
   
   try {
     requestBody = await req.json();
-    const { recipeId, title: focusKeyword, sitemapUrl, sitemapType = 'auto', aspectRatio = '4:3' } = requestBody;
+    const { 
+      recipeId, 
+      title: focusKeyword, 
+      sitemapUrl, 
+      sitemapType = 'auto', 
+      aspectRatio = '4:3',
+      aiProvider = 'lovable',
+      customApiKey,
+      customReplicateKey
+    } = requestBody;
     
-    console.log(`Settings - Aspect Ratio: ${aspectRatio}`);
+    console.log(`Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}`);
     
     console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Determine which API key to use based on provider
+    let AI_API_KEY: string;
+    if (aiProvider === 'lovable') {
+      AI_API_KEY = Deno.env.get('LOVABLE_API_KEY') || '';
+      if (!AI_API_KEY) {
+        throw new Error("LOVABLE_API_KEY is not configured");
+      }
+    } else if (customApiKey) {
+      AI_API_KEY = customApiKey;
+    } else {
+      throw new Error(`Custom API key required for ${aiProvider} provider. Please add your API key in Settings.`);
     }
     
-    const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
+    // Use custom Replicate key if provided, otherwise use default
+    const REPLICATE_API_KEY = customReplicateKey || Deno.env.get('REPLICATE_API_KEY');
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
@@ -504,7 +551,7 @@ Return ONLY the title, nothing else.`;
     
     let seoTitle = focusKeyword;
     try {
-      const generatedTitle = await callLovableAI(titlePrompt, titleSystemPrompt, LOVABLE_API_KEY);
+      const generatedTitle = await callAI(titlePrompt, titleSystemPrompt, AI_API_KEY, aiProvider);
       if (generatedTitle && generatedTitle.trim().length > 0) {
         seoTitle = generatedTitle.trim().replace(/^["']|["']$/g, '').trim();
         console.log(`Generated SEO title: ${seoTitle}`);
@@ -522,7 +569,7 @@ Return ONLY the title, nothing else.`;
     let relevantLinks: Array<{ url: string; anchorText: string }> = [];
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
-      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, LOVABLE_API_KEY);
+      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, AI_API_KEY, aiProvider);
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
@@ -737,7 +784,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
 - Keep paragraphs SHORT and punchy
 - Make it genuinely fun to read!`;
 
-    const articleContent = await callLovableAI(articlePrompt, articleSystemPrompt, LOVABLE_API_KEY);
+    const articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 
     if (!articleContent) {
       throw new Error("No content generated");
