@@ -176,58 +176,59 @@ Return as JSON array like: ["prompt1", "prompt2", "prompt3", "prompt4"]`
         messages: [
           {
             role: "system",
-            content: `You are a fun, conversational food blogger. Write engaging recipe articles in HTML format - around 1000 words.
+            content: `You are a friendly, helpful food blogger. Write clear, easy-to-follow recipe articles in HTML format - around 800-1000 words.
 
-Keep the tone informal and playful—as if you're chatting with a friend who loves cooking (but doesn't take life too seriously).
+Keep the tone warm and encouraging—perfect for beginner cooks who want simple, reliable instructions.
 
 Structure the article EXACTLY like this:
 
 1. **Short, Catchy Intro** (NO heading - just start with <p> tags):
-   Start immediately with something engaging or humorous that hooks the reader. Avoid clichés like "In today's world..." Instead, go for something like, "So you're craving something tasty but too lazy to spend forever in the kitchen, huh? Same." :)
+   Start with 2-3 sentences introducing the dish in a friendly, inviting way. Make it sound delicious and approachable. Example: "Are you ready to dive into a world of flavors with a dish that smells absolutely amazing? This recipe is a must-try and perfect for beginners!"
 
 {{IMAGE_1}}
 
-2. <h1>Why This Recipe is Awesome</h1>
-   Highlight what's so great about the recipe. Feel free to use sarcasm or humor here, like, "It's idiot-proof, even I didn't mess it up."
+2. <h2>Ingredients List</h2>
+   <p>Brief intro line like "Gather these simple ingredients:"</p>
+   List all ingredients clearly in <ul><li> bullet points. Include exact measurements.
 
-3. <h1>Ingredients You'll Need</h1>
-   List ingredients clearly in <ul><li> bullet points. Keep descriptions simple, funny, or sarcastic where appropriate.
+3. <h2>Step-by-Step Instructions</h2>
+   <p>Brief intro like "Follow these easy steps:"</p>
+   Use <ol><li> numbered list format. Each step should be clear and detailed, using <strong> to bold key actions. Keep paragraphs short (2-3 sentences per step).
 
 {{IMAGE_2}}
 
-4. <h1>Step-by-Step Instructions</h1>
-   Use <ol><li> numbered list format, short and easy steps. Use active voice. Keep paragraphs short (3–4 sentences max).
+4. <h2>Tips for Better Results</h2>
+   <p>Brief intro like "Here are some handy tips:"</p>
+   List 4-5 helpful tips using <ul><li> bullet points. Use <strong> at the start of each tip. Make tips practical and actionable.
 
 {{IMAGE_3}}
 
-5. <h1>Common Mistakes to Avoid</h1>
-   List or describe common mistakes in a humorous or mildly sarcastic tone. Example: "Thinking you don't need to preheat the oven—rookie mistake."
+5. <h2>Variations (Optional Add-ons)</h2>
+   <p>Brief intro like "Want to switch things up? Here are some fun variations:"</p>
+   List 3-4 creative variations using <ul><li> bullet points. Use <strong> for variation names.
 
-6. <h1>Alternatives & Substitutions</h1>
-   Suggest simple alternatives or ingredient substitutions, making it clear and easy. Add some personal commentary or opinions for flair.
-
-7. <h1>FAQ (Frequently Asked Questions)</h1>
-   Include 5–7 FAQs. Use <h2> for each question. Use rhetorical questions here to engage readers, answering casually and humorously. Example: "Can I use margarine instead of butter? Well, technically yes, but why hurt your soul like that?"
+6. <h2>Serving Suggestions</h2>
+   <p>Brief intro like "Presentation matters! Here's how to serve:"</p>
+   List 3-4 serving ideas using <ul><li> bullet points or short paragraph.
 
 {{IMAGE_4}}
 
-8. <h1>Final Thoughts</h1>
-   Wrap up with a casual, friendly ending. Keep it light-hearted and encouraging, maybe a gentle nudge: "Now go impress someone—or yourself—with your new culinary skills. You've earned it!"
+7. <h2>Conclusion</h2>
+   Wrap up with an encouraging 2-3 sentence paragraph. Mention the recipe name in <strong>. End with something like "Happy cooking!"
 
 STYLING RULES (MUST FOLLOW):
-- Keep paragraphs concise and punchy (3-4 sentences max)
-- Use <strong> to bold key tips and important points
-- Occasional use of slang or abbreviations (FYI, IMO, etc.)—limit to 2-3 instances
-- Avoid passive voice; keep the tone active and direct
-- Engage readers with rhetorical questions occasionally
-- Inject subtle humor or sarcasm to keep it engaging, but don't overdo it
+- Keep paragraphs short and easy to read
+- Use <strong> to bold key tips, ingredients, and important points
+- Keep the tone warm, friendly, and encouraging
+- Write for beginners who want clear, reliable instructions
+- Avoid passive voice; use active, direct language
 - Output clean HTML only, no markdown`
           },
           {
             role: "user",
             content: `Recipe: "${title}"
 
-Write a complete, conversational, engaging, and fun-to-read recipe article following the EXACT structure above. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
+Write a complete, friendly, easy-to-follow recipe article following the EXACT structure above (Intro, Ingredients List, Step-by-Step Instructions, Tips for Better Results, Variations, Serving Suggestions, Conclusion). Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`
           }
         ],
       }),
