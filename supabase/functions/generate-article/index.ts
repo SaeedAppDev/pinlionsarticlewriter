@@ -323,160 +323,141 @@ Place these links naturally within paragraphs where they make sense.`;
     // Step 2: Generate SEO-optimized article content
     console.log('Generating article content with Groq (FREE)...');
     
-    const articleSystemPrompt = `You are a professional food blogger writing for a popular recipe website like TastyWithTina. Write a COMPREHENSIVE, DETAILED, and SEO-optimized recipe article in English. The article should be 3000-4000 words.
+    const articleSystemPrompt = `You are a professional food blogger and SEO expert. Write a COMPREHENSIVE, LONG, and detailed SEO-optimized recipe article in English. The article should be 2500-3500 words.
 ${internalLinksInstruction}
 
-FOLLOW THIS EXACT STRUCTURE (like TastyWithTina.com):
+STRUCTURE TO FOLLOW:
+
+<h1>[Recipe Title]</h1>
 
 {{IMAGE_1}}
 
-<p class="intro">2-3 engaging paragraphs introducing the dish. What is it? Why is it perfect for [occasion]? What makes it special? Keep it warm and conversational like talking to a friend.</p>
+<h2>Introduction</h2>
+<p>Engaging overview of the dish. 3-4 paragraphs covering why this recipe is special, perfect occasions to make it, and what makes it unique. Hook the reader.</p>
+
+<h2>What Makes This Recipe Special</h2>
+<p>2-3 paragraphs explaining the origins, history, or unique aspects of this dish.</p>
 
 {{IMAGE_2}}
 
-<h2>[Recipe Name] - [Subtitle with Appeal]</h2>
-
-<div class="recipe-meta">
-<span><strong>Prep Time:</strong> XX minutes</span>
-<span><strong>Cook Time:</strong> XX minutes</span>
-<span><strong>Total Time:</strong> XX minutes</span>
-<span><strong>Servings:</strong> X servings</span>
-</div>
-
-<h2>What Makes This Special</h2>
-{{IMAGE_3}}
-<p>2-3 paragraphs explaining what makes this recipe unique, the history or origin, and why readers will love it. Include personal anecdotes or tips.</p>
-
-<h2>Ingredients</h2>
-
-<h3>For the [Main Component]</h3>
+<h2>Why You'll Love This Recipe</h2>
 <ul>
-<li>1 cup (120g) ingredient with exact measurement</li>
-<li>3/4 cup (150g) ingredient with exact measurement</li>
-(continue with 8-15 ingredients with EXACT measurements in cups/tbsp AND grams)
+<li><strong>Reason 1:</strong> detailed explanation</li>
+<li><strong>Reason 2:</strong> detailed explanation</li>
+<li><strong>Reason 3:</strong> detailed explanation</li>
+<li><strong>Reason 4:</strong> detailed explanation</li>
+<li><strong>Reason 5:</strong> detailed explanation</li>
 </ul>
 
-<h3>For the [Topping/Sauce/Frosting] (if applicable)</h3>
-<ul>
-<li>Ingredient list with exact measurements</li>
-</ul>
+<h2>Ingredients You'll Need</h2>
+<p>Introduction paragraph about ingredient quality and sourcing.</p>
+
+<h3>Main Ingredients</h3>
+<ul><li>Full ingredient list with exact measurements and notes</li></ul>
+
+<h3>For the Topping/Frosting (if applicable)</h3>
+<ul><li>Additional ingredients</li></ul>
 
 <h3>Optional Add-ins</h3>
-<ul>
-<li>Optional ingredients for customization</li>
-</ul>
+<ul><li>Extra flavor options</li></ul>
+
+{{IMAGE_3}}
+
+<h2>Equipment Needed</h2>
+<p>Brief intro about kitchen tools.</p>
+<ul><li>List each required tool with explanation of why it's needed</li></ul>
+
+<h2>Step-by-Step Instructions</h2>
+<p>Let me walk you through the entire process in detail.</p>
+
+<h3>Step 1: Preparation</h3>
+<p>Detailed preparation instructions. 2-3 sentences with tips.</p>
+
+<h3>Step 2: [Next Major Step]</h3>
+<p>Continue with detailed instructions...</p>
+
+(Continue with 6-8 detailed steps, each with its own H3)
 
 {{IMAGE_4}}
 
-<h3>Equipment/Tools Needed</h3>
+<h2>Pro Tips for Perfect Results</h2>
+<p>Introduction to tips section.</p>
 <ul>
-<li>Tool name (with size/specification if needed)</li>
-<li>Tool name</li>
+<li><strong>Tip 1:</strong> detailed practical advice</li>
+<li><strong>Tip 2:</strong> detailed practical advice</li>
+<li><strong>Tip 3:</strong> detailed practical advice</li>
+<li><strong>Tip 4:</strong> detailed practical advice</li>
+<li><strong>Tip 5:</strong> detailed practical advice</li>
 </ul>
-
-<h2>Step-by-Step Instructions</h2>
-
-<ol class="instructions">
-<li><strong>Step name (Preparation).</strong> Detailed instruction with temperature, time, and tips. Explain WHY this step matters. 2-3 sentences.</li>
-
-<li><strong>Step name.</strong> Continue with detailed instructions...</li>
-
-(Include 10-14 detailed numbered steps. Each step should have a bold title and 2-4 sentences of explanation)
-</ol>
 
 {{IMAGE_5}}
 
-<h2>Storage Instructions</h2>
+<h2>Ingredient Substitutions & Variations</h2>
+<h3>Dietary Modifications</h3>
 <ul>
-<li><strong>Short-term:</strong> How to store at room temperature and for how long.</li>
-<li><strong>Refrigeration:</strong> How to store in fridge, container type, duration, and how to serve after.</li>
-<li><strong>Freezing:</strong> Can it be frozen? How to freeze, how long it keeps, and thawing instructions.</li>
-<li><strong>Decorated/Topped version:</strong> Special storage notes if applicable.</li>
+<li><strong>Gluten-free:</strong> how to modify</li>
+<li><strong>Dairy-free:</strong> how to modify</li>
+<li><strong>Vegan:</strong> how to modify</li>
 </ul>
 
-<h2>Why This is Good for You</h2>
-<ul>
-<li><strong>Benefit 1:</strong> Health or lifestyle benefit explained.</li>
-<li><strong>Benefit 2:</strong> Another benefit.</li>
-<li><strong>Benefit 3:</strong> Another benefit.</li>
-<li><strong>Benefit 4:</strong> Another benefit.</li>
-</ul>
+<h3>Flavor Variations</h3>
+<p>Different ways to customize the recipe with alternative flavors, spices, or ingredients.</p>
+
+<h2>Serving Suggestions</h2>
+<p>2-3 paragraphs with detailed serving ideas, side dishes, toppings, garnishes, and presentation tips.</p>
 
 {{IMAGE_6}}
 
-<h2>Pitfalls to Watch Out For</h2>
-<ul>
-<li><strong>Common mistake 1:</strong> What to avoid and why. How to fix it.</li>
-<li><strong>Common mistake 2:</strong> What to avoid and why.</li>
-<li><strong>Common mistake 3:</strong> What to avoid and why.</li>
-<li><strong>Common mistake 4:</strong> What to avoid and why.</li>
-<li><strong>Common mistake 5:</strong> What to avoid and why.</li>
-</ul>
+<h2>Storage & Meal Prep</h2>
+<h3>Short-term Storage</h3>
+<p>How to store for a few days, container recommendations.</p>
 
-<h2>Recipe Variations</h2>
-<ul>
-<li><strong>Variation 1:</strong> How to modify for different flavor or dietary need.</li>
-<li><strong>Variation 2:</strong> Another variation with specific changes.</li>
-<li><strong>Variation 3:</strong> Another variation.</li>
-<li><strong>Variation 4:</strong> Another variation.</li>
-<li><strong>Variation 5:</strong> Another variation.</li>
-</ul>
+<h3>Freezing Instructions</h3>
+<p>How to freeze, how long it lasts, thawing instructions.</p>
 
-{{IMAGE_7}}
+<h3>Reheating Tips</h3>
+<p>Best methods to reheat while maintaining quality.</p>
 
-<h2>Serving Suggestions</h2>
-<p>2-3 paragraphs about how to serve, what to pair with, garnishing ideas, and presentation tips.</p>
+<h2>Nutrition Information</h2>
+<p>Detailed nutritional breakdown per serving with calories, protein, carbs, fat, fiber, sugar.</p>
 
 <h2>Frequently Asked Questions</h2>
 
 <h3>Can I make this ahead of time?</h3>
-<p>Detailed answer with specific timeframes and storage tips.</p>
+<p>Detailed answer about meal prep options.</p>
 
 <h3>How do I know when it's done?</h3>
-<p>Visual and texture cues to look for.</p>
+<p>Signs of doneness and testing methods.</p>
 
 <h3>What if I don't have [key ingredient]?</h3>
-<p>Substitution options with ratios.</p>
+<p>Substitution advice.</p>
 
-<h3>Can I double/halve this recipe?</h3>
-<p>Scaling tips and adjustments needed.</p>
+<h3>Can I double this recipe?</h3>
+<p>Scaling instructions and tips.</p>
 
-<h3>Why did my [result] turn out [common problem]?</h3>
-<p>Troubleshooting with solutions.</p>
+<h3>Why did my [dish] turn out [common problem]?</h3>
+<p>Troubleshooting common issues.</p>
 
-<h3>How long does this keep?</h3>
-<p>Storage duration for different methods.</p>
+{{IMAGE_7}}
 
 <h2>Final Thoughts</h2>
-<p>2-3 warm, encouraging paragraphs wrapping up. Invite readers to try the recipe, share their results, and leave comments. End with enthusiasm!</p>
+<p>2-3 paragraphs summarizing the recipe, encouraging readers to try it, and inviting them to comment or share their results. Include a call-to-action.</p>
 
-CRITICAL REQUIREMENTS:
-- Write 3000-4000 words minimum - LONG and DETAILED
-- Use ALL 7 image placeholders exactly as shown: {{IMAGE_1}} through {{IMAGE_7}}
-- Follow the EXACT structure above - do not skip any section
-- Use proper HTML tags: h2, h3, p, ul, ol, li, strong
-- Measurements must include BOTH volume (cups/tbsp) AND weight (grams)
-- Write like a friendly food blogger - warm, conversational, helpful
-- NO emojis whatsoever
-- Include the focus keyword naturally 12-18 times
-- Each paragraph should be 3-5 sentences
-- Instructions must be detailed with WHY explanations`;
+CRITICAL GUIDELINES:
+- Write 2500-3500 words minimum
+- Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
+- Use proper H1, H2, H3 headings hierarchy
+- Keep paragraphs detailed but readable (3-5 sentences each)
+- Natural, conversational English like a real food blogger
+- No emojis
+- Use <strong> to emphasize key points
+- Output clean HTML only
+- Include the focus keyword naturally 10-15 times throughout`;
 
     const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a COMPREHENSIVE recipe article (3000-4000 words) in the style of TastyWithTina.com following the exact structure above. 
-
-The article must include:
-- 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
-- The focus keyword "${focusKeyword}" used 12-18 times naturally
-- Prep time, cook time, total time, servings info
-- Detailed ingredient lists with EXACT measurements (cups AND grams)
-- 10-14 detailed step-by-step instructions
-- Storage, variations, pitfalls, FAQs sections
-- Warm, conversational tone like a professional food blogger
-
-Output clean HTML only.`;
+Write a COMPREHENSIVE, LONG (2500-3500 words), SEO-optimized recipe article following the structure above. Include the focus keyword "${focusKeyword}" naturally 10-15 times throughout. Include ALL 7 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}`;
 
     const articleContent = await callGroqAI(articlePrompt, articleSystemPrompt, GROQ_API_KEY);
 
