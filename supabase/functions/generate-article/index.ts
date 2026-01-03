@@ -251,8 +251,8 @@ serve(async (req) => {
   }
 
   try {
-    const { recipeId, title, sitemapUrl, sitemapType = 'auto', imageQuality = 'medium', aspectRatio = '16:9' } = await req.json();
-    console.log(`Generating article for: ${title} (ID: ${recipeId})`);
+    const { recipeId, title: focusKeyword, sitemapUrl, sitemapType = 'auto', imageQuality = 'medium', aspectRatio = '16:9' } = await req.json();
+    console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
     console.log(`Image settings: quality=${imageQuality}, aspectRatio=${aspectRatio}, sitemapType=${sitemapType}`);
 
     // Use direct Gemini API key instead of Lovable AI
@@ -276,11 +276,48 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', recipeId);
 
+    // Step 0: Generate SEO-optimized title from focus keyword
+    console.log('Generating SEO title from focus keyword...');
+    
+    const titleSystemPrompt = `You are an SEO expert and professional content writer. Generate a beautiful, click-worthy title that:
+1. MUST include the exact focus keyword naturally (can add words before/after)
+2. Is engaging and makes readers want to click
+3. Is between 50-70 characters (optimal for SEO)
+4. Uses power words like "Easy", "Best", "Ultimate", "Simple", "Delicious", "Perfect"
+5. Can include a dash with a subtitle for extra appeal
+
+Examples:
+- Focus: "chocolate chip cookies" → "Perfect Chocolate Chip Cookies – Soft, Chewy, and Irresistible"
+- Focus: "easy dinner recipes" → "Easy Dinner Recipes for Busy Weeknights – Ready in 30 Minutes"
+- Focus: "Easter brunch ideas" → "Easter Brunch Ideas Everyone Will Love – Simple & Elegant Recipes"
+
+Return ONLY the title, nothing else.`;
+
+    const titlePrompt = `Generate an SEO-optimized, beautiful title for this focus keyword: "${focusKeyword}"`;
+    
+    let seoTitle = focusKeyword; // Default to focus keyword if generation fails
+    try {
+      const generatedTitle = await callGeminiText(titlePrompt, titleSystemPrompt, GEMINI_API_KEY);
+      if (generatedTitle && generatedTitle.trim().length > 0) {
+        // Clean up the title - remove quotes, extra whitespace
+        seoTitle = generatedTitle.trim().replace(/^["']|["']$/g, '').trim();
+        console.log(`Generated SEO title: ${seoTitle}`);
+        
+        // Update the recipe title in database with the generated SEO title
+        await supabase
+          .from('recipes')
+          .update({ title: seoTitle })
+          .eq('id', recipeId);
+      }
+    } catch (e) {
+      console.log('Using focus keyword as title:', focusKeyword);
+    }
+
     // Fetch sitemap URLs if provided
     let relevantLinks: Array<{ url: string; anchorText: string }> = [];
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
-      relevantLinks = await findRelevantUrls(sitemapUrls, title, GEMINI_API_KEY);
+      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, GEMINI_API_KEY);
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
@@ -300,7 +337,7 @@ CRITICAL REQUIREMENTS for realistic images:
 
 Return exactly 4 prompts as JSON array.`;
 
-    const imagePromptsPrompt = `Generate 4 HYPER-REALISTIC food photography prompts for: "${title}"
+    const imagePromptsPrompt = `Generate 4 HYPER-REALISTIC food photography prompts for: "${seoTitle}"
 
 1. Hero shot - overhead or 45-degree, looks like editorial food magazine
 2. Ingredient close-up - raw ingredients with natural imperfections
@@ -310,10 +347,10 @@ Return exactly 4 prompts as JSON array.`;
 Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`;
 
     let imagePrompts = [
-      `Hyper-realistic food photography of ${title}, shot on Canon 5D Mark IV with 50mm f/1.4 lens, natural window light casting soft shadows, overhead angle on weathered oak table with visible grain, rustic ceramic plate with slight imperfections, fresh herbs scattered naturally with some fallen leaves, slight steam rising naturally, shallow depth of field, editorial food magazine quality, NOT AI generated, real photograph`,
-      `Close-up of fresh ingredients for ${title}, shot on Sony A7III with 85mm lens, morning kitchen light, ingredients on worn wooden cutting board with knife marks, some moisture droplets on vegetables, natural color variations, slightly uneven arrangement, real textures visible, professional food photography, authentic imperfections`,
-      `Action shot of ${title} being cooked, real kitchen environment with visible stovetop, natural steam and sizzle with slight motion blur, chef's hand visible stirring or flipping, warm tungsten kitchen lighting mixed with daylight, oil splatter on pan edges, authentic cooking moment, documentary style food photography`,
-      `${title} served on vintage stoneware plate with hairline cracks, real dining table setting with wrinkled linen napkin, fork resting naturally with food partially eaten, wine glass with fingerprints, breadcrumbs scattered on table, warm evening light from nearby window, human presence implied, lifestyle food photography, magazine editorial quality`
+      `Hyper-realistic food photography of ${seoTitle}, shot on Canon 5D Mark IV with 50mm f/1.4 lens, natural window light casting soft shadows, overhead angle on weathered oak table with visible grain, rustic ceramic plate with slight imperfections, fresh herbs scattered naturally with some fallen leaves, slight steam rising naturally, shallow depth of field, editorial food magazine quality, NOT AI generated, real photograph`,
+      `Close-up of fresh ingredients for ${seoTitle}, shot on Sony A7III with 85mm lens, morning kitchen light, ingredients on worn wooden cutting board with knife marks, some moisture droplets on vegetables, natural color variations, slightly uneven arrangement, real textures visible, professional food photography, authentic imperfections`,
+      `Action shot of ${seoTitle} being cooked, real kitchen environment with visible stovetop, natural steam and sizzle with slight motion blur, chef's hand visible stirring or flipping, warm tungsten kitchen lighting mixed with daylight, oil splatter on pan edges, authentic cooking moment, documentary style food photography`,
+      `${seoTitle} served on vintage stoneware plate with hairline cracks, real dining table setting with wrinkled linen napkin, fork resting naturally with food partially eaten, wine glass with fingerprints, breadcrumbs scattered on table, warm evening light from nearby window, human presence implied, lifestyle food photography, magazine editorial quality`
     ];
 
     try {
@@ -463,9 +500,10 @@ IMPORTANT GUIDELINES:
 - Use <strong> to bold key points and tips
 - Output clean HTML only`;
 
-    const articlePrompt = `RECIPE TOPIC: "${title}"
+    const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
+FOCUS KEYWORD: "${focusKeyword}"
 
-Write a complete SEO-optimized recipe article following the EXACT structure above. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`;
+Write a complete SEO-optimized recipe article following the EXACT structure above. Make sure to naturally include the focus keyword "${focusKeyword}" in the content for SEO purposes. Include all 4 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}`;
 
     const articleContent = await callGeminiText(articlePrompt, articleSystemPrompt, GEMINI_API_KEY);
 
@@ -480,7 +518,7 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
       if (imageUrls[i]) {
         finalContent = finalContent.replace(
           placeholder,
-          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${title} - Image ${i + 1}" loading="lazy" /></figure>`
+          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${seoTitle} - Image ${i + 1}" loading="lazy" /></figure>`
         );
       } else {
         // Remove placeholder if no image was generated
@@ -488,7 +526,7 @@ Write a complete SEO-optimized recipe article following the EXACT structure abov
       }
     }
 
-    console.log(`Article generated successfully for: ${title}`);
+    console.log(`Article generated successfully for: ${seoTitle}`);
 
     // Update recipe with generated content
     const { error: updateError } = await supabase
