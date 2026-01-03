@@ -1,10 +1,1 @@
-project_id = "xoibexioqgnavdcruszv"
-
-[functions.analyze-recipe]
-verify_jwt = false
-
-[functions.generate-pin-image]
-verify_jwt = false
-
-[functions.generate-article]
-verify_jwt = false
+project_id = "tewxfsftyemlwxmhmcmk"
