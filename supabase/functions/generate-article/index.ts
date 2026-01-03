@@ -188,7 +188,7 @@ function safeSlug(input: string): string {
     .slice(0, 60) || 'image';
 }
 
-// Fallback that is STILL relevant: search Openverse (free) and upload the image to our storage bucket
+// Fallback image search (no random images): try Openverse and upload to our storage bucket
 async function generateFallbackImage(
   dishName: string,
   imageContext: string,
@@ -196,7 +196,7 @@ async function generateFallbackImage(
   supabase: any
 ): Promise<string> {
   try {
-    const query = `${dishName} ${imageContext} food photography`;
+    const query = `${dishName} ${imageContext} dessert food photography`;
     const openverseUrl = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=10`;
 
     const ovResp = await fetch(openverseUrl, {
@@ -208,17 +208,15 @@ async function generateFallbackImage(
     if (ovResp.ok) {
       const ovJson = await ovResp.json();
       const results = Array.isArray(ovJson?.results) ? ovJson.results : [];
-      const first = results.find((r: any) => typeof r?.url === 'string' && r.url.startsWith('http'))
-        || results.find((r: any) => typeof r?.thumbnail === 'string' && r.thumbnail.startsWith('http'));
+      const first =
+        results.find((r: any) => typeof r?.url === 'string' && r.url.startsWith('http')) ||
+        results.find((r: any) => typeof r?.thumbnail === 'string' && r.thumbnail.startsWith('http'));
 
       candidateUrl = (first?.url || first?.thumbnail) ?? null;
     }
 
-    // Absolute last resort (should be rare)
-    if (!candidateUrl) {
-      const seed = `${Date.now()}-${imageNumber}`;
-      return `https://picsum.photos/seed/${seed}/1200/800`;
-    }
+    // If we can't find a relevant fallback, return empty so we don't show random/unrelated images
+    if (!candidateUrl) return '';
 
     const imgResp = await fetch(candidateUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' },
@@ -259,8 +257,7 @@ async function generateFallbackImage(
     return urlData?.publicUrl || candidateUrl;
   } catch (e) {
     console.error('Fallback image generation error:', e);
-    const seed = `${Date.now()}-${imageNumber}`;
-    return `https://picsum.photos/seed/${seed}/1200/800`;
+    return '';
   }
 }
 
@@ -273,31 +270,45 @@ async function analyzeArticleForImagePrompts(
 ): Promise<string[]> {
   console.log('Analyzing article content to generate contextual image prompts...');
   
-  const systemPrompt = `You are an expert food photographer and AI image prompt engineer. 
-Analyze the recipe article content and create 7 SPECIFIC, DETAILED image prompts that perfectly match each section of the article.
-Each prompt must be unique, specific to the actual content, and designed for AI image generation.
+  const analysisText = articleContent
+    .replace(/\{\{IMAGE_\d\}\}/g, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt should be 40-60 words.
-Include: specific food items, ingredients mentioned, cooking techniques, presentation style, lighting, and mood.
-NO text or watermarks in images.`;
+  const excerpt = analysisText.length > 9000
+    ? `${analysisText.slice(0, 4500)} ... ${analysisText.slice(-4500)}`
+    : analysisText;
 
-  const userPrompt = `Analyze this recipe article and create 7 specific image prompts:
+  const systemPrompt = `You are an expert food photographer and AI image prompt engineer.
+Generate prompts ONLY for food/dessert photography that matches the provided article.
 
-DISH NAME: ${dishName}
+CRITICAL:
+- NEVER include people, faces, portraits, landscapes, sky, animals, or non-food scenes.
+- Every prompt MUST clearly describe a FOOD/DESSERT scene.
+- NO text, NO logos, NO watermarks.
 
-ARTICLE CONTENT:
-${articleContent.substring(0, 4000)}
+Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt 40-70 words.`;
 
-Create 7 image prompts for:
-1. Hero shot (main dish presentation) - based on the actual dish described
-2. Texture close-up - focus on specific textures mentioned in the article
-3. Ingredients flat lay - use the ACTUAL ingredients listed in the article
-4. Cooking action - match a specific cooking step from the instructions
-5. Table setting/lifestyle - match the serving suggestions mentioned
-6. Storage/meal prep - based on storage tips if mentioned
-7. Final beauty shot - based on the complete dish description
+  const userPrompt = `Create 7 highly relevant image prompts for this recipe/article.
 
-Output only the 7 numbered prompts, one per line.`;
+TOPIC (short): ${dishName}
+
+ARTICLE (cleaned excerpt):
+${excerpt}
+
+Create prompts for:
+1. Hero shot (main dessert scene)
+2. Texture close-up (dessert texture)
+3. Ingredients flat lay (ingredients actually mentioned)
+4. Cooking action (a real step from the article)
+5. Table setting / lifestyle (serving / party vibe)
+6. Storage / meal prep (only if mentioned, otherwise a second hero variation)
+7. Final beauty shot (finished desserts on a plate)
+
+Return only the 7 numbered lines.`;
 
   try {
     const response = await callAI(userPrompt, systemPrompt, AI_API_KEY, aiProvider as 'lovable' | 'groq' | 'openai');
@@ -353,35 +364,66 @@ async function generateUniqueImage(
   try {
     console.log(`Generating image ${imageNumber} with contextual prompt: ${prompt.substring(0, 100)}...`);
 
-    // Call Replicate API with Flux Schnell model - use consistent aspect ratio from settings
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${REPLICATE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: "black-forest-labs/flux-schnell",
-        input: {
-          prompt: prompt,
-          go_fast: true,
-          megapixels: "1",
-          num_outputs: 1,
-          aspect_ratio: aspectRatio,
-          output_format: "webp",
-          output_quality: 80,
-          num_inference_steps: 4
-        }
-      }),
-    });
+    // Call Replicate API (async). Add backoff retries on 429 to prevent random/unrelated fallbacks.
+    let prediction: any | null = null;
+    const maxCreateAttempts = 8;
 
-    if (!response.ok) {
+    for (let attempt = 0; attempt < maxCreateAttempts; attempt++) {
+      const response = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          version: "black-forest-labs/flux-schnell",
+          input: {
+            prompt,
+            go_fast: true,
+            megapixels: "1",
+            num_outputs: 1,
+            aspect_ratio: aspectRatio,
+            output_format: "webp",
+            output_quality: 80,
+            num_inference_steps: 4,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        prediction = await response.json();
+        break;
+      }
+
       const errorText = await response.text();
       console.error(`Replicate API error for image ${imageNumber}:`, response.status, errorText);
+
+      if (response.status === 429) {
+        let retryAfterMs = 6000;
+        try {
+          const parsed = JSON.parse(errorText);
+          const retryAfter = Number(parsed?.retry_after);
+          if (Number.isFinite(retryAfter) && retryAfter > 0) {
+            retryAfterMs = retryAfter * 1000;
+          }
+        } catch {
+          // ignore parse errors
+        }
+
+        const waitMs = retryAfterMs + 250;
+        console.log(`Replicate throttled. Waiting ${waitMs}ms then retrying (attempt ${attempt + 1}/${maxCreateAttempts})...`);
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+
+      // Non-retryable error
+      break;
+    }
+
+    if (!prediction) {
       return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
     }
 
-    const prediction = await response.json();
     
     // Poll for result (Replicate is async)
     let result = prediction;
@@ -848,7 +890,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
       
       // Small delay between image generations to avoid rate limits
       if (i < 6) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2500));
       }
     }
     
