@@ -263,10 +263,11 @@ const RecipeList = () => {
       const { error } = await supabase
         .from('recipes')
         .update({ status: 'pending', error_message: null })
-        .eq('status', 'processing');
+        .in('status', ['processing', 'error']);
 
       if (error) throw error;
-      toast.success('Processing items reset to pending');
+      toast.success('Error and processing items reset to pending');
+      fetchRecipes();
     } catch (error) {
       console.error('Error resetting items:', error);
       toast.error('Failed to reset items');
