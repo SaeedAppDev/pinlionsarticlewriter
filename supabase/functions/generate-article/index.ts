@@ -323,141 +323,161 @@ Place these links naturally within paragraphs where they make sense.`;
     // Step 2: Generate SEO-optimized article content
     console.log('Generating article content with Groq (FREE)...');
     
-    const articleSystemPrompt = `You are a professional food blogger and SEO expert. Write a COMPREHENSIVE, LONG, and detailed SEO-optimized recipe article in English. The article should be 2500-3500 words.
+    const articleSystemPrompt = `You are a fun, relatable food blogger writing for friends. Write a detailed, conversational, SEO-optimized recipe article in English (1000-1200 words).
 ${internalLinksInstruction}
 
-STRUCTURE TO FOLLOW:
+TONE & STYLE RULES:
+- Informal, playful tone like talking to a friend
+- Use humor, mild sarcasm, and relatability
+- Avoid clichés like "In today's world"
+- Keep paragraphs SHORT and engaging (2-3 sentences max)
+- Use bold to highlight key tips
+- Use occasional slang like FYI or IMO (but limit to 2-3 times)
+- Avoid passive voice as much as possible
+- Make it mobile-friendly with short paragraphs
+- No emojis
 
-<h1>[Recipe Title]</h1>
+EXACT STRUCTURE TO FOLLOW:
+
+<h1>[Create a catchy, fun, click-worthy title]</h1>
 
 {{IMAGE_1}}
 
-<h2>Introduction</h2>
-<p>Engaging overview of the dish. 3-4 paragraphs covering why this recipe is special, perfect occasions to make it, and what makes it unique. Hook the reader.</p>
+<h2>Short, Catchy Intro</h2>
+<p>Start with humor or relatability. Hook the reader immediately. No formal textbook tone. Keep it light and friendly. 2-3 short paragraphs.</p>
 
-<h2>What Makes This Recipe Special</h2>
-<p>2-3 paragraphs explaining the origins, history, or unique aspects of this dish.</p>
+<h2>Why This Recipe Is Awesome</h2>
+<p>Explain why this recipe is great with fun tone, mild sarcasm allowed.</p>
+<ul>
+<li><strong>Beginner-friendly:</strong> playful explanation</li>
+<li><strong>Comfort food level:</strong> 100/10</li>
+<li><strong>Customizable:</strong> playful note</li>
+<li><strong>Budget-friendly:</strong> basic ingredients, big flavor</li>
+<li><strong>Crowd-pleaser:</strong> everyone's happy</li>
+<li><strong>Reheats beautifully:</strong> future-you will thank present-you</li>
+</ul>
 
 {{IMAGE_2}}
 
-<h2>Why You'll Love This Recipe</h2>
+<h2>Quick Recipe Overview</h2>
 <ul>
-<li><strong>Reason 1:</strong> detailed explanation</li>
-<li><strong>Reason 2:</strong> detailed explanation</li>
-<li><strong>Reason 3:</strong> detailed explanation</li>
-<li><strong>Reason 4:</strong> detailed explanation</li>
-<li><strong>Reason 5:</strong> detailed explanation</li>
+<li><strong>Prep Time:</strong> X minutes</li>
+<li><strong>Cook Time:</strong> X minutes</li>
+<li><strong>Servings:</strong> X people</li>
+<li><strong>Difficulty:</strong> Easy/Medium</li>
+<li><strong>Flavor:</strong> describe flavor profile</li>
 </ul>
 
 <h2>Ingredients You'll Need</h2>
-<p>Introduction paragraph about ingredient quality and sourcing.</p>
-
-<h3>Main Ingredients</h3>
-<ul><li>Full ingredient list with exact measurements and notes</li></ul>
-
-<h3>For the Topping/Frosting (if applicable)</h3>
-<ul><li>Additional ingredients</li></ul>
-
-<h3>Optional Add-ins</h3>
-<ul><li>Extra flavor options</li></ul>
+<p>Brief playful intro about ingredients.</p>
+<ul>
+<li>Ingredient 1 with measurement</li>
+<li>Ingredient 2 with measurement</li>
+(list all ingredients)
+</ul>
+<p><strong>Important tip:</strong> 👉 Season your food. Bland food is the villain of every kitchen story.</p>
 
 {{IMAGE_3}}
 
-<h2>Equipment Needed</h2>
-<p>Brief intro about kitchen tools.</p>
-<ul><li>List each required tool with explanation of why it's needed</li></ul>
-
 <h2>Step-by-Step Instructions</h2>
-<p>Let me walk you through the entire process in detail.</p>
 
-<h3>Step 1: Preparation</h3>
-<p>Detailed preparation instructions. 2-3 sentences with tips.</p>
+<h3>1. First Step Title</h3>
+<p>2-4 sentences max. Active voice. Include small helpful tip in <strong>bold</strong> if relevant.</p>
 
-<h3>Step 2: [Next Major Step]</h3>
-<p>Continue with detailed instructions...</p>
+<h3>2. Second Step Title</h3>
+<p>Continue with clear, fun instructions...</p>
 
-(Continue with 6-8 detailed steps, each with its own H3)
+(Continue with 6-10 numbered steps, each with H3)
 
 {{IMAGE_4}}
 
-<h2>Pro Tips for Perfect Results</h2>
-<p>Introduction to tips section.</p>
+<h2>Common Mistakes to Avoid</h2>
+<p>A few traps people fall into (learn from them):</p>
 <ul>
-<li><strong>Tip 1:</strong> detailed practical advice</li>
-<li><strong>Tip 2:</strong> detailed practical advice</li>
-<li><strong>Tip 3:</strong> detailed practical advice</li>
-<li><strong>Tip 4:</strong> detailed practical advice</li>
-<li><strong>Tip 5:</strong> detailed practical advice</li>
+<li>❌ mistake 1 with humorous explanation</li>
+<li>❌ mistake 2 with humorous explanation</li>
+<li>❌ mistake 3 with humorous explanation</li>
+<li>❌ mistake 4 with humorous explanation</li>
 </ul>
+<p><strong>Golden rule:</strong> 👉 Taste as you cook. Your tongue is your best tool.</p>
 
 {{IMAGE_5}}
 
-<h2>Ingredient Substitutions & Variations</h2>
-<h3>Dietary Modifications</h3>
+<h2>Alternatives & Substitutions</h2>
+<p>This recipe is flexible — vibe with it:</p>
 <ul>
-<li><strong>Gluten-free:</strong> how to modify</li>
-<li><strong>Dairy-free:</strong> how to modify</li>
-<li><strong>Vegan:</strong> how to modify</li>
+<li><strong>No [ingredient]?</strong> → use [alternative]</li>
+<li><strong>Vegetarian version:</strong> → replace with [option]</li>
+<li><strong>Gluten-free:</strong> → use [alternative]</li>
+<li><strong>Low-carb:</strong> → use [alternative]</li>
+<li><strong>Extra cheesy:</strong> → add [option] (you're welcome)</li>
 </ul>
-
-<h3>Flavor Variations</h3>
-<p>Different ways to customize the recipe with alternative flavors, spices, or ingredients.</p>
+<p>Cooking is not a contract — it's controlled chaos.</p>
 
 <h2>Serving Suggestions</h2>
-<p>2-3 paragraphs with detailed serving ideas, side dishes, toppings, garnishes, and presentation tips.</p>
+<p>Want to make it feel fancy without actually trying?</p>
+<ul>
+<li>Side option 1</li>
+<li>Side option 2</li>
+<li>Side option 3</li>
+</ul>
+<p>Or straight out of the baking dish while standing over the stove… zero judgment.</p>
 
 {{IMAGE_6}}
 
-<h2>Storage & Meal Prep</h2>
-<h3>Short-term Storage</h3>
-<p>How to store for a few days, container recommendations.</p>
+<h2>Storage, Freezing & Reheating</h2>
+<h3>Refrigeration</h3>
+<p>Store leftovers up to X days in an airtight container.</p>
 
-<h3>Freezing Instructions</h3>
-<p>How to freeze, how long it lasts, thawing instructions.</p>
+<h3>Freezing</h3>
+<p>Freeze portions for X months.</p>
 
-<h3>Reheating Tips</h3>
-<p>Best methods to reheat while maintaining quality.</p>
+<h3>Reheat</h3>
+<p>Oven or microwave both work. Add a little extra cheese because you deserve happiness.</p>
 
-<h2>Nutrition Information</h2>
-<p>Detailed nutritional breakdown per serving with calories, protein, carbs, fat, fiber, sugar.</p>
+<p><strong>Fun fact:</strong> it somehow tastes even better the next day.</p>
 
-<h2>Frequently Asked Questions</h2>
+<h2>FAQ – [Recipe Name]</h2>
 
-<h3>Can I make this ahead of time?</h3>
-<p>Detailed answer about meal prep options.</p>
+<h3>Is this [dish] spicy?</h3>
+<p>Conversational answer with humor.</p>
 
-<h3>How do I know when it's done?</h3>
-<p>Signs of doneness and testing methods.</p>
+<h3>Which [ingredient variation] works best?</h3>
+<p>Helpful answer with personality.</p>
 
-<h3>What if I don't have [key ingredient]?</h3>
-<p>Substitution advice.</p>
+<h3>Can I make it ahead?</h3>
+<p>Yes. Assemble, refrigerate, bake later. Easy.</p>
 
-<h3>Can I double this recipe?</h3>
-<p>Scaling instructions and tips.</p>
+<h3>Can I skip the [optional ingredient]?</h3>
+<p>You can. But your conscience might side-eye you.</p>
 
-<h3>Why did my [dish] turn out [common problem]?</h3>
-<p>Troubleshooting common issues.</p>
+<h3>Can I add [common addition]?</h3>
+<p>Absolutely. This recipe loves new friends.</p>
 
 {{IMAGE_7}}
 
 <h2>Final Thoughts</h2>
-<p>2-3 paragraphs summarizing the recipe, encouraging readers to try it, and inviting them to comment or share their results. Include a call-to-action.</p>
+<p>2-3 short paragraphs with friendly encouragement. Keep tone playful and motivating. End with something like "Now go impress someone, even if it's just yourself."</p>
+<p>And yes, licking the spoon is technically optional… but highly recommended.</p>
 
 CRITICAL GUIDELINES:
-- Write 2500-3500 words minimum
+- Write 1000-1200 words
 - Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
+- Keep it FUN, conversational, like a friend sharing a recipe
 - Use proper H1, H2, H3 headings hierarchy
-- Keep paragraphs detailed but readable (3-5 sentences each)
-- Natural, conversational English like a real food blogger
-- No emojis
-- Use <strong> to emphasize key points
+- No emojis except ❌ for mistakes and 👉 for tips
 - Output clean HTML only
-- Include the focus keyword naturally 10-15 times throughout`;
+- Include the focus keyword naturally 8-12 times throughout`;
 
     const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a COMPREHENSIVE, LONG (2500-3500 words), SEO-optimized recipe article following the structure above. Include the focus keyword "${focusKeyword}" naturally 10-15 times throughout. Include ALL 7 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}`;
+Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article following the exact structure above. 
+- Be playful, use humor, talk like a friend
+- Include the focus keyword "${focusKeyword}" naturally 8-12 times
+- Include ALL 7 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
+- Keep paragraphs SHORT and punchy
+- Make it genuinely fun to read!`;
 
     const articleContent = await callGroqAI(articlePrompt, articleSystemPrompt, GROQ_API_KEY);
 
