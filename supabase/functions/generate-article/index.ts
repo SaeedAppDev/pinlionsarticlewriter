@@ -246,10 +246,11 @@ async function generateUniqueImage(
   imageContext: string,
   imageNumber: number,
   REPLICATE_API_KEY: string,
-  supabase: any
+  supabase: any,
+  aspectRatio: string = "4:3"
 ): Promise<string> {
   try {
-    console.log(`Generating unique image ${imageNumber} for: ${dishName} - ${imageContext}`);
+    console.log(`Generating unique image ${imageNumber} for: ${dishName} - ${imageContext} (aspect: ${aspectRatio})`);
 
     // Create UNIQUE, SPECIFIC prompts for each image position
     const imagePrompts: Record<number, string> = {
@@ -264,7 +265,7 @@ async function generateUniqueImage(
 
     const prompt = imagePrompts[imageNumber] || imagePrompts[1];
 
-    // Call Replicate API with Flux Schnell model
+    // Call Replicate API with Flux Schnell model - use consistent aspect ratio from settings
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -278,7 +279,7 @@ async function generateUniqueImage(
           go_fast: true,
           megapixels: "1",
           num_outputs: 1,
-          aspect_ratio: "4:3",
+          aspect_ratio: aspectRatio,
           output_format: "webp",
           output_quality: 80,
           num_inference_steps: 4
@@ -389,6 +390,72 @@ Only return valid JSON array, nothing else.`;
   return [];
 }
 
+// Validate and fix internal links in article content
+function validateInternalLinks(
+  content: string, 
+  expectedLinks: Array<{ url: string; anchorText: string }>
+): { isValid: boolean; missingLinks: Array<{ url: string; anchorText: string }> } {
+  const missingLinks: Array<{ url: string; anchorText: string }> = [];
+  
+  for (const link of expectedLinks) {
+    // Check if the URL exists in the content
+    if (!content.includes(link.url)) {
+      missingLinks.push(link);
+    }
+  }
+  
+  console.log(`Internal link validation: ${expectedLinks.length - missingLinks.length}/${expectedLinks.length} links found`);
+  
+  return {
+    isValid: missingLinks.length === 0,
+    missingLinks
+  };
+}
+
+// Insert missing internal links into article content
+function insertMissingInternalLinks(
+  content: string, 
+  missingLinks: Array<{ url: string; anchorText: string }>
+): string {
+  if (missingLinks.length === 0) return content;
+  
+  console.log(`Inserting ${missingLinks.length} missing internal links...`);
+  
+  let updatedContent = content;
+  
+  // Find paragraphs and insert links naturally
+  for (const link of missingLinks) {
+    // Look for the first <p> after the intro that doesn't already have a link
+    const paragraphRegex = /<p>([^<]*?)(\.)<\/p>/g;
+    let match;
+    let inserted = false;
+    
+    while ((match = paragraphRegex.exec(updatedContent)) !== null && !inserted) {
+      const paragraph = match[0];
+      // Skip very short paragraphs or those that already have links
+      if (paragraph.length > 100 && !paragraph.includes('<a href')) {
+        const insertPoint = match.index + match[1].length;
+        const linkHtml = ` For more ideas, check out <a href="${link.url}">${link.anchorText}</a>`;
+        updatedContent = updatedContent.slice(0, insertPoint) + linkHtml + updatedContent.slice(insertPoint);
+        inserted = true;
+        console.log(`Inserted link: ${link.url}`);
+      }
+    }
+    
+    // If we couldn't insert in a paragraph, add before the FAQ section
+    if (!inserted) {
+      const faqIndex = updatedContent.indexOf('<h2>FAQ');
+      if (faqIndex > -1) {
+        const linkHtml = `<p>You might also enjoy <a href="${link.url}">${link.anchorText}</a>.</p>\n\n`;
+        updatedContent = updatedContent.slice(0, faqIndex) + linkHtml + updatedContent.slice(faqIndex);
+        console.log(`Inserted link before FAQ: ${link.url}`);
+      }
+    }
+  }
+  
+  return updatedContent;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -398,7 +465,9 @@ serve(async (req) => {
   
   try {
     requestBody = await req.json();
-    const { recipeId, title: focusKeyword, sitemapUrl, sitemapType = 'auto' } = requestBody;
+    const { recipeId, title: focusKeyword, sitemapUrl, sitemapType = 'auto', aspectRatio = '4:3' } = requestBody;
+    
+    console.log(`Settings - Aspect Ratio: ${aspectRatio}`);
     
     console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
 
@@ -482,13 +551,14 @@ Return ONLY the title, nothing else.`;
     
     // Generate images sequentially to avoid rate limits
     for (let i = 0; i < 7; i++) {
-      console.log(`Generating image ${i + 1}/7...`);
+      console.log(`Generating image ${i + 1}/7 with aspect ratio ${aspectRatio}...`);
       const imageUrl = await generateUniqueImage(
         imageSubject,
         imageContexts[i],
         i + 1,
         REPLICATE_API_KEY,
-        supabase
+        supabase,
+        aspectRatio
       );
       imageUrls.push(imageUrl);
       
@@ -498,7 +568,7 @@ Return ONLY the title, nothing else.`;
       }
     }
     
-    console.log(`Generated ${imageUrls.length} unique images`);
+    console.log(`Generated ${imageUrls.length} unique images with aspect ratio: ${aspectRatio}`);
 
     // Build internal links section
     let internalLinksInstruction = '';
@@ -678,16 +748,71 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
     }
 
     // Step 3: Replace image placeholders with real image URLs
+    // Use consistent image sizing based on aspect ratio from settings
+    const getImageDimensions = (ar: string): { width: number; height: number } => {
+      const dimensions: Record<string, { width: number; height: number }> = {
+        '1:1': { width: 1024, height: 1024 },
+        '16:9': { width: 1920, height: 1080 },
+        '4:3': { width: 1024, height: 768 },
+        '3:2': { width: 1200, height: 800 },
+        '2:3': { width: 800, height: 1200 },
+        '9:16': { width: 1080, height: 1920 },
+        '3:4': { width: 768, height: 1024 },
+        '21:9': { width: 1680, height: 720 },
+      };
+      return dimensions[ar] || { width: 1024, height: 768 };
+    };
+    
+    const imgDimensions = getImageDimensions(aspectRatio);
+    console.log(`Using image dimensions: ${imgDimensions.width}x${imgDimensions.height} (aspect: ${aspectRatio})`);
+    
     let finalContent = articleContent;
     for (let i = 0; i < 7; i++) {
       const placeholder = `{{IMAGE_${i + 1}}}`;
       if (imageUrls[i]) {
         finalContent = finalContent.replace(
           placeholder,
-          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${seoTitle} - Image ${i + 1}" loading="lazy" /></figure>`
+          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${seoTitle} - Image ${i + 1}" loading="lazy" width="${imgDimensions.width}" height="${imgDimensions.height}" style="width: 100%; height: auto; aspect-ratio: ${aspectRatio.replace(':', '/')};" /></figure>`
         );
       } else {
         finalContent = finalContent.replace(placeholder, '');
+      }
+    }
+
+    // Step 4: Validate and fix internal links
+    if (relevantLinks.length > 0) {
+      const linkValidation = validateInternalLinks(finalContent, relevantLinks);
+      
+      if (!linkValidation.isValid) {
+        console.log(`Internal linking validation failed: ${linkValidation.missingLinks.length} links missing`);
+        finalContent = insertMissingInternalLinks(finalContent, linkValidation.missingLinks);
+        
+        // Re-validate after insertion
+        const reValidation = validateInternalLinks(finalContent, relevantLinks);
+        console.log(`After fix: ${relevantLinks.length - reValidation.missingLinks.length}/${relevantLinks.length} links present`);
+      } else {
+        console.log('Internal linking validation passed - all links present');
+      }
+    }
+    
+    // Check for broken links (links with empty href or placeholder text)
+    const brokenLinkPattern = /<a\s+href=["']?(?:javascript:|#|undefined|null|)["']?[^>]*>/gi;
+    const brokenLinks = finalContent.match(brokenLinkPattern);
+    if (brokenLinks && brokenLinks.length > 0) {
+      console.log(`Warning: Found ${brokenLinks.length} potentially broken links, removing them...`);
+      finalContent = finalContent.replace(brokenLinkPattern, '');
+    }
+    
+    // Check for duplicate internal links
+    const linkHrefPattern = /<a\s+href=["']([^"']+)["']/gi;
+    const foundHrefs: string[] = [];
+    let duplicateMatch;
+    while ((duplicateMatch = linkHrefPattern.exec(finalContent)) !== null) {
+      const href = duplicateMatch[1];
+      if (foundHrefs.includes(href)) {
+        console.log(`Warning: Duplicate link found: ${href}`);
+      } else {
+        foundHrefs.push(href);
       }
     }
 
@@ -709,8 +834,10 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Article generated with UNIQUE AI images',
-      imageCount: imageUrls.length
+      message: 'Article generated with UNIQUE AI images and validated internal links',
+      imageCount: imageUrls.length,
+      aspectRatio: aspectRatio,
+      internalLinksCount: relevantLinks.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

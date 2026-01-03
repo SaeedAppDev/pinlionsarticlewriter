@@ -200,13 +200,16 @@ const RecipeList = () => {
     // Get settings from localStorage
     const settings = getSettings();
 
+    let successCount = 0;
+    let errorCount = 0;
+
     for (let i = 0; i < pendingRecipes.length; i++) {
       const recipe = pendingRecipes[i];
       setProcessingId(recipe.id);
       setProgressData({ current: i, total: pendingRecipes.length });
       
       try {
-        await supabase.functions.invoke('generate-article', {
+        const { error } = await supabase.functions.invoke('generate-article', {
           body: { 
             recipeId: recipe.id, 
             title: recipe.title,
@@ -216,19 +219,38 @@ const RecipeList = () => {
             aspectRatio: settings.aspectRatio
           },
         });
+        
+        if (error) {
+          console.error('Error generating article:', error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
+        
         setProgressData({ current: i + 1, total: pendingRecipes.length });
         // Small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
         console.error('Error processing recipe:', error);
+        errorCount++;
         setProgressData({ current: i + 1, total: pendingRecipes.length });
       }
     }
+    
     setProcessingId(null);
     setIsProcessingAll(false);
     setIsTimerRunning(false);
     setProgressData({ current: 0, total: 0 });
-    toast.success('All articles processed');
+    
+    // Auto-refresh after all articles are generated
+    console.log(`Generation complete: ${successCount} success, ${errorCount} errors`);
+    await fetchRecipes();
+    
+    if (errorCount === 0) {
+      toast.success(`All ${successCount} articles generated successfully!`);
+    } else {
+      toast.warning(`Completed: ${successCount} successful, ${errorCount} failed`);
+    }
   };
 
   const deleteRecipe = async (id: string) => {
