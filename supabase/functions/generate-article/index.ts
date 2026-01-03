@@ -141,17 +141,116 @@ async function callGroqAI(prompt: string, systemPrompt: string, GROQ_API_KEY: st
   return data.choices?.[0]?.message?.content || '';
 }
 
+// Create a short, image-friendly subject from long SEO titles/keywords
+function getImageSubject(focusKeyword: string, seoTitle: string): string {
+  const base = (focusKeyword || seoTitle || '').trim();
+  if (!base) return 'food recipe';
+
+  // Remove common title fluff that harms image search / prompts
+  return base
+    .replace(/^get ready for( the)?/i, '')
+    .replace(/^the /i, '')
+    .replace(/\b(ultimate|super easy|easy|best|simple|quick)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s-\s.*$/g, '')
+    .trim() || base;
+}
+
+function safeSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 60) || 'image';
+}
+
+// Fallback that is STILL relevant: search Openverse (free) and upload the image to our storage bucket
+async function generateFallbackImage(
+  dishName: string,
+  imageContext: string,
+  imageNumber: number,
+  supabase: any
+): Promise<string> {
+  try {
+    const query = `${dishName} ${imageContext} food photography`;
+    const openverseUrl = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=10`;
+
+    const ovResp = await fetch(openverseUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' },
+    });
+
+    let candidateUrl: string | null = null;
+
+    if (ovResp.ok) {
+      const ovJson = await ovResp.json();
+      const results = Array.isArray(ovJson?.results) ? ovJson.results : [];
+      const first = results.find((r: any) => typeof r?.url === 'string' && r.url.startsWith('http'))
+        || results.find((r: any) => typeof r?.thumbnail === 'string' && r.thumbnail.startsWith('http'));
+
+      candidateUrl = (first?.url || first?.thumbnail) ?? null;
+    }
+
+    // Absolute last resort (should be rare)
+    if (!candidateUrl) {
+      const seed = `${Date.now()}-${imageNumber}`;
+      return `https://picsum.photos/seed/${seed}/1200/800`;
+    }
+
+    const imgResp = await fetch(candidateUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RecipeBot/1.0)' },
+    });
+
+    if (!imgResp.ok) {
+      return candidateUrl;
+    }
+
+    const contentType = imgResp.headers.get('content-type') || 'image/jpeg';
+    const ext = contentType.includes('png')
+      ? 'png'
+      : contentType.includes('webp')
+      ? 'webp'
+      : contentType.includes('gif')
+      ? 'gif'
+      : 'jpg';
+
+    const bytes = new Uint8Array(await imgResp.arrayBuffer());
+    const fileName = `fallback/${safeSlug(dishName)}/${Date.now()}-${imageNumber}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('article-images')
+      .upload(fileName, bytes, {
+        contentType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Fallback upload error:', uploadError);
+      return candidateUrl;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('article-images')
+      .getPublicUrl(fileName);
+
+    return urlData?.publicUrl || candidateUrl;
+  } catch (e) {
+    console.error('Fallback image generation error:', e);
+    const seed = `${Date.now()}-${imageNumber}`;
+    return `https://picsum.photos/seed/${seed}/1200/800`;
+  }
+}
+
 // Generate UNIQUE AI image for each recipe section using Lovable AI
 async function generateUniqueImage(
-  dishName: string, 
-  imageContext: string, 
+  dishName: string,
+  imageContext: string,
   imageNumber: number,
   LOVABLE_API_KEY: string,
   supabase: any
 ): Promise<string> {
   try {
     console.log(`Generating unique image ${imageNumber} for: ${dishName} - ${imageContext}`);
-    
+
     // Create UNIQUE, SPECIFIC prompts for each image position
     const imagePrompts: Record<number, string> = {
       1: `Professional food photography of ${dishName}. Hero shot, overhead angle 45 degrees, the dish beautifully plated on a rustic wooden table. Natural window light, shallow depth of field. Steam rising if hot. Fresh garnishes. Magazine quality, appetizing, mouthwatering. NO text, NO watermarks.`,
@@ -162,138 +261,71 @@ async function generateUniqueImage(
       6: `${dishName} storage and meal prep photo. Food in glass containers, some portions wrapped, organized in fridge or on counter. Clean, organized kitchen background. Meal prep inspiration style. Bright lighting. NO text.`,
       7: `Final beauty shot of ${dishName}. Single serving perfectly plated. Dramatic lighting with soft shadows. Sauce artfully drizzled. Fresh herb garnish. One bite taken to show inside texture. Restaurant quality presentation. NO text.`
     };
-    
+
     const prompt = imagePrompts[imageNumber] || imagePrompts[1];
-    
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        modalities: ["image", "text"]
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [{ role: 'user', content: prompt }],
+        modalities: ['image', 'text'],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Lovable AI error for image ${imageNumber}:`, response.status, errorText);
-      return getFallbackImage(dishName, imageNumber);
+      return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
     }
 
     const data = await response.json();
     const base64Url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
+
     if (!base64Url) {
       console.error(`No image generated for position ${imageNumber}`);
-      return getFallbackImage(dishName, imageNumber);
+      return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
     }
 
-    // Upload to Supabase Storage
+    // Upload to Storage
     const base64Data = base64Url.replace(/^data:image\/\w+;base64,/, '');
     const binaryString = atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    
+
     const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
-    
+
     const { error: uploadError } = await supabase.storage
       .from('article-images')
       .upload(fileName, bytes, {
         contentType: 'image/webp',
-        upsert: true
+        upsert: true,
       });
-    
+
     if (uploadError) {
       console.error('Upload error:', uploadError);
-      return base64Url; // Return base64 as fallback
+      // Return the original base64 as last resort (it will still render in <img>)
+      return base64Url;
     }
 
     const { data: urlData } = supabase.storage
       .from('article-images')
       .getPublicUrl(fileName);
-    
+
     console.log(`Image ${imageNumber} generated and uploaded successfully`);
     return urlData?.publicUrl || base64Url;
-    
   } catch (error) {
     console.error(`Error generating image ${imageNumber}:`, error);
-    return getFallbackImage(dishName, imageNumber);
+    return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
   }
 }
 
-// Fallback using Unsplash Source API with context-aware search terms
-function getFallbackImage(dishName: string, imageNumber: number): string {
-  // Extract key food terms from the dish name for better search
-  const dishLower = dishName.toLowerCase();
-  
-  // Determine the main food category/type
-  let mainFoodTerm = 'delicious food';
-  
-  // Check for specific food types and create relevant search terms
-  if (dishLower.includes('pumpkin')) {
-    mainFoodTerm = 'pumpkin dessert';
-  } else if (dishLower.includes('chocolate')) {
-    mainFoodTerm = 'chocolate dessert';
-  } else if (dishLower.includes('cake')) {
-    mainFoodTerm = 'cake dessert';
-  } else if (dishLower.includes('pie')) {
-    mainFoodTerm = 'pie dessert';
-  } else if (dishLower.includes('cookie')) {
-    mainFoodTerm = 'cookies baking';
-  } else if (dishLower.includes('chicken')) {
-    mainFoodTerm = 'chicken dish';
-  } else if (dishLower.includes('pasta')) {
-    mainFoodTerm = 'pasta dish';
-  } else if (dishLower.includes('salad')) {
-    mainFoodTerm = 'fresh salad';
-  } else if (dishLower.includes('soup')) {
-    mainFoodTerm = 'soup bowl';
-  } else if (dishLower.includes('bread')) {
-    mainFoodTerm = 'fresh bread';
-  } else if (dishLower.includes('pizza')) {
-    mainFoodTerm = 'pizza';
-  } else if (dishLower.includes('steak') || dishLower.includes('beef')) {
-    mainFoodTerm = 'steak beef';
-  } else if (dishLower.includes('fish') || dishLower.includes('salmon')) {
-    mainFoodTerm = 'fish dish';
-  } else if (dishLower.includes('rice')) {
-    mainFoodTerm = 'rice dish';
-  } else if (dishLower.includes('breakfast')) {
-    mainFoodTerm = 'breakfast';
-  } else if (dishLower.includes('dessert') || dishLower.includes('sweet')) {
-    mainFoodTerm = 'dessert';
-  }
-  
-  // Different search terms for different image positions to get variety
-  const searchTerms: Record<number, string> = {
-    1: `${mainFoodTerm} plated`, // Hero shot
-    2: `${mainFoodTerm} closeup`, // Texture close-up
-    3: `${mainFoodTerm} ingredients`, // Ingredients
-    4: `cooking ${mainFoodTerm}`, // Cooking action
-    5: `${mainFoodTerm} table setting`, // Table setting
-    6: `${mainFoodTerm} meal prep`, // Storage
-    7: `${mainFoodTerm} beautiful`, // Final beauty shot
-  };
-  
-  const searchTerm = searchTerms[imageNumber] || mainFoodTerm;
-  const encodedSearch = encodeURIComponent(searchTerm);
-  
-  // Use Unsplash Source API - it returns random images matching the search query
-  // Add timestamp to prevent caching and get unique images
-  const timestamp = Date.now() + imageNumber * 1000;
-  return `https://source.unsplash.com/1200x800/?${encodedSearch},food&sig=${timestamp}`;
-}
 
 // Find relevant URLs from sitemap
 async function findRelevantUrls(
@@ -401,6 +433,10 @@ Return ONLY the title, nothing else.`;
 
     // Step 1: Generate UNIQUE AI images for each section
     console.log('Generating UNIQUE AI images with Lovable AI...');
+
+    // IMPORTANT: Use a short food/topic phrase for images (not the full clickbait title)
+    const imageSubject = getImageSubject(focusKeyword, seoTitle);
+    console.log(`Image subject: ${imageSubject}`);
     
     const imageContexts = [
       'hero shot',
@@ -418,7 +454,7 @@ Return ONLY the title, nothing else.`;
     for (let i = 0; i < 7; i++) {
       console.log(`Generating image ${i + 1}/7...`);
       const imageUrl = await generateUniqueImage(
-        seoTitle,
+        imageSubject,
         imageContexts[i],
         i + 1,
         LOVABLE_API_KEY,
