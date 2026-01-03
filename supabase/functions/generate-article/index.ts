@@ -99,19 +99,43 @@ Only return valid JSON array, nothing else.`
   return [];
 }
 
+// Aspect ratio to dimensions mapping
+const ASPECT_RATIO_DIMENSIONS: Record<string, { width: number; height: number }> = {
+  '1:1': { width: 1024, height: 1024 },
+  '16:9': { width: 1920, height: 1080 },
+  '4:3': { width: 1024, height: 768 },
+  '3:2': { width: 1200, height: 800 },
+  '2:3': { width: 800, height: 1200 },
+  '9:16': { width: 1080, height: 1920 },
+  '3:4': { width: 768, height: 1024 },
+  '21:9': { width: 1680, height: 720 },
+};
+
+// Quality to prompt suffix mapping
+const QUALITY_SUFFIXES: Record<string, string> = {
+  low: '512px resolution, quick render',
+  medium: '1024px resolution, balanced quality',
+  high: '2K resolution, ultra detailed, maximum quality, 4K textures'
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { recipeId, title, sitemapUrl } = await req.json();
+    const { recipeId, title, sitemapUrl, imageQuality = 'medium', aspectRatio = '16:9' } = await req.json();
     console.log(`Generating article for: ${title} (ID: ${recipeId})`);
+    console.log(`Image settings: quality=${imageQuality}, aspectRatio=${aspectRatio}`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    // Get dimensions for aspect ratio
+    const dimensions = ASPECT_RATIO_DIMENSIONS[aspectRatio] || ASPECT_RATIO_DIMENSIONS['16:9'];
+    const qualitySuffix = QUALITY_SUFFIXES[imageQuality] || QUALITY_SUFFIXES['medium'];
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -201,8 +225,8 @@ Return as JSON: ["prompt1", "prompt2", "prompt3", "prompt4"]`
     
     for (let i = 0; i < Math.min(imagePrompts.length, 4); i++) {
       try {
-        // Add realism boosters to each prompt
-        const realismBooster = " Captured with professional DSLR camera, natural lighting with visible shadows, authentic food styling with intentional imperfections, NOT computer generated, real photograph with film grain texture, slightly desaturated natural colors.";
+        // Add realism boosters and quality/aspect ratio to each prompt
+        const realismBooster = ` Captured with professional DSLR camera, natural lighting with visible shadows, authentic food styling with intentional imperfections, NOT computer generated, real photograph with film grain texture, slightly desaturated natural colors. ${qualitySuffix}. ${aspectRatio} aspect ratio, ${dimensions.width}x${dimensions.height} pixels.`;
         
         const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
