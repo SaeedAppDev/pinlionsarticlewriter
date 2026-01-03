@@ -232,21 +232,22 @@ async function generateUniqueImage(
   }
 }
 
-// Fallback using Unsplash (high quality, free, unique per search)
+// Fallback using Lorem Picsum (reliable, free, always works)
 function getFallbackImage(dishName: string, imageNumber: number): string {
-  const searchTerms = [
-    encodeURIComponent(dishName),
-    'cooking-' + encodeURIComponent(dishName),
-    'recipe-ingredients',
-    'kitchen-cooking',
-    'food-plating',
-    'meal-prep-containers',
-    'dessert-closeup'
+  // Use different seed numbers for each image to get variety
+  const seeds = [
+    Math.floor(Math.random() * 1000),
+    Math.floor(Math.random() * 1000) + 1000,
+    Math.floor(Math.random() * 1000) + 2000,
+    Math.floor(Math.random() * 1000) + 3000,
+    Math.floor(Math.random() * 1000) + 4000,
+    Math.floor(Math.random() * 1000) + 5000,
+    Math.floor(Math.random() * 1000) + 6000,
   ];
   
-  const term = searchTerms[imageNumber - 1] || searchTerms[0];
-  // Unsplash Source API for unique images
-  return `https://source.unsplash.com/1200x800/?${term},food&sig=${Date.now()}-${imageNumber}`;
+  const seed = seeds[imageNumber - 1] || seeds[0];
+  // Lorem Picsum with random seed for unique images
+  return `https://picsum.photos/seed/${seed}/1200/800`;
 }
 
 // Find relevant URLs from sitemap
