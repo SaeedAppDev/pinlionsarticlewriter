@@ -169,7 +169,12 @@ const RecipeList = () => {
       });
 
       if (error) throw error;
-      toast.success('Article generation started');
+      toast.success('Article generated! Opening draft...');
+      
+      // Auto-open the article in new tab after generation completes
+      setTimeout(() => {
+        window.open(`/article/${pendingRecipe.id}`, '_blank');
+      }, 1000);
     } catch (error) {
       console.error('Error processing recipe:', error);
       toast.error('Failed to start article generation');
