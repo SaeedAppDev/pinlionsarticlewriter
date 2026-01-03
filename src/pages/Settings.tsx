@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Settings as SettingsIcon, Save, Image, Link2, Sparkles, FileCode } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Save, Image, Link2, Sparkles, FileCode, Key, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Aspect ratio options
@@ -39,11 +39,21 @@ const SITEMAP_TYPES = [
   { value: 'custom', label: 'Custom URL', desc: 'Enter your exact sitemap URL' },
 ];
 
+// AI Provider options
+const AI_PROVIDERS = [
+  { value: 'lovable', label: 'Lovable AI (Default)', desc: 'Built-in AI - no API key needed' },
+  { value: 'groq', label: 'Groq API', desc: 'Fast inference with Llama models' },
+  { value: 'openai', label: 'OpenAI API', desc: 'GPT models from OpenAI' },
+];
+
 interface SettingsData {
   sitemapUrl: string;
   sitemapType: 'auto' | 'standard' | 'wordpress' | 'yoast' | 'rankmath' | 'custom';
   imageQuality: 'low' | 'medium' | 'high';
   aspectRatio: string;
+  aiProvider: 'lovable' | 'groq' | 'openai';
+  customApiKey: string;
+  replicateApiKey: string;
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -51,6 +61,9 @@ const DEFAULT_SETTINGS: SettingsData = {
   sitemapType: 'auto',
   imageQuality: 'medium',
   aspectRatio: '16:9',
+  aiProvider: 'lovable',
+  customApiKey: '',
+  replicateApiKey: '',
 };
 
 const Settings = () => {
@@ -290,6 +303,98 @@ const Settings = () => {
                 <span className="text-sm text-muted-foreground">Selected Dimensions:</span>
                 <span className="font-mono font-medium">
                   {ASPECT_RATIOS.find(r => r.value === settings.aspectRatio)?.width || 1920} × {ASPECT_RATIOS.find(r => r.value === settings.aspectRatio)?.height || 1080} px
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* AI API Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="w-5 h-5" />
+              AI API Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure your AI provider for article generation. Switch providers if you hit rate limits.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* AI Provider Selection */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Key className="w-4 h-4" />
+                AI Provider
+              </Label>
+              <Select
+                value={settings.aiProvider}
+                onValueChange={(value) => setSettings({ ...settings, aiProvider: value as SettingsData['aiProvider'] })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select AI provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_PROVIDERS.map((provider) => (
+                    <SelectItem key={provider.value} value={provider.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{provider.label}</span>
+                        <span className="text-xs text-muted-foreground">{provider.desc}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Custom API Key - only show for non-lovable providers */}
+            {settings.aiProvider !== 'lovable' && (
+              <div className="space-y-2">
+                <Label>
+                  {settings.aiProvider === 'groq' ? 'Groq API Key' : 'OpenAI API Key'}
+                </Label>
+                <Input
+                  type="password"
+                  placeholder={settings.aiProvider === 'groq' ? 'gsk_...' : 'sk-...'}
+                  value={settings.customApiKey}
+                  onChange={(e) => setSettings({ ...settings, customApiKey: e.target.value })}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {settings.aiProvider === 'groq' 
+                    ? 'Get your free API key from console.groq.com'
+                    : 'Get your API key from platform.openai.com'}
+                </p>
+              </div>
+            )}
+
+            {/* Replicate API Key for images */}
+            <div className="space-y-2">
+              <Label>Replicate API Key (for images)</Label>
+              <Input
+                type="password"
+                placeholder="r8_..."
+                value={settings.replicateApiKey}
+                onChange={(e) => setSettings({ ...settings, replicateApiKey: e.target.value })}
+              />
+              <p className="text-sm text-muted-foreground">
+                Optional: Use your own Replicate key for image generation. Leave empty to use default.
+              </p>
+            </div>
+
+            {/* Status indicator */}
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  settings.aiProvider === 'lovable' ? "bg-green-500" : 
+                  settings.customApiKey ? "bg-green-500" : "bg-yellow-500"
+                )} />
+                <span className="text-sm">
+                  {settings.aiProvider === 'lovable' 
+                    ? 'Using Lovable AI (built-in)' 
+                    : settings.customApiKey 
+                      ? `Using custom ${settings.aiProvider.toUpperCase()} API key`
+                      : 'API key required for selected provider'}
                 </span>
               </div>
             </div>

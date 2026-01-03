@@ -134,12 +134,29 @@ const RecipeList = () => {
     try {
       const savedSettings = localStorage.getItem('recipe_settings');
       if (savedSettings) {
-        return JSON.parse(savedSettings);
+        const parsed = JSON.parse(savedSettings);
+        return {
+          sitemapUrl: parsed.sitemapUrl || '',
+          sitemapType: parsed.sitemapType || 'auto',
+          imageQuality: parsed.imageQuality || 'medium',
+          aspectRatio: parsed.aspectRatio || '16:9',
+          aiProvider: parsed.aiProvider || 'lovable',
+          customApiKey: parsed.customApiKey || '',
+          replicateApiKey: parsed.replicateApiKey || ''
+        };
       }
     } catch (e) {
       console.error('Failed to parse settings:', e);
     }
-    return { sitemapUrl: '', sitemapType: 'auto', imageQuality: 'medium', aspectRatio: '16:9' };
+    return { 
+      sitemapUrl: '', 
+      sitemapType: 'auto', 
+      imageQuality: 'medium', 
+      aspectRatio: '16:9',
+      aiProvider: 'lovable' as const,
+      customApiKey: '',
+      replicateApiKey: ''
+    };
   };
 
   const processNextRecipe = async () => {
@@ -164,7 +181,10 @@ const RecipeList = () => {
           sitemapUrl: settings.sitemapUrl || undefined,
           sitemapType: settings.sitemapType || 'auto',
           imageQuality: settings.imageQuality,
-          aspectRatio: settings.aspectRatio
+          aspectRatio: settings.aspectRatio,
+          aiProvider: settings.aiProvider || 'lovable',
+          customApiKey: settings.customApiKey || undefined,
+          customReplicateKey: settings.replicateApiKey || undefined
         },
       });
 
@@ -216,7 +236,10 @@ const RecipeList = () => {
             sitemapUrl: settings.sitemapUrl || undefined,
             sitemapType: settings.sitemapType || 'auto',
             imageQuality: settings.imageQuality,
-            aspectRatio: settings.aspectRatio
+            aspectRatio: settings.aspectRatio,
+            aiProvider: settings.aiProvider || 'lovable',
+            customApiKey: settings.customApiKey || undefined,
+            customReplicateKey: settings.replicateApiKey || undefined
           },
         });
         
