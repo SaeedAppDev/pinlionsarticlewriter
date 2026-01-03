@@ -1,1 +1,10 @@
 project_id = "ehhqprvjgoorxxpioekz"
+
+[functions.generate-article]
+verify_jwt = false
+
+[functions.analyze-recipe]
+verify_jwt = false
+
+[functions.generate-pin-image]
+verify_jwt = false
