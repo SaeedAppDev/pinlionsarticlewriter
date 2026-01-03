@@ -264,30 +264,94 @@ async function generateFallbackImage(
   }
 }
 
+// Analyze article content and generate specific image prompts using AI
+async function analyzeArticleForImagePrompts(
+  articleContent: string,
+  dishName: string,
+  AI_API_KEY: string,
+  aiProvider: string
+): Promise<string[]> {
+  console.log('Analyzing article content to generate contextual image prompts...');
+  
+  const systemPrompt = `You are an expert food photographer and AI image prompt engineer. 
+Analyze the recipe article content and create 7 SPECIFIC, DETAILED image prompts that perfectly match each section of the article.
+Each prompt must be unique, specific to the actual content, and designed for AI image generation.
+
+Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt should be 40-60 words.
+Include: specific food items, ingredients mentioned, cooking techniques, presentation style, lighting, and mood.
+NO text or watermarks in images.`;
+
+  const userPrompt = `Analyze this recipe article and create 7 specific image prompts:
+
+DISH NAME: ${dishName}
+
+ARTICLE CONTENT:
+${articleContent.substring(0, 4000)}
+
+Create 7 image prompts for:
+1. Hero shot (main dish presentation) - based on the actual dish described
+2. Texture close-up - focus on specific textures mentioned in the article
+3. Ingredients flat lay - use the ACTUAL ingredients listed in the article
+4. Cooking action - match a specific cooking step from the instructions
+5. Table setting/lifestyle - match the serving suggestions mentioned
+6. Storage/meal prep - based on storage tips if mentioned
+7. Final beauty shot - based on the complete dish description
+
+Output only the 7 numbered prompts, one per line.`;
+
+  try {
+    const response = await callAI(userPrompt, systemPrompt, AI_API_KEY, aiProvider as 'lovable' | 'groq' | 'openai');
+    
+    if (!response) {
+      throw new Error('No response from AI for image prompts');
+    }
+    
+    // Parse the numbered prompts
+    const lines = response.split('\n').filter(line => line.trim());
+    const prompts: string[] = [];
+    
+    for (const line of lines) {
+      // Remove numbering like "1.", "1)", "1:" etc
+      const cleanedPrompt = line.replace(/^\d+[\.\)\:]\s*/, '').trim();
+      if (cleanedPrompt.length > 20) {
+        prompts.push(cleanedPrompt + ' Professional food photography, magazine quality. NO text, NO watermarks.');
+      }
+    }
+    
+    // Ensure we have exactly 7 prompts, fill with defaults if needed
+    while (prompts.length < 7) {
+      prompts.push(`Professional food photography of ${dishName}. Beautiful plating, natural lighting, appetizing presentation. NO text, NO watermarks.`);
+    }
+    
+    console.log('Generated contextual image prompts:', prompts.slice(0, 7));
+    return prompts.slice(0, 7);
+    
+  } catch (error) {
+    console.error('Error analyzing article for prompts:', error);
+    // Return default prompts if analysis fails
+    return [
+      `Professional food photography of ${dishName}. Hero shot, overhead angle, beautifully plated. Natural lighting, appetizing. NO text.`,
+      `Close-up macro food photography of ${dishName} showing texture details. Soft lighting, bokeh background. NO text.`,
+      `Ingredients flat lay for ${dishName}. All ingredients arranged on marble surface. Bright lighting. NO text.`,
+      `Action cooking shot of ${dishName} being prepared. Warm kitchen lighting. NO text.`,
+      `Lifestyle food photography of ${dishName} on dining table. Golden hour lighting. NO text.`,
+      `${dishName} storage and meal prep photo. Glass containers, organized kitchen. NO text.`,
+      `Final beauty shot of ${dishName}. Single serving, dramatic lighting, restaurant quality. NO text.`
+    ];
+  }
+}
+
 // Generate UNIQUE AI image for each recipe section using Replicate Flux
 async function generateUniqueImage(
-  dishName: string,
-  imageContext: string,
+  prompt: string,
   imageNumber: number,
   REPLICATE_API_KEY: string,
   supabase: any,
-  aspectRatio: string = "4:3"
+  aspectRatio: string = "4:3",
+  dishName: string = ""
 ): Promise<string> {
   try {
-    console.log(`Generating unique image ${imageNumber} for: ${dishName} - ${imageContext} (aspect: ${aspectRatio})`);
-
-    // Create UNIQUE, SPECIFIC prompts for each image position
-    const imagePrompts: Record<number, string> = {
-      1: `Professional food photography of ${dishName}. Hero shot, overhead angle 45 degrees, the dish beautifully plated on a rustic wooden table. Natural window light, shallow depth of field. Steam rising if hot. Fresh garnishes. Magazine quality, appetizing, mouthwatering. NO text, NO watermarks.`,
-      2: `Close-up macro food photography of ${dishName} showing texture details. Focus on the most appealing part - crispy edges, gooey center, glossy sauce, or flaky layers. Soft natural lighting, creamy bokeh background. Professional food styling. NO text.`,
-      3: `Ingredients flat lay for ${dishName}. All raw ingredients beautifully arranged on marble or wooden surface. Fresh vegetables, spices in small bowls, eggs, flour. Bright natural lighting from above. Clean, organized, Pinterest-worthy composition. NO text.`,
-      4: `Action cooking shot of ${dishName} being prepared. Hands stirring, pouring sauce, or sprinkling toppings. Motion blur on action, sharp focus on food. Warm kitchen lighting, homey atmosphere. Authentic cooking moment. NO text.`,
-      5: `Lifestyle food photography of ${dishName} on a dining table setting. Beautiful ceramic plates, linen napkins, cutlery, wine glass nearby. Warm golden hour lighting. Cozy, inviting dinner scene. Magazine editorial style. NO text.`,
-      6: `${dishName} storage and meal prep photo. Food in glass containers, some portions wrapped, organized in fridge or on counter. Clean, organized kitchen background. Meal prep inspiration style. Bright lighting. NO text.`,
-      7: `Final beauty shot of ${dishName}. Single serving perfectly plated. Dramatic lighting with soft shadows. Sauce artfully drizzled. Fresh herb garnish. One bite taken to show inside texture. Restaurant quality presentation. NO text.`
-    };
-
-    const prompt = imagePrompts[imageNumber] || imagePrompts[1];
+    console.log(`Generating image ${imageNumber} with contextual prompt: ${prompt.substring(0, 100)}...`);
 
     // Call Replicate API with Flux Schnell model - use consistent aspect ratio from settings
     const response = await fetch('https://api.replicate.com/v1/predictions', {
@@ -314,7 +378,7 @@ async function generateUniqueImage(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Replicate API error for image ${imageNumber}:`, response.status, errorText);
-      return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
+      return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
     }
 
     const prediction = await response.json();
@@ -341,7 +405,7 @@ async function generateUniqueImage(
 
     if (result.status !== 'succeeded' || !result.output || result.output.length === 0) {
       console.error(`Replicate generation failed for image ${imageNumber}:`, result.status, result.error);
-      return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
+      return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
     }
 
     const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
@@ -377,7 +441,7 @@ async function generateUniqueImage(
     return urlData?.publicUrl || imageUrl;
   } catch (error) {
     console.error(`Error generating image ${imageNumber}:`, error);
-    return await generateFallbackImage(dishName, imageContext, imageNumber, supabase);
+    return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
   }
 }
 
@@ -573,46 +637,11 @@ Return ONLY the title, nothing else.`;
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
-    // Step 1: Generate UNIQUE AI images for each section
-    console.log('Generating UNIQUE AI images with Replicate Flux...');
-
     // IMPORTANT: Use a short food/topic phrase for images (not the full clickbait title)
     const imageSubject = getImageSubject(focusKeyword, seoTitle);
     console.log(`Image subject: ${imageSubject}`);
-    
-    const imageContexts = [
-      'hero shot',
-      'texture close-up',
-      'ingredients flat lay',
-      'cooking action',
-      'table setting',
-      'storage and meal prep',
-      'final beauty shot'
-    ];
-    
-    const imageUrls: string[] = [];
-    
-    // Generate images sequentially to avoid rate limits
-    for (let i = 0; i < 7; i++) {
-      console.log(`Generating image ${i + 1}/7 with aspect ratio ${aspectRatio}...`);
-      const imageUrl = await generateUniqueImage(
-        imageSubject,
-        imageContexts[i],
-        i + 1,
-        REPLICATE_API_KEY,
-        supabase,
-        aspectRatio
-      );
-      imageUrls.push(imageUrl);
-      
-      // Small delay between image generations
-      if (i < 6) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-    
-    console.log(`Generated ${imageUrls.length} unique images with aspect ratio: ${aspectRatio}`);
 
+    // Build internal links section
     // Build internal links section
     let internalLinksInstruction = '';
     if (relevantLinks.length > 0) {
@@ -790,7 +819,42 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
       throw new Error("No content generated");
     }
 
-    // Step 3: Replace image placeholders with real image URLs
+    console.log('Article content generated successfully. Now analyzing for contextual images...');
+
+    // Step 2: Analyze article content and generate contextual image prompts
+    const imagePrompts = await analyzeArticleForImagePrompts(
+      articleContent,
+      imageSubject,
+      AI_API_KEY,
+      aiProvider
+    );
+    console.log(`Generated ${imagePrompts.length} contextual image prompts based on article content`);
+
+    // Step 3: Generate contextual images using the analyzed prompts
+    console.log('Generating contextual AI images with Replicate Flux...');
+    const imageUrls: string[] = [];
+    
+    for (let i = 0; i < 7; i++) {
+      console.log(`Generating image ${i + 1}/7 with aspect ratio ${aspectRatio}...`);
+      const imageUrl = await generateUniqueImage(
+        imagePrompts[i],
+        i + 1,
+        REPLICATE_API_KEY,
+        supabase,
+        aspectRatio,
+        imageSubject
+      );
+      imageUrls.push(imageUrl);
+      
+      // Small delay between image generations to avoid rate limits
+      if (i < 6) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log(`Generated ${imageUrls.length} contextual images with aspect ratio: ${aspectRatio}`);
+
+    // Step 4: Replace image placeholders with real image URLs
     // Use consistent image sizing based on aspect ratio from settings
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       const dimensions: Record<string, { width: number; height: number }> = {
@@ -822,7 +886,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
       }
     }
 
-    // Step 4: Validate and fix internal links
+    // Step 5: Validate and fix internal links
     if (relevantLinks.length > 0) {
       const linkValidation = validateInternalLinks(finalContent, relevantLinks);
       
