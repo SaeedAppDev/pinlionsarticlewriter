@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Link2, FileText } from 'lucide-react';
 
 const AddRecipes = () => {
   const [recipeTitles, setRecipeTitles] = useState('');
+  const [sitemapUrl, setSitemapUrl] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const navigate = useNavigate();
 
@@ -37,7 +40,15 @@ const AddRecipes = () => {
 
       if (error) throw error;
 
-      toast.success(`${titles.length} recipe(s) added to queue`);
+      // Store sitemap URL in localStorage for use during generation
+      if (sitemapUrl.trim()) {
+        localStorage.setItem('recipe_sitemap_url', sitemapUrl.trim());
+        toast.success(`${titles.length} recipe(s) added with sitemap linking enabled`);
+      } else {
+        localStorage.removeItem('recipe_sitemap_url');
+        toast.success(`${titles.length} recipe(s) added to queue`);
+      }
+      
       setRecipeTitles('');
       navigate('/recipes');
     } catch (error) {
@@ -67,25 +78,53 @@ const AddRecipes = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 space-y-6">
         <Card className="max-w-3xl mx-auto">
           <CardHeader>
-            <CardTitle className="text-2xl">Add Recipes</CardTitle>
-            <p className="text-muted-foreground">
-              Enter one recipe title per line:
-            </p>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <FileText className="w-6 h-6" />
+              Add Recipes
+            </CardTitle>
+            <CardDescription>
+              Enter one recipe title per line. Articles will be generated automatically.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Easy Chicken Curry&#10;Homemade Pizza Recipe&#10;Quick Pasta Carbonara&#10;..."
-              value={recipeTitles}
-              onChange={(e) => setRecipeTitles(e.target.value)}
-              className="min-h-[250px] resize-y"
-            />
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="recipes">Recipe Titles</Label>
+              <Textarea
+                id="recipes"
+                placeholder="Easy Chicken Curry&#10;Homemade Pizza Recipe&#10;Quick Pasta Carbonara&#10;..."
+                value={recipeTitles}
+                onChange={(e) => setRecipeTitles(e.target.value)}
+                className="min-h-[200px] resize-y"
+              />
+            </div>
+
+            {/* Sitemap URL Input */}
+            <div className="space-y-2">
+              <Label htmlFor="sitemap" className="flex items-center gap-2">
+                <Link2 className="w-4 h-4" />
+                Sitemap URL (Optional)
+              </Label>
+              <Input
+                id="sitemap"
+                type="url"
+                placeholder="https://yourwebsite.com/sitemap.xml"
+                value={sitemapUrl}
+                onChange={(e) => setSitemapUrl(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter a sitemap URL to automatically add relevant internal links to your articles. 
+                This improves SEO by creating contextual links to your existing content.
+              </p>
+            </div>
+
             <Button 
               onClick={handleAddToQueue} 
               disabled={isAdding}
               className="w-full sm:w-auto"
+              size="lg"
             >
               <Plus className="w-4 h-4 mr-2" />
               {isAdding ? 'Adding...' : 'Add to Queue'}
