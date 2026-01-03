@@ -106,18 +106,18 @@ async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'
   }
 }
 
-// Call Groq API for text generation (FREE tier)
-async function callGroqAI(prompt: string, systemPrompt: string, GROQ_API_KEY: string): Promise<string> {
-  console.log('Calling Groq API (FREE tier)...');
+// Call Lovable AI Gateway for text generation (no rate limits!)
+async function callLovableAI(prompt: string, systemPrompt: string, LOVABLE_API_KEY: string): Promise<string> {
+  console.log('Calling Lovable AI Gateway...');
   
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt }
@@ -129,12 +129,8 @@ async function callGroqAI(prompt: string, systemPrompt: string, GROQ_API_KEY: st
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Groq API error:', response.status, errorText);
-    
-    if (response.status === 429) {
-      throw new Error('Rate limit exceeded. Please wait a minute and try again.');
-    }
-    throw new Error(`Groq API error: ${response.status}`);
+    console.error('Lovable AI error:', response.status, errorText);
+    throw new Error(`Lovable AI error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -362,7 +358,7 @@ async function generateUniqueImage(
 async function findRelevantUrls(
   sitemapUrls: string[], 
   topic: string, 
-  GROQ_API_KEY: string
+  LOVABLE_API_KEY: string
 ): Promise<Array<{ url: string; anchorText: string }>> {
   if (sitemapUrls.length === 0) return [];
   
@@ -377,7 +373,7 @@ Find 3-5 URLs most relevant to this topic for internal linking. Return JSON arra
 
 Only return valid JSON array, nothing else.`;
 
-    const content = await callGroqAI(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', GROQ_API_KEY);
+    const content = await callLovableAI(prompt, 'You analyze URLs and find ones relevant to a cooking topic. Return JSON array only.', LOVABLE_API_KEY);
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     
     if (jsonMatch) {
@@ -471,9 +467,9 @@ serve(async (req) => {
     
     console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
 
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
     
     const REPLICATE_API_KEY = Deno.env.get('REPLICATE_API_KEY');
@@ -508,7 +504,7 @@ Return ONLY the title, nothing else.`;
     
     let seoTitle = focusKeyword;
     try {
-      const generatedTitle = await callGroqAI(titlePrompt, titleSystemPrompt, GROQ_API_KEY);
+      const generatedTitle = await callLovableAI(titlePrompt, titleSystemPrompt, LOVABLE_API_KEY);
       if (generatedTitle && generatedTitle.trim().length > 0) {
         seoTitle = generatedTitle.trim().replace(/^["']|["']$/g, '').trim();
         console.log(`Generated SEO title: ${seoTitle}`);
@@ -526,7 +522,7 @@ Return ONLY the title, nothing else.`;
     let relevantLinks: Array<{ url: string; anchorText: string }> = [];
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
-      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, GROQ_API_KEY);
+      relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, LOVABLE_API_KEY);
       console.log(`Found ${relevantLinks.length} relevant internal links`);
     }
 
@@ -741,7 +737,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
 - Keep paragraphs SHORT and punchy
 - Make it genuinely fun to read!`;
 
-    const articleContent = await callGroqAI(articlePrompt, articleSystemPrompt, GROQ_API_KEY);
+    const articleContent = await callLovableAI(articlePrompt, articleSystemPrompt, LOVABLE_API_KEY);
 
     if (!articleContent) {
       throw new Error("No content generated");
