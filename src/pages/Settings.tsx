@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2, Cpu } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 
 const DEFAULT_ARTICLE_PROMPT = `Write an engaging, conversational article about "{title}".
@@ -77,6 +77,9 @@ interface WordPressSite {
 
 interface SettingsData {
   replicateApiKey: string;
+  aiProvider: 'lovable' | 'groq' | 'openai';
+  groqApiKey: string;
+  openaiApiKey: string;
   articleLength: string;
   generateImages: boolean;
   imageCount: string;
@@ -87,6 +90,9 @@ interface SettingsData {
 
 const DEFAULT_SETTINGS: SettingsData = {
   replicateApiKey: '',
+  aiProvider: 'lovable',
+  groqApiKey: '',
+  openaiApiKey: '',
   articleLength: 'long',
   generateImages: true,
   imageCount: '3',
@@ -181,12 +187,89 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
+          {/* AI Provider Selection */}
+          <div className="card-modern p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">AI Provider</h2>
+                <p className="text-sm text-muted-foreground">Choose which AI to use for article generation</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>Select AI Provider</Label>
+                <Select
+                  value={settings.aiProvider}
+                  onValueChange={(value: 'lovable' | 'groq' | 'openai') => setSettings({ ...settings, aiProvider: value })}
+                >
+                  <SelectTrigger className="mt-1.5 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lovable">Lovable AI (Default - Uses Credits)</SelectItem>
+                    <SelectItem value="groq">Groq (Free - Llama 3.3 70B)</SelectItem>
+                    <SelectItem value="openai">OpenAI (GPT-4o-mini)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  {settings.aiProvider === 'lovable' && 'Uses Lovable AI credits. If you run out of credits, switch to Groq or OpenAI.'}
+                  {settings.aiProvider === 'groq' && 'Free tier available. Fast and high quality with Llama 3.3 70B model.'}
+                  {settings.aiProvider === 'openai' && 'Requires OpenAI API key. Uses GPT-4o-mini for cost efficiency.'}
+                </p>
+              </div>
+
+              {settings.aiProvider === 'groq' && (
+                <div>
+                  <Label htmlFor="groq-key">Groq API Key</Label>
+                  <Input
+                    id="groq-key"
+                    type="password"
+                    placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={settings.groqApiKey}
+                    onChange={(e) => setSettings({ ...settings, groqApiKey: e.target.value })}
+                    className="mt-1.5 bg-background"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1.5">
+                    Get your free API key from{' '}
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      console.groq.com
+                    </a>
+                  </p>
+                </div>
+              )}
+
+              {settings.aiProvider === 'openai' && (
+                <div>
+                  <Label htmlFor="openai-key">OpenAI API Key</Label>
+                  <Input
+                    id="openai-key"
+                    type="password"
+                    placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={settings.openaiApiKey}
+                    onChange={(e) => setSettings({ ...settings, openaiApiKey: e.target.value })}
+                    className="mt-1.5 bg-background"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1.5">
+                    Get your API key from{' '}
+                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      platform.openai.com
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Replicate API for Images */}
           <div className="card-modern p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                 <Key className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <h2 className="font-semibold text-lg">API Configuration</h2>
+              <h2 className="font-semibold text-lg">Image Generation API</h2>
             </div>
             <div className="space-y-4">
               <div>
@@ -200,7 +283,7 @@ const Settings = () => {
                   className="mt-1.5 bg-background"
                 />
                 <p className="text-sm text-muted-foreground mt-1.5">
-                  Your Replicate API token for accessing GPT-5 and Seedream-4 models.{' '}
+                  For Seedream-4 image generation.{' '}
                   <a href="https://replicate.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                     Get yours at replicate.com
                   </a>
