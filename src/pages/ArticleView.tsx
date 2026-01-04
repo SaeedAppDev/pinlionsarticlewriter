@@ -27,6 +27,7 @@ interface WordPressSite {
   id: string;
   name: string;
   url: string;
+  username: string;
   apiKey: string;
 }
 
@@ -140,6 +141,7 @@ const ArticleView = () => {
       const { data, error } = await supabase.functions.invoke('send-to-wordpress', {
         body: {
           siteUrl: selectedSite.url,
+          username: selectedSite.username,
           apiKey: selectedSite.apiKey,
           title: article.title,
           content: article.article_content,

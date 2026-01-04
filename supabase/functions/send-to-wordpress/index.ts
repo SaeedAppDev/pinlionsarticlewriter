@@ -9,19 +9,19 @@ const corsHeaders = {
 interface WordPressRequest {
   siteUrl: string;
   apiKey: string;
+  username?: string;
   title: string;
   content: string;
   status?: 'draft' | 'publish';
 }
 
-interface TestConnectionRequest {
-  siteUrl: string;
-  apiKey: string;
-  testOnly: boolean;
+// Encode credentials for Basic Auth (WordPress Application Passwords)
+function encodeBasicAuth(username: string, password: string): string {
+  const credentials = `${username}:${password}`;
+  return btoa(credentials);
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,11 +31,13 @@ serve(async (req) => {
     console.log('WordPress request received:', { 
       siteUrl: body.siteUrl, 
       testOnly: body.testOnly,
-      hasApiKey: !!body.apiKey 
+      hasApiKey: !!body.apiKey,
+      hasUsername: !!body.username
     });
 
-    const siteUrl = body.siteUrl?.replace(/\/$/, ''); // Remove trailing slash
+    const siteUrl = body.siteUrl?.replace(/\/$/, '');
     const apiKey = body.apiKey;
+    const username = body.username || '';
 
     if (!siteUrl || !apiKey) {
       return new Response(
@@ -44,33 +46,46 @@ serve(async (req) => {
       );
     }
 
+    // Determine auth type: Pin Lions (pl_) or WordPress Application Password
+    const isPinLionsKey = apiKey.startsWith('pl_');
+    
+    // Build auth headers
+    let authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (isPinLionsKey) {
+      // Pin Lions plugin uses Bearer token
+      authHeaders['Authorization'] = `Bearer ${apiKey}`;
+      authHeaders['X-PinLions-Key'] = apiKey;
+    } else if (username) {
+      // WordPress Application Password uses Basic Auth
+      authHeaders['Authorization'] = `Basic ${encodeBasicAuth(username, apiKey)}`;
+    } else {
+      // Try as Bearer token fallback
+      authHeaders['Authorization'] = `Bearer ${apiKey}`;
+    }
+
     // Test connection only
     if (body.testOnly) {
       console.log('Testing connection to:', siteUrl);
       
       try {
-        // Try to get site info using WordPress REST API
         const siteInfoResponse = await fetch(`${siteUrl}/wp-json`, {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers: authHeaders,
         });
 
         if (!siteInfoResponse.ok) {
-          // Try alternative endpoint
           const altResponse = await fetch(`${siteUrl}/wp-json/wp/v2/posts?per_page=1`, {
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
+            headers: authHeaders,
           });
 
           if (!altResponse.ok) {
-            throw new Error('Could not connect to WordPress site');
+            const errorText = await altResponse.text();
+            console.log('Connection test failed:', errorText);
+            throw new Error('Could not connect to WordPress site. Check your credentials.');
           }
 
-          // Get post count from headers
           const totalPosts = altResponse.headers.get('X-WP-Total') || '0';
           
           return new Response(
@@ -80,7 +95,7 @@ serve(async (req) => {
                 name: siteUrl.replace(/https?:\/\//, '').split('/')[0],
                 url: siteUrl,
                 posts: parseInt(totalPosts),
-                version: 'Unknown',
+                version: 'v6.x',
               },
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -89,12 +104,8 @@ serve(async (req) => {
 
         const siteInfo = await siteInfoResponse.json();
         
-        // Get post count
         const postsResponse = await fetch(`${siteUrl}/wp-json/wp/v2/posts?per_page=1`, {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers: authHeaders,
         });
         
         const totalPosts = postsResponse.headers.get('X-WP-Total') || '0';
@@ -134,18 +145,16 @@ serve(async (req) => {
     }
 
     // Wrap content in Classic block for WordPress Gutenberg
-    // This ensures the content appears in the Classic editor format
     const classicBlockContent = `<!-- wp:freeform -->
 ${content}
 <!-- /wp:freeform -->`;
 
-    console.log('Creating post:', { title, status, contentLength: content.length });
+    console.log('Creating post:', { title, status, contentLength: content.length, isPinLionsKey });
 
-    // Try different endpoints - Pin Lions plugin endpoint first, then standard WP REST API
-    const endpoints = [
-      `${siteUrl}/wp-json/pinlions/v1/create-post`,
-      `${siteUrl}/wp-json/wp/v2/posts`,
-    ];
+    // Try Pin Lions endpoint first if using pl_ key, then standard WP REST API
+    const endpoints = isPinLionsKey 
+      ? [`${siteUrl}/wp-json/pinlions/v1/create-post`, `${siteUrl}/wp-json/wp/v2/posts`]
+      : [`${siteUrl}/wp-json/wp/v2/posts`];
 
     let lastError = '';
     
@@ -159,10 +168,7 @@ ${content}
 
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers: authHeaders,
           body: JSON.stringify(postData),
         });
 
@@ -172,7 +178,6 @@ ${content}
           const result = await response.json();
           console.log('Post created successfully:', result);
           
-          // Get the edit URL
           const postId = result.id || result.post_id;
           const editUrl = `${siteUrl}/wp-admin/post.php?post=${postId}&action=edit`;
           
@@ -186,9 +191,16 @@ ${content}
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } else {
-          const errorText = await response.text();
-          console.log('Endpoint failed:', errorText);
-          lastError = errorText;
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.log('Endpoint failed:', JSON.stringify(errorData));
+          
+          if (response.status === 401) {
+            lastError = 'Authentication failed. For WordPress, use your username and an Application Password (Users → Profile → Application Passwords in WordPress admin).';
+          } else if (response.status === 403) {
+            lastError = 'Permission denied. Make sure your user has permission to create posts.';
+          } else {
+            lastError = errorData.message || `HTTP ${response.status}`;
+          }
         }
       } catch (err) {
         console.error('Endpoint error:', err);
@@ -199,7 +211,7 @@ ${content}
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: `Failed to create post: ${lastError}` 
+        error: lastError
       }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
