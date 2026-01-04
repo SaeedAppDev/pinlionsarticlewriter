@@ -133,6 +133,12 @@ serve(async (req) => {
       );
     }
 
+    // Wrap content in Classic block for WordPress Gutenberg
+    // This ensures the content appears in the Classic editor format
+    const classicBlockContent = `<!-- wp:freeform -->
+${content}
+<!-- /wp:freeform -->`;
+
     console.log('Creating post:', { title, status, contentLength: content.length });
 
     // Try different endpoints - Pin Lions plugin endpoint first, then standard WP REST API
@@ -148,8 +154,8 @@ serve(async (req) => {
         console.log('Trying endpoint:', endpoint);
         
         const postData = endpoint.includes('pinlions') 
-          ? { title, content, status, api_key: apiKey }
-          : { title, content, status };
+          ? { title, content: classicBlockContent, status, api_key: apiKey }
+          : { title, content: classicBlockContent, status };
 
         const response = await fetch(endpoint, {
           method: 'POST',
