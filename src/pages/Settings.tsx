@@ -72,6 +72,7 @@ interface WordPressSite {
   id: string;
   name: string;
   url: string;
+  username: string;
   apiKey: string;
 }
 
@@ -120,7 +121,7 @@ const DEFAULT_SETTINGS: SettingsData = {
 const Settings = () => {
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
-  const [newSite, setNewSite] = useState({ name: '', url: '', apiKey: '' });
+  const [newSite, setNewSite] = useState({ name: '', url: '', username: '', apiKey: '' });
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
   const [isUploadingLinks, setIsUploadingLinks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -213,7 +214,7 @@ const Settings = () => {
       ...settings,
       wordpressSites: [...settings.wordpressSites, site],
     });
-    setNewSite({ name: '', url: '', apiKey: '' });
+    setNewSite({ name: '', url: '', username: '', apiKey: '' });
     toast.success('WordPress site added');
   };
 
@@ -749,15 +750,28 @@ const Settings = () => {
                   </p>
                 </div>
                 <div>
-                  <Label>API Key</Label>
+                  <Label>WordPress Username</Label>
                   <Input
-                    placeholder="pl_xxxxxxxxxxxxxxxx"
+                    placeholder="admin"
+                    value={newSite.username}
+                    onChange={(e) => setNewSite({ ...newSite, username: e.target.value })}
+                    className="mt-1.5 bg-background"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your WordPress admin username
+                  </p>
+                </div>
+                <div>
+                  <Label>Application Password</Label>
+                  <Input
+                    type="password"
+                    placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
                     value={newSite.apiKey}
                     onChange={(e) => setNewSite({ ...newSite, apiKey: e.target.value })}
                     className="mt-1.5 bg-background"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Get this from Settings → Pin Lions Receiver in your WordPress admin
+                    Generate in WordPress: Users → Profile → Application Passwords
                   </p>
                 </div>
                 <div className="flex gap-3">
