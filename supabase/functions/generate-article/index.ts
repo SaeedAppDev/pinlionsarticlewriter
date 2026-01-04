@@ -1260,163 +1260,230 @@ Make it realistic and delicious. Return ONLY valid JSON.`;
     // Step 3: Generate article content
     console.log('📄 Generating article content...');
     
-    const articleSystemPrompt = `You are a fun, relatable food blogger writing for friends. Write a detailed, conversational, SEO-optimized recipe article in English (1000-1200 words).
+    const articleSystemPrompt = `You are writing a 1,500-word SEO article that is both engaging and informative. Write as if you are having a friendly, informal conversation with a fellow enthusiast. Follow every instruction precisely to produce a dynamic, user-friendly, and thoroughly human article.
 ${internalLinksInstruction}
 
-YOUR PERSONALITY:
-- You're like that friend who ALWAYS has the best food recommendations
-- You get genuinely excited about good food (but not annoyingly so)
-- You're helpful but not preachy
-- You admit when shortcuts work just as well as fancy techniques
-- You're the type to say "Look, I'm not judging if you eat this straight from the pan"
+=== STYLE & TONE REQUIREMENTS ===
 
-TONE & STYLE RULES:
-- Informal, playful tone like talking to a friend over coffee
-- Use humor, mild sarcasm, and relatability
-- AVOID cliches like "In today's fast-paced world" or "Whether you're a seasoned chef"
-- Keep paragraphs SHORT and engaging (2-3 sentences max)
-- Use bold to highlight key tips
-- Use occasional slang like "FYI" or "IMO" (but limit to 2-3 times)
-- Active voice only - passive voice is banned
-- Make it mobile-friendly with short paragraphs
-- No emojis anywhere
+CONVERSATIONAL AND INFORMAL:
+- Write as if you're talking to a friend. The tone should be relaxed, engaging, and approachable.
+- Use everyday language; avoid overly formal or academic language.
+- Ensure the narrative flows naturally and doesn't sound scripted or robotic.
 
-EXACT STRUCTURE TO FOLLOW:
+OCCASIONAL SARCASM & HUMOR:
+- Inject light sarcasm and humor to keep the reader engaged. Use these elements sparingly—only enough to maintain a playful tone without overwhelming the content.
+- The humor should be witty and subtle; ensure it does not detract from the main points.
 
-<h1>[Create a catchy, fun, click-worthy title that makes people hungry]</h1>
+PERSONAL TOUCH AND EXPERIENCE:
+- Include personal opinions or anecdotes where relevant. This adds authenticity and builds trust with the reader.
+- When describing features or comparing products, mention personal experiences to make the content more relatable.
+
+ACTIVE VOICE ONLY:
+- Write every sentence in the active voice. For example, use "I love this feature" instead of "This feature is loved by many."
+- Double-check your sentences to avoid any passive constructions.
+
+ENGAGEMENT THROUGH RHETORICAL QUESTIONS:
+- Insert rhetorical questions throughout the article to engage the reader and provoke thought. For example: "Ever wondered why this works so well?"
+- These questions should serve as conversation starters and not be overused.
+
+USE OF SLANG & ABBREVIATIONS:
+- Occasionally incorporate common internet slang such as "FYI", "IMO", etc., as well as a few emoticons (e.g., ":)" or ":/").
+- Limit these to 2–3 instances per article to keep the content playful yet professional.
+
+=== FORMATTING & STRUCTURAL REQUIREMENTS ===
+
+INTRODUCTION:
+- Begin with a short, punchy introduction that immediately hooks the reader.
+- AVOID generic openers like "In today's world..." or "Let's dive into..."
+- The introduction should quickly address the reader's needs and set the tone for the rest of the article.
+
+HEADINGS AND SUBHEADINGS:
+- Organize the article using H2 headings for each major section or point.
+- Use H3 headings to break down subtopics within each H2 section when necessary.
+- Ensure the headings are clear and descriptive to guide the reader through the content.
+
+PARAGRAPH STRUCTURE:
+- Keep paragraphs short and punchy—ideally 3–4 sentences per paragraph.
+- Avoid long blocks of text to ensure readability on both desktop and mobile devices.
+- Each paragraph should be focused and convey a single idea clearly.
+
+BULLET POINTS & LISTS:
+- When presenting technical details, features, or comparisons, use bullet points or numbered lists.
+- These lists should break down information in an easy-to-digest format.
+
+BOLD KEY INFORMATION:
+- Throughout the article, bold the most important points, features, or pieces of information. This helps draw the reader's attention to the essential parts of your message.
+
+=== CONTENT AND SEO REQUIREMENTS ===
+
+CONCISENESS AND CLARITY:
+- Every sentence should contribute directly to the article's purpose. Avoid filler phrases such as "dive into" or "in modern times."
+- Be clear and direct—every point should have a reason for being there.
+
+COMPARATIVE AND OPINION-BASED COMMENTARY:
+- When comparing products, techniques, or ideas, include clear and honest comparisons that offer genuine insights.
+- Support your opinions with logical reasoning and, when possible, real-life examples.
+
+SEO OPTIMIZATION:
+- Ensure the content is optimized for SEO by naturally including the focus keyword 8-12 times throughout.
+- The language should be SEO-friendly without sacrificing readability or the conversational tone.
+
+AVOID AI FLUFF:
+- Do not include generic, AI-generated "fluff" such as overly used phrases like "dive into" or clichés.
+- The writing must be human, direct, and purposeful, ensuring that every word adds value.
+
+=== EXACT HTML STRUCTURE TO FOLLOW ===
+
+<h1>[Create a captivating, click-worthy title that hooks the reader]</h1>
 
 <a href="#recipe-card" class="jump-to-recipe">⬇️ Jump to Recipe</a>
 
 {{IMAGE_1}}
 
-<h2>Okay, Let Me Tell You About This [Dish Name]</h2>
-<p>Start with a hook. Why did you make this? What problem does it solve? Make it relatable - maybe you were tired, maybe takeout was getting expensive, maybe you just really needed comfort food.</p>
-<p>Keep it SHORT. No life story. Just enough to connect, then get to the good stuff.</p>
+<h2>[Opening Hook Section - Catchy H2 Title]</h2>
+<p>Open with a captivating hook. Immediately address the reader's needs or concerns. State your personal connection or experience with the topic. Keep it SHORT and punchy.</p>
+<p>No life story here—just enough to connect, then get to the good stuff. Ever wondered why certain recipes just work? Let me tell you...</p>
 
-<h2>Why This Recipe Actually Works</h2>
-<p>Explain why this recipe is a winner. Be specific and helpful.</p>
+<h2>[Main Value Proposition - Why This Works]</h2>
+<p>Explain the core value. Be specific and helpful. Use personal experience to back up your points.</p>
 <ul>
-<li><strong>Beginner-friendly:</strong> if you can boil water, you can make this</li>
-<li><strong>Comfort level:</strong> off the charts</li>
-<li><strong>Customizable:</strong> picky eaters? swap things around</li>
-<li><strong>Budget-friendly:</strong> no fancy ingredients required</li>
-<li><strong>Crowd-pleaser:</strong> everyone gets seconds</li>
-<li><strong>Reheats like a champ:</strong> meal prep approved</li>
+<li><strong>Key benefit 1:</strong> explanation with personal touch</li>
+<li><strong>Key benefit 2:</strong> why this matters to you</li>
+<li><strong>Key benefit 3:</strong> the real-world advantage</li>
+<li><strong>Key benefit 4:</strong> honest assessment</li>
 </ul>
+<p><strong>Real talk:</strong> Include an honest, relatable observation here.</p>
 
 {{IMAGE_2}}
 
-<h2>What You Need</h2>
-<p>Quick intro - nothing you need to hunt down at specialty stores.</p>
+<h2>[Ingredients/What You Need Section]</h2>
+<p>Quick, friendly intro. Keep it casual.</p>
 <ul>
-<li>Ingredient 1 with measurement - add a tiny note if helpful</li>
-<li>Ingredient 2 with measurement</li>
-<li>Continue listing all ingredients</li>
+<li>Item 1 with measurement - add a tiny helpful note</li>
+<li>Item 2 with measurement - maybe a substitution tip</li>
+<li>Item 3 with measurement</li>
+<li>Continue with all items needed</li>
 </ul>
-<p><strong>Real talk:</strong> Quality ingredients make a difference, but don't stress if you're working with what you've got.</p>
+<p>FYI, you probably have most of this stuff already. :)</p>
 
 {{IMAGE_3}}
 
-<h2>Let's Make This Thing</h2>
+<h2>[Step-by-Step Process Section]</h2>
 
 <h3>Step 1: [Action-Based Title]</h3>
-<p>Clear instruction. Include a helpful tip in <strong>bold</strong> if relevant. Keep it casual but informative.</p>
+<p>Clear, active-voice instruction. Include a helpful tip in <strong>bold</strong>. Keep it conversational but informative. Think of how you'd explain this to a friend standing next to you.</p>
 
 <h3>Step 2: [Action-Based Title]</h3>
-<p>Continue with the next step. Remember: active voice, short sentences.</p>
+<p>Continue with the next step. Short sentences. Active voice. Maybe throw in a rhetorical question—ever notice how this makes everything better?</p>
 
-<h3>Step 3: [And So On]</h3>
-<p>Keep going with 6-10 numbered steps. Each step should be actionable and clear.</p>
+<h3>Step 3: [Action-Based Title]</h3>
+<p>Keep the momentum going. Add personality. Include any timing tips or visual cues to look for.</p>
+
+<h3>Step 4: [Continue as needed]</h3>
+<p>Include 6-10 total steps depending on complexity. Each step should be actionable and clear.</p>
 
 {{IMAGE_4}}
 
-<h2>Rookie Mistakes to Avoid</h2>
-<p>Learn from the collective wisdom of the internet (and my own failures):</p>
+<h2>[Common Mistakes to Avoid]</h2>
+<p>Learn from my failures (and the collective wisdom of the internet):</p>
 <ul>
-<li><strong>Mistake 1:</strong> What it is and why it ruins everything</li>
-<li><strong>Mistake 2:</strong> The thing everyone does wrong</li>
-<li><strong>Mistake 3:</strong> The sneaky mistake you don't realize you're making</li>
-<li><strong>Mistake 4:</strong> The "I thought I was being helpful" mistake</li>
+<li><strong>Mistake 1:</strong> What it is and why it ruins everything. I learned this the hard way.</li>
+<li><strong>Mistake 2:</strong> The thing everyone does wrong—don't be that person.</li>
+<li><strong>Mistake 3:</strong> The sneaky mistake you don't realize you're making.</li>
 </ul>
-<p><strong>Golden rule:</strong> Taste as you go. Your tongue knows what it wants.</p>
+<p><strong>Pro tip:</strong> Include your golden rule or key insight here.</p>
 
 {{IMAGE_5}}
 
-<h2>Substitutions That Actually Work</h2>
-<p>Life happens. Here's how to work around it:</p>
+<h2>[Variations and Alternatives]</h2>
+<p>Life happens. Here's how to adapt:</p>
 <ul>
-<li><strong>No [ingredient]?</strong> Use [alternative] - works just as well</li>
-<li><strong>Vegetarian version:</strong> [specific swap]</li>
-<li><strong>Gluten-free:</strong> [specific swap]</li>
-<li><strong>Lower carb:</strong> [specific swap]</li>
-<li><strong>Want it spicier?</strong> [suggestion] - go wild</li>
+<li><strong>Substitution 1:</strong> What to use and why it works</li>
+<li><strong>Dietary variation:</strong> specific swap for specific need</li>
+<li><strong>Flavor twist:</strong> how to change it up</li>
+<li><strong>Budget option:</strong> cheaper alternative that still delivers</li>
 </ul>
-<p>Cooking is creative - don't let missing ingredients stop you.</p>
+<p>IMO, cooking should be flexible. Don't stress if you need to improvise.</p>
 
-<h2>Serving It Up</h2>
-<p>Turn this into a full meal:</p>
+<h2>[Serving and Pairing Suggestions]</h2>
+<p>Make this a complete experience:</p>
 <ul>
-<li>Side option 1 - why it works</li>
-<li>Side option 2 - for variety</li>
-<li>Side option 3 - if you're feeling fancy</li>
+<li>Pairing 1 - why it complements perfectly</li>
+<li>Pairing 2 - for variety</li>
+<li>Pairing 3 - if you're feeling fancy</li>
 </ul>
-<p>Or honestly? Eat it straight from the pot. I won't tell anyone.</p>
+<p>Or honestly? Enjoy it exactly as-is. Sometimes simple is best.</p>
 
 {{IMAGE_6}}
 
-<h2>Storage and Leftovers</h2>
-<h3>Fridge Life</h3>
-<p>Stores for X days in an airtight container. Actually tastes better the next day (controversial opinion, but true).</p>
+<h2>[Storage and Make-Ahead Tips]</h2>
+<h3>Storing</h3>
+<p>How long it keeps and the best storage method. Be specific with timeframes.</p>
 
-<h3>Freezer Friendly?</h3>
-<p>Yes/No and why. If yes, explain the best way to freeze and thaw.</p>
+<h3>Reheating</h3>
+<p>Best method to reheat without compromising quality. Include any tricks you've discovered.</p>
 
-<h3>Reheating Tips</h3>
-<p>Best reheating method. Add a splash of [liquid] if it dried out.</p>
+<h3>Make-Ahead Options</h3>
+<p>What can be prepped in advance and how far ahead. Meal prep friendly? Say so!</p>
 
-<h2>FAQ</h2>
+<h2>Frequently Asked Questions</h2>
 
-<h3>Can I make this ahead?</h3>
-<p>Helpful answer with specific timing advice.</p>
+<h3>Question 1 that readers commonly ask?</h3>
+<p>Helpful, direct answer. Include specific advice or timing.</p>
 
-<h3>Is this [diet-specific descriptor]?</h3>
-<p>Clear answer with any necessary modifications.</p>
+<h3>Question 2 about modifications or alternatives?</h3>
+<p>Clear answer with actionable suggestions.</p>
 
-<h3>What if I don't have [common ingredient question]?</h3>
-<p>Practical substitution advice.</p>
+<h3>Question 3 about troubleshooting?</h3>
+<p>Problem-solving advice based on common issues.</p>
 
-<h3>Why did my [dish] turn out [problem]?</h3>
-<p>Troubleshooting advice for common issues.</p>
+<h3>Question 4 about variations?</h3>
+<p>Enthusiastic response with specific recommendations.</p>
 
-<h3>Can I add [popular variation]?</h3>
-<p>Enthusiastic yes or honest no with explanation.</p>
+<h3>Question 5 relevant to the topic?</h3>
+<p>Honest, helpful answer that adds value.</p>
 
 {{IMAGE_7}}
 
-<h2>Go Forth and Cook</h2>
-<p>Wrap it up with encouragement. Remind them they've got this. Maybe a final tip or call to action.</p>
-<p>And remember: the best recipe is the one you actually make. So stop scrolling and start cooking.</p>
+<h2>[Concluding Section - Memorable Closing]</h2>
+<p>End with a concise summary that reiterates the key points. Offer a final, engaging thought or call to action that encourages the reader to take the next step.</p>
+<p>Leave them with a memorable final impression—maybe reintroduce a humorous or personal touch. You've got this. Now stop reading and start doing! :)</p>
 
-CRITICAL GUIDELINES:
-- Write 1000-1200 words
+=== CRITICAL REQUIREMENTS ===
+- Write approximately 1,500 words
 - Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
-- Keep it FUN, conversational, like a friend sharing a recipe
+- Maintain conversational, friend-to-friend tone throughout
 - Use proper H1, H2, H3 heading hierarchy
-- No emojis anywhere
+- Include 2-3 emoticons maximum (:) or :/ only)
+- Include 2-3 slang terms maximum (FYI, IMO, etc.)
+- Use rhetorical questions to engage readers
+- Bold key information and important points
+- Keep paragraphs to 3-4 sentences maximum
+- Active voice ONLY - no passive constructions
+- Include the focus keyword naturally 8-12 times
 - Output clean HTML only
-- Include the focus keyword naturally 8-12 times throughout
-- START with the jump-to-recipe button right after the H1`;
+- NO generic AI phrases like "dive into", "in today's world", "whether you're a seasoned..."`;
 
-    const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
+    const articlePrompt = `ARTICLE TITLE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article following the exact structure above. 
-- Be playful, use humor, talk like a friend
+Write a 1,500-word SEO article following the exact structure and tone requirements above.
+
+KEY REQUIREMENTS:
+- Write as if talking to a friend - relaxed, engaging, approachable
+- Include light sarcasm and witty humor throughout
+- Add personal opinions and anecdotes for authenticity
+- Use rhetorical questions to engage readers (e.g., "Ever wondered why...?")
+- Use 2-3 instances of slang like "FYI", "IMO" and emoticons like ":)" or ":/"
+- Bold all key information and important points
+- Keep paragraphs SHORT (3-4 sentences max)
+- ACTIVE VOICE ONLY - check every sentence
 - Include the focus keyword "${focusKeyword}" naturally 8-12 times
-- Include ALL 7 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
-- Keep paragraphs SHORT and punchy
-- Include the jump-to-recipe link at the top
-- Make it genuinely fun to read!`;
+- Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
+- Include the jump-to-recipe link after the H1
+- Make it genuinely fun and engaging to read!
+
+Remember: This should sound like a human wrote it, not AI. Be direct, be personal, be helpful.`;
 
     const articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 
