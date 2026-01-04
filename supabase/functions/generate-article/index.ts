@@ -712,33 +712,67 @@ Place these links naturally within paragraphs where they make sense.`;
     // Step 2: Generate article content (simplified - no recipe card)
     console.log('📄 Generating article content...');
 
-    const articleSystemPrompt = `Write an engaging, conversational article about "${seoTitle}".
+    const articleSystemPrompt = `Write a long-form, engaging blog article using the EXACT structure below.
 
-Target length: Around 1000 words.
+Do NOT skip any section.
+Maintain a conversational, friendly, slightly witty tone.
+Keep paragraphs short (2-4 lines max).
+Avoid sounding robotic or academic.
 ${internalLinksInstruction}
 
-STRUCTURE:
+STRUCTURE TO FOLLOW:
 
-1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title – start directly with the introduction paragraph.
+1. HOOK INTRODUCTION (3-4 short paragraphs)
+   - Start directly, no title, no generic lines
+   - Set the mood and introduce the problem + promise
+   - Make the reader feel "this article is for me"
 
-2. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic.
+2. FOUNDATIONAL CONTEXT SECTION
+   - Explain WHY this topic matters
+   - Include benefits, usefulness, or relevance
+   - Add light humor or personality
 
-3. After some sections, include H3 subsections where it makes sense for deeper dives into specific points.
+3. CLARIFICATION / COMPARISON SECTION
+   - Clear a common confusion related to the topic
+   - Compare two commonly misunderstood things
+   - Give practical advice
 
-4. Include an FAQ section with 4-6 questions formatted as <h3> tags, with answers in paragraphs.
+4. CORE VALUE SECTION (Swaps / Methods / Frameworks)
+   - Break into sub-points using <h3> tags
+   - Use simple explanations
+   - Focus on solutions that actually work
 
-5. End with a brief conclusion section using an <h2> tag.
+5. FLAVOR / PERSONALITY SECTION
+   - Add a memorable, fun mini-section
+   - Include opinionated commentary
+   - Make it feel human, not AI-written
 
-TONE & STYLE:
+6. MAIN CONTENT SECTION (5-7 Items)
+   - Numbered list using <ol> and <li>
+   - Each item should include:
+     - Short intro
+     - Practical steps or tips
+     - One smart trick or upgrade
 
-- Conversational and informal - write like you're chatting with a friend
-- Approachable, light-hearted, and occasionally sarcastic
-- Use active voice only - avoid passive constructions entirely
-- Keep paragraphs SHORT (3-4 sentences max) - make it scannable
-- Use rhetorical questions to engage readers and break up text
-- Sprinkle in internet slang sparingly: "FYI", "IMO" (2-3 times max per article)
-- Include occasional humor to keep things fun
-- Bold key information with <strong> tags (but NOT in the introduction)
+7. PROBLEM-SOLVING SECTION
+   - Common mistakes or issues
+   - Explain WHY they happen
+   - Give clear fixes
+
+8. ADVANCED / REAL-LIFE USE CASE SECTION
+   - Show how this applies in real situations
+   - Hosting, planning, scaling, or practical application
+
+9. FAQ SECTION
+   - 4-6 real questions people actually ask
+   - Format each question as <h3> tag
+   - Clear, helpful answers in paragraphs
+   - Keep tone friendly
+
+10. CONCLUSION
+    - Short summary
+    - Encouraging ending
+    - End with a relatable or humorous line
 
 CRITICAL FORMATTING RULES:
 
@@ -752,6 +786,12 @@ CRITICAL FORMATTING RULES:
 - NO code fences, backticks, or any Markdown formatting whatsoever
 - NO asterisks anywhere in the output
 - No extraneous preamble before content starts
+- NO emojis
+- NO fluff or filler
+- Use simple English
+- Write like an experienced human, not a teacher
+- Add light humor where natural
+- Avoid repetitive phrases
 
 IMAGE PLACEHOLDERS:
 Place these placeholders naturally throughout the article where images would enhance the content:
@@ -762,23 +802,31 @@ Place them on their own lines between sections or after key points.`;
     const articlePrompt = `ARTICLE TITLE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a 1,500-word SEO article following the EXACT structure in the system prompt.
+Write a 2,000+ word SEO article following the EXACT 10-section structure in the system prompt.
+
+SECTION ORDER (DO NOT SKIP ANY):
+1. Hook Introduction (3-4 paragraphs, NO H1 title, start directly)
+2. Foundational Context Section (H2)
+3. Clarification / Comparison Section (H2)
+4. Core Value Section with sub-points (H2 with H3 sub-sections)
+5. Flavor / Personality Section (H2)
+6. Main Content Section with 5-7 numbered items (H2 with numbered list)
+7. Problem-Solving Section (H2)
+8. Advanced / Real-Life Use Case Section (H2)
+9. FAQ Section with 4-6 questions (H2 with H3 for each question)
+10. Conclusion (H2)
 
 KEY REQUIREMENTS:
-- Start with engaging intro paragraph (NO H1 tag)
-- Use H2 for main sections, H3 for subsections and numbered items
-- Format bullet lists with <strong>Label:</strong> Description pattern inside <li> tags
-- Number main content items as "1) Name (Details)" format
-- Include 5-7 FAQ questions with H3 tags and paragraph answers
-- End with H2 Conclusion
-- Use ALL 7 image placeholders in order
-- Include focus keyword "${focusKeyword}" naturally 8-12 times
-- Conversational, friendly tone throughout
+- Include focus keyword "${focusKeyword}" naturally 10-15 times throughout
+- Conversational, friendly, slightly witty tone
 - Active voice only
+- Short paragraphs (2-4 lines max)
+- Use ALL 7 image placeholders distributed throughout
+- Add light humor where natural
+- NO emojis, NO fluff, NO filler
+- Write like an experienced human sharing advice with a friend
 
-CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (*), underscores, backticks, or code blocks. Use <strong> for bold, <em> for italics.
-
-Remember: Follow the exact structure. This should read like a helpful friend sharing expert advice.`;
+CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (*), underscores, backticks, or code blocks. Use <strong> for bold, <em> for italics.`;
 
     let articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 
