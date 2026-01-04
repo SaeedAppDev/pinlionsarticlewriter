@@ -740,13 +740,17 @@ TONE & STYLE:
 - Include occasional humor to keep things fun
 - Bold key information with <strong> tags (but NOT in the introduction)
 
-FORMATTING:
+CRITICAL FORMATTING RULES:
 
-- Use proper HTML: <h2> for main sections, <h3> for subsections
-- Use lists when appropriate: <ul> with <li> for bullets, <ol> with <li> for numbered
-- Break down technical details into easy-to-read lists
-- Avoid dense blocks of text
-- NO Markdown, code fences, or backticks
+- Output ONLY valid HTML - absolutely NO Markdown syntax
+- Use <h2> for main sections, <h3> for subsections
+- Use <ul> with <li> for bullet lists
+- Use <ol> with <li> for numbered lists
+- Use <strong> for bold text - NEVER use asterisks (*) or double asterisks (**)
+- Use <em> for italic text - NEVER use underscores (_) or single asterisks (*)
+- Use <p> tags for paragraphs
+- NO code fences, backticks, or any Markdown formatting whatsoever
+- NO asterisks anywhere in the output
 - No extraneous preamble before content starts
 
 IMAGE PLACEHOLDERS:
@@ -763,7 +767,7 @@ Write a 1,500-word SEO article following the EXACT structure in the system promp
 KEY REQUIREMENTS:
 - Start with engaging intro paragraph (NO H1 tag)
 - Use H2 for main sections, H3 for subsections and numbered items
-- Format bullet lists with <strong>Label:</strong> Description pattern
+- Format bullet lists with <strong>Label:</strong> Description pattern inside <li> tags
 - Number main content items as "1) Name (Details)" format
 - Include 5-7 FAQ questions with H3 tags and paragraph answers
 - End with H2 Conclusion
@@ -772,15 +776,28 @@ KEY REQUIREMENTS:
 - Conversational, friendly tone throughout
 - Active voice only
 
+CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (*), underscores, backticks, or code blocks. Use <strong> for bold, <em> for italics.
+
 Remember: Follow the exact structure. This should read like a helpful friend sharing expert advice.`;
 
-    const articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
+    let articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 
     if (!articleContent) {
       throw new Error("No content generated");
     }
 
-    console.log('✅ Article content generated successfully');
+    // Clean any markdown that slipped through
+    // Convert **text** to <strong>text</strong>
+    articleContent = articleContent.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Convert *text* to <em>text</em> (but not inside HTML tags)
+    articleContent = articleContent.replace(/(?<!<[^>]*)\*([^*]+)\*(?![^<]*>)/g, '<em>$1</em>');
+    // Remove any remaining stray asterisks
+    articleContent = articleContent.replace(/\*+/g, '');
+    // Clean up code fences
+    articleContent = articleContent.replace(/```[a-z]*\n?/gi, '');
+    articleContent = articleContent.replace(/`([^`]+)`/g, '$1');
+
+    console.log('✅ Article content generated and cleaned successfully');
 
     // Step 4: Analyze article and generate image prompts
     const imagePrompts = await analyzeArticleForImagePrompts(
