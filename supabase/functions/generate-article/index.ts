@@ -600,67 +600,49 @@ async function analyzeArticleForImagePrompts(
 
   const h1Match = articleContent.match(/<h1[^>]*>([^<]+)<\/h1>/i);
   const extractedTitle = h1Match ? h1Match[1].trim() : dishName;
-  
-  const foodKeywords = analysisText.toLowerCase();
-  const identifiedFoods: string[] = [];
-  
-  const foodPatterns = [
-    'cake', 'cookie', 'brownie', 'pie', 'tart', 'cupcake', 'muffin', 'cheesecake',
-    'pudding', 'mousse', 'ice cream', 'parfait', 'truffle', 'fudge', 'candy',
-    'chocolate', 'vanilla', 'caramel', 'strawberry', 'blueberry', 'apple', 'pumpkin',
-    'chicken', 'beef', 'pork', 'fish', 'salmon', 'shrimp', 'pasta', 'rice',
-    'soup', 'salad', 'sandwich', 'burger', 'pizza', 'taco', 'curry', 'stir fry'
-  ];
-  
-  for (const pattern of foodPatterns) {
-    if (foodKeywords.includes(pattern)) {
-      identifiedFoods.push(pattern);
-    }
-  }
 
   console.log(`📖 Extracted title: "${extractedTitle}"`);
-  console.log(`📋 Identified foods: ${identifiedFoods.join(', ')}`);
 
-  const excerpt = analysisText.length > 9000
-    ? `${analysisText.slice(0, 4500)} ... ${analysisText.slice(-4500)}`
+  const excerpt = analysisText.length > 6000
+    ? `${analysisText.slice(0, 3000)} ... ${analysisText.slice(-3000)}`
     : analysisText;
 
-  const systemPrompt = `You are an expert food photographer and AI image prompt engineer.
-Your job is to READ THE ARTICLE CONTENT CAREFULLY and generate image prompts that EXACTLY match what is described.
+  const systemPrompt = `You are an expert at creating SHORT, SPECIFIC image prompts for professional food photography.
 
 CRITICAL RULES:
-1. READ the article title: "${extractedTitle}" - this is THE MAIN SUBJECT
-2. IDENTIFY the specific food items mentioned: ${identifiedFoods.length > 0 ? identifiedFoods.join(', ') : 'analyze from content'}
-3. NEVER generate prompts for foods NOT mentioned in the article
-4. MATCH the article topic EXACTLY
+- Each prompt must be SHORT (under 10 words)
+- Be SPECIFIC to the article topic
+- Simple subjects only - avoid complex scenes
+- Professional, high-quality photography style
 
-FORBIDDEN:
-- People, faces, portraits, landscapes, sky, animals
-- Generic food that doesn't match the article topic
-- Text, logos, watermarks
+Examples of GOOD prompts:
+- "chocolate chip cookies on white plate"
+- "golden retriever puppy playing"
+- "modern kitchen with marble countertops"
 
-Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt 40-70 words.
-EVERY prompt MUST reference "${extractedTitle}" or the specific foods mentioned.`;
+BAD prompts (too generic):
+- "a dog"
+- "cookies"
 
-  const userPrompt = `Create 7 photorealistic food photography prompts for this article.
+Output EXACTLY 7 prompts, one per line, numbered 1-7.`;
 
-MAIN TOPIC: "${extractedTitle}"
-DISH NAME: "${dishName}"
-IDENTIFIED FOODS: ${identifiedFoods.join(', ') || 'analyze from article content'}
+  const userPrompt = `Based on this article about "${extractedTitle}", create 7 SPECIFIC image prompts for professional photography.
 
-ARTICLE CONTENT:
+Article excerpt:
 ${excerpt}
 
-Create prompts for:
-1. Hero shot of "${extractedTitle}" - main dish beauty shot
-2. Texture close-up showing delicious details
-3. Ingredients flat lay - all ingredients arranged beautifully
-4. Cooking action shot - being prepared
-5. Serving scene - ready to eat presentation
-6. Multiple portions arranged together
-7. Final beauty shot with garnish
+Requirements:
+- Each prompt should be SHORT (under 10 words)
+- Be SPECIFIC to this article topic
+- Simple subjects only - avoid complex scenes
+- Professional, high-quality photography style
 
-Return only the 7 numbered lines.`;
+Create 7 SPECIFIC prompts with details related to this article.
+
+Format as a numbered list:
+1. [specific detailed prompt]
+2. [specific detailed prompt]
+etc.`;
 
   try {
     const response = await callAI(userPrompt, systemPrompt, AI_API_KEY, aiProvider as 'lovable' | 'groq' | 'openai');
@@ -674,28 +656,28 @@ Return only the 7 numbered lines.`;
     
     for (const line of lines) {
       const cleanedPrompt = line.replace(/^\d+[\.\)\:]\s*/, '').trim();
-      if (cleanedPrompt.length > 20) {
-        prompts.push(cleanedPrompt + ' Professional food photography, magazine quality. NO text, NO watermarks.');
+      if (cleanedPrompt.length > 5 && cleanedPrompt.length < 100) {
+        prompts.push(cleanedPrompt);
       }
     }
     
     while (prompts.length < 7) {
-      prompts.push(`Professional food photography of ${dishName}. Beautiful plating, natural lighting, appetizing presentation. NO text, NO watermarks.`);
+      prompts.push(`${dishName} on white plate`);
     }
     
-    console.log('Generated contextual image prompts:', prompts.slice(0, 7));
+    console.log('Generated short image prompts:', prompts.slice(0, 7));
     return prompts.slice(0, 7);
     
   } catch (error) {
     console.error('Error analyzing article for prompts:', error);
     return [
-      `Professional food photography of ${dishName}. Hero shot, overhead angle, beautifully plated. Natural lighting, appetizing. NO text.`,
-      `Close-up macro food photography of ${dishName} showing texture details. Soft lighting, bokeh background. NO text.`,
-      `Ingredients flat lay for ${dishName}. All ingredients arranged on marble surface. Bright lighting. NO text.`,
-      `Action cooking shot of ${dishName} being prepared. Warm kitchen lighting. NO text.`,
-      `Lifestyle food photography of ${dishName} on dining table. Golden hour lighting. NO text.`,
-      `${dishName} storage and meal prep photo. Glass containers, organized kitchen. NO text.`,
-      `Final beauty shot of ${dishName}. Single serving, dramatic lighting, restaurant quality. NO text.`
+      `${dishName} hero shot overhead`,
+      `${dishName} close-up texture`,
+      `${dishName} ingredients arranged`,
+      `${dishName} being prepared`,
+      `${dishName} plated elegantly`,
+      `${dishName} multiple servings`,
+      `${dishName} final presentation`
     ];
   }
 }
