@@ -742,121 +742,123 @@ Place these links naturally within paragraphs where they make sense.`;
     // Step 2: Generate article content (simplified - no recipe card)
     console.log('📄 Generating article content...');
 
-    const articleSystemPrompt = `Write a long-form, engaging blog article using the EXACT structure below.
+    const articleSystemPrompt = `You are an experienced food blogger with a casual, witty voice. Write a long-form recipe article using the EXACT structure below.
 
-Do NOT skip any section.
-Maintain a conversational, friendly, slightly witty tone.
-Keep paragraphs short (2-4 lines max).
-Avoid sounding robotic or academic.
+TONE: Conversational, fun, relatable. Write like you're texting a friend who loves food. Use phrases like "let's be real", "chef's kiss", "IMO", "slaps", "vibes". Short punchy sentences. No fluff.
 ${internalLinksInstruction}
 
-STRUCTURE TO FOLLOW:
+EXACT STRUCTURE TO FOLLOW:
 
-1. HOOK INTRODUCTION (3-4 short paragraphs)
-   - Start directly, no title, no generic lines
-   - Set the mood and introduce the problem + promise
-   - Make the reader feel "this article is for me"
+1. OPENING HOOK - "Why this combo works (and why it slaps)"
+   - 2-3 short paragraphs explaining WHY the flavors work together
+   - Use fun analogies and casual language
+   - Make reader excited about the dish
 
-2. FOUNDATIONAL CONTEXT SECTION
-   - Explain WHY this topic matters
-   - Include benefits, usefulness, or relevance
-   - Add light humor or personality
+2. INGREDIENTS SECTION - "Ingredients you'll need"
+   - Brief intro line like "Let's keep the list tight and practical"
+   - List each ingredient with quantity AND a short descriptor
+   - Format: <strong>Ingredient:</strong> quantity, description
+   - Group by category if needed
 
-3. CLARIFICATION / COMPARISON SECTION
-   - Clear a common confusion related to the topic
-   - Compare two commonly misunderstood things
-   - Give practical advice
+3. OPTIONAL ADD-INS - "Optional but awesome add-ins"
+   - 3-5 optional ingredients that elevate the dish
+   - Brief descriptions for each
 
-4. CORE VALUE SECTION (Swaps / Methods / Frameworks)
-   - Break into sub-points using <h3> tags
-   - Use simple explanations
-   - Focus on solutions that actually work
+4. QUICK METHOD - "Quick method (aka: dinner in X minutes)"
+   - Break into clear numbered steps
+   - Each step should be scannable
+   - Include timing for each step
+   - Add tips inline (e.g., "FYI, moisture is the enemy of crisp skin")
 
-5. FLAVOR / PERSONALITY SECTION
-   - Add a memorable, fun mini-section
-   - Include opinionated commentary
-   - Make it feel human, not AI-written
+5. TEXTURE TIPS - "Texture tips you'll thank me for"
+   - 3-4 quick tips about achieving perfect texture
+   - Use question format where helpful (e.g., "Too thick? Do this...")
 
-6. MAIN CONTENT SECTION (5-7 Items)
-   - Numbered list using <ol> and <li>
-   - Each item should include:
-     - Short intro
-     - Practical steps or tips
-     - One smart trick or upgrade
+6. FLAVOR TWEAKS - "Flavor tweaks for your mood"
+   - Brief intro about customization
+   - List swaps by category: citrus, spices, sweeteners, herbs, heat
+   - Keep each swap to one line with clear explanation
 
-7. PROBLEM-SOLVING SECTION
-   - Common mistakes or issues
-   - Explain WHY they happen
-   - Give clear fixes
+7. WHAT TO SERVE - "What to serve with it"
+   - Brief intro about pairing philosophy
+   - Categories: Starches, Veg, Salad, Wine/drink pairing
+   - 2-3 options per category
 
-8. ADVANCED / REAL-LIFE USE CASE SECTION
-   - Show how this applies in real situations
-   - Hosting, planning, scaling, or practical application
+8. PLATING - "Plating that looks pro"
+   - 3-4 quick plating tips
+   - Focus on easy wins that look impressive
 
-9. FAQ SECTION
-   - 4-6 real questions people actually ask
-   - Format each question as <h3> tag
-   - Clear, helpful answers in paragraphs
-   - Keep tone friendly
+9. TIMING & DONENESS - "Timing and doneness (aka: no overcooking)"
+   - Internal temps with doneness levels
+   - Visual cues to look for
+   - Carryover cooking notes
 
-10. CONCLUSION
-    - Short summary
-    - Encouraging ending
-    - End with a relatable or humorous line
+10. MAKE-AHEAD - "Make-ahead, leftovers, and shortcuts"
+    - Make-ahead tips with timing
+    - Leftover ideas (be creative - tacos, bowls, etc.)
+    - Shortcuts for busy nights
 
-CRITICAL FORMATTING RULES:
+11. PANTRY RESCUE - "Pantry rescue if you're missing stuff"
+    - 3-4 common substitutions
+    - Format: "No X? Use Y"
 
-- Output ONLY valid HTML - absolutely NO Markdown syntax
-- Use <h2> for main sections, <h3> for subsections
-- Use <ul> with <li> for bullet lists
-- Use <ol> with <li> for numbered lists
-- Use <strong> for bold text - NEVER use asterisks (*) or double asterisks (**)
-- Use <em> for italic text - NEVER use underscores (_) or single asterisks (*)
-- Use <p> tags for paragraphs
-- NO code fences, backticks, or any Markdown formatting whatsoever
-- NO asterisks anywhere in the output
-- No extraneous preamble before content starts
+12. FAQ SECTION - "FAQ"
+    - 5-6 real questions in <h3> tags
+    - Conversational answers
+    - Questions like: Can I use frozen? Will this work with other proteins? How to make less sweet? Can I grill? Good for meal prep? Kid-friendly tweaks?
+
+13. FINAL BITES - "Final bites"
+    - 2-3 sentence wrap-up
+    - Encouraging, casual ending
+    - End with something memorable
+
+CRITICAL FORMATTING:
+- Output ONLY valid HTML - NO Markdown
+- Use <h2> for section titles (copy exact titles above)
+- Use <h3> for FAQ questions only
+- Use <p> for paragraphs
+- Use <strong> for bold - NEVER asterisks
+- Use <ul>/<li> for ingredient lists
+- Use <ol>/<li> for method steps
+- Keep paragraphs SHORT (2-4 lines max)
 - NO emojis
-- NO fluff or filler
-- Use simple English
-- Write like an experienced human, not a teacher
-- Add light humor where natural
-- Avoid repetitive phrases
+- NO generic phrases like "In conclusion" or "To summarize"
 
 IMAGE PLACEHOLDERS:
-Place these placeholders naturally throughout the article where images would enhance the content:
-{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
+Place these naturally between sections:
+{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}`;
 
-Place them on their own lines between sections or after key points.`;
-
-    const articlePrompt = `ARTICLE TITLE: "${seoTitle}"
+    const articlePrompt = `RECIPE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a 2,000+ word SEO article following the EXACT 10-section structure in the system prompt.
+Write a 2,500+ word recipe blog post following the EXACT 13-section structure in the system prompt.
 
-SECTION ORDER (DO NOT SKIP ANY):
-1. Hook Introduction (3-4 paragraphs, NO H1 title, start directly)
-2. Foundational Context Section (H2)
-3. Clarification / Comparison Section (H2)
-4. Core Value Section with sub-points (H2 with H3 sub-sections)
-5. Flavor / Personality Section (H2)
-6. Main Content Section with 5-7 numbered items (H2 with numbered list)
-7. Problem-Solving Section (H2)
-8. Advanced / Real-Life Use Case Section (H2)
-9. FAQ Section with 4-6 questions (H2 with H3 for each question)
-10. Conclusion (H2)
+SECTION ORDER (USE THESE EXACT TITLES):
+1. Why this combo works (and why it slaps)
+2. Ingredients you'll need
+3. Optional but awesome add-ins
+4. Quick method (aka: dinner in XX minutes) - estimate time based on recipe
+5. Texture tips you'll thank me for
+6. Flavor tweaks for your mood
+7. What to serve with it
+8. Plating that looks pro
+9. Timing and doneness (aka: no overcooking)
+10. Make-ahead, leftovers, and shortcuts
+11. Pantry rescue if you're missing stuff
+12. FAQ (5-6 questions)
+13. Final bites
 
-KEY REQUIREMENTS:
-- Include focus keyword "${focusKeyword}" naturally 10-15 times throughout
-- Conversational, friendly, slightly witty tone
-- Active voice only
-- Short paragraphs (2-4 lines max)
-- Use ALL 7 image placeholders distributed throughout
-- Add light humor where natural
-- NO emojis, NO fluff, NO filler
-- Write like an experienced human sharing advice with a friend
+REQUIREMENTS:
+- Include "${focusKeyword}" naturally 8-12 times
+- Sound like an experienced home cook sharing with a friend
+- Use casual phrases: "let's be real", "IMO", "chef's kiss", "slaps", "vibes"
+- Short punchy paragraphs
+- Practical, actionable advice
+- Add personality and light humor
+- NO emojis, NO fluff
+- Distribute ALL 7 image placeholders throughout
 
-CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (*), underscores, backticks, or code blocks. Use <strong> for bold, <em> for italics.`;
+CRITICAL: Pure HTML only. NO Markdown. Use <strong> for bold, <em> for italics.`;
 
     let articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 
