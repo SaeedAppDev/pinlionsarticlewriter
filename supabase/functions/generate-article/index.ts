@@ -6,6 +6,328 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============================================================================
+// RECIPE CARD STYLES - Print-friendly, modern design
+// ============================================================================
+const RECIPE_CARD_STYLES = `
+<style>
+.recipe-card-container {
+  font-family: 'Georgia', serif;
+  max-width: 800px;
+  margin: 2rem auto;
+  background: linear-gradient(135deg, #fefefe 0%, #f8f5f0 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  overflow: hidden;
+  border: 1px solid #e8e0d5;
+}
+
+.recipe-card-header {
+  background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%);
+  color: white;
+  padding: 2rem;
+  text-align: center;
+}
+
+.recipe-card-header h2 {
+  font-size: 1.8rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+}
+
+.recipe-card-header .recipe-tagline {
+  font-style: italic;
+  opacity: 0.9;
+  font-size: 1rem;
+}
+
+.recipe-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: #fff;
+  border-bottom: 2px dashed #e8e0d5;
+}
+
+.recipe-meta-item {
+  text-align: center;
+}
+
+.recipe-meta-item .meta-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.recipe-meta-item .meta-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+
+.recipe-meta-item .meta-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d5a27;
+}
+
+.recipe-card-body {
+  padding: 2rem;
+}
+
+.recipe-section {
+  margin-bottom: 2rem;
+}
+
+.recipe-section h3 {
+  font-size: 1.3rem;
+  color: #2d5a27;
+  border-bottom: 2px solid #4a7c43;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recipe-section h3::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #4a7c43;
+  border-radius: 50%;
+}
+
+.ingredients-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2;
+  column-gap: 2rem;
+}
+
+.ingredients-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px dotted #ddd;
+  break-inside: avoid;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.ingredients-list li::before {
+  content: '✓';
+  color: #4a7c43;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.instructions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: step-counter;
+}
+
+.instructions-list li {
+  padding: 1rem 0 1rem 3.5rem;
+  border-bottom: 1px solid #eee;
+  position: relative;
+  line-height: 1.6;
+}
+
+.instructions-list li::before {
+  counter-increment: step-counter;
+  content: counter(step-counter);
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  width: 2rem;
+  height: 2rem;
+  background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.recipe-notes {
+  background: #fff9e6;
+  border-left: 4px solid #f0c14b;
+  padding: 1rem 1.5rem;
+  border-radius: 0 8px 8px 0;
+  margin-top: 1.5rem;
+}
+
+.recipe-notes h4 {
+  margin: 0 0 0.5rem 0;
+  color: #8a6d3b;
+  font-size: 1rem;
+}
+
+.recipe-notes p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.recipe-card-footer {
+  background: #f8f5f0;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 2px dashed #e8e0d5;
+}
+
+.recipe-card-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.recipe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.recipe-btn-print {
+  background: #2d5a27;
+  color: white;
+}
+
+.recipe-btn-print:hover {
+  background: #1e3d1a;
+  transform: translateY(-2px);
+}
+
+.recipe-btn-save {
+  background: transparent;
+  border: 2px solid #2d5a27;
+  color: #2d5a27;
+}
+
+.recipe-btn-save:hover {
+  background: #2d5a27;
+  color: white;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nutrition-item {
+  text-align: center;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e8e0d5;
+}
+
+.nutrition-item .nutrition-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2d5a27;
+}
+
+.nutrition-item .nutrition-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+/* Jump to Recipe Button */
+.jump-to-recipe {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 30px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+  transition: all 0.3s ease;
+  margin: 1.5rem 0;
+}
+
+.jump-to-recipe:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+}
+
+/* Print Styles */
+@media print {
+  .recipe-card-container {
+    box-shadow: none;
+    border: 2px solid #333;
+    page-break-inside: avoid;
+  }
+  
+  .jump-to-recipe,
+  .recipe-btn,
+  .recipe-card-actions {
+    display: none !important;
+  }
+  
+  .recipe-card-header {
+    background: #333 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .ingredients-list {
+    columns: 1;
+  }
+  
+  body {
+    font-size: 12pt;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .recipe-meta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .ingredients-list {
+    columns: 1;
+  }
+  
+  .nutrition-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .recipe-card-footer {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+</style>
+`;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 // Fetch and parse sitemap to get relevant URLs
 async function fetchSitemapUrls(sitemapUrl: string, sitemapType: string = 'auto'): Promise<string[]> {
   try {
@@ -170,7 +492,6 @@ function getImageSubject(focusKeyword: string, seoTitle: string): string {
   const base = (focusKeyword || seoTitle || '').trim();
   if (!base) return 'food recipe';
 
-  // Remove common title fluff that harms image search / prompts
   return base
     .replace(/^get ready for( the)?/i, '')
     .replace(/^the /i, '')
@@ -188,7 +509,7 @@ function safeSlug(input: string): string {
     .slice(0, 60) || 'image';
 }
 
-// Fallback image search (no random images): try Openverse and upload to our storage bucket
+// Fallback image search
 async function generateFallbackImage(
   dishName: string,
   imageContext: string,
@@ -196,7 +517,7 @@ async function generateFallbackImage(
   supabase: any
 ): Promise<string> {
   try {
-    const query = `${dishName} ${imageContext} dessert food photography`;
+    const query = `${dishName} ${imageContext} food photography`;
     const openverseUrl = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=10`;
 
     const ovResp = await fetch(openverseUrl, {
@@ -215,7 +536,6 @@ async function generateFallbackImage(
       candidateUrl = (first?.url || first?.thumbnail) ?? null;
     }
 
-    // If we can't find a relevant fallback, return empty so we don't show random/unrelated images
     if (!candidateUrl) return '';
 
     const imgResp = await fetch(candidateUrl, {
@@ -268,9 +588,8 @@ async function analyzeArticleForImagePrompts(
   AI_API_KEY: string,
   aiProvider: string
 ): Promise<string[]> {
-  console.log('🔍 AI OCR-Style Analysis: Reading and extracting key content from article...');
+  console.log('🔍 AI Analysis: Extracting key content from article for image generation...');
   
-  // Step 1: Deep OCR-style text extraction - extract ALL meaningful content
   const analysisText = articleContent
     .replace(/\{\{IMAGE_\d\}\}/g, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -279,25 +598,21 @@ async function analyzeArticleForImagePrompts(
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Step 2: Extract key elements for better AI understanding
   const h1Match = articleContent.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-  const h2Matches = articleContent.match(/<h2[^>]*>([^<]+)<\/h2>/gi) || [];
   const extractedTitle = h1Match ? h1Match[1].trim() : dishName;
-  const extractedHeadings = h2Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).join(', ');
   
-  // Step 3: Identify specific food items mentioned
   const foodKeywords = analysisText.toLowerCase();
   const identifiedFoods: string[] = [];
   
-  // Common dessert/food patterns
-  const dessertPatterns = [
+  const foodPatterns = [
     'cake', 'cookie', 'brownie', 'pie', 'tart', 'cupcake', 'muffin', 'cheesecake',
     'pudding', 'mousse', 'ice cream', 'parfait', 'truffle', 'fudge', 'candy',
     'chocolate', 'vanilla', 'caramel', 'strawberry', 'blueberry', 'apple', 'pumpkin',
-    'cinnamon', 'cream', 'frosting', 'glaze', 'ganache', 'filling'
+    'chicken', 'beef', 'pork', 'fish', 'salmon', 'shrimp', 'pasta', 'rice',
+    'soup', 'salad', 'sandwich', 'burger', 'pizza', 'taco', 'curry', 'stir fry'
   ];
   
-  for (const pattern of dessertPatterns) {
+  for (const pattern of foodPatterns) {
     if (foodKeywords.includes(pattern)) {
       identifiedFoods.push(pattern);
     }
@@ -305,7 +620,6 @@ async function analyzeArticleForImagePrompts(
 
   console.log(`📖 Extracted title: "${extractedTitle}"`);
   console.log(`📋 Identified foods: ${identifiedFoods.join(', ')}`);
-  console.log(`📑 Article sections: ${extractedHeadings}`);
 
   const excerpt = analysisText.length > 9000
     ? `${analysisText.slice(0, 4500)} ... ${analysisText.slice(-4500)}`
@@ -314,48 +628,39 @@ async function analyzeArticleForImagePrompts(
   const systemPrompt = `You are an expert food photographer and AI image prompt engineer.
 Your job is to READ THE ARTICLE CONTENT CAREFULLY and generate image prompts that EXACTLY match what is described.
 
-CRITICAL OCR-STYLE ANALYSIS RULES:
+CRITICAL RULES:
 1. READ the article title: "${extractedTitle}" - this is THE MAIN SUBJECT
 2. IDENTIFY the specific food items mentioned: ${identifiedFoods.length > 0 ? identifiedFoods.join(', ') : 'analyze from content'}
 3. NEVER generate prompts for foods NOT mentioned in the article
-4. If the title says "Holiday Desserts" - generate DESSERTS (cakes, cookies, pies, etc.)
-5. If the title says "Chicken Curry" - generate CHICKEN CURRY images
-6. MATCH the article topic EXACTLY - no generic food images
+4. MATCH the article topic EXACTLY
 
 FORBIDDEN:
 - People, faces, portraits, landscapes, sky, animals
 - Generic food that doesn't match the article topic
 - Text, logos, watermarks
-- Scenes unrelated to the article content
 
 Output EXACTLY 7 prompts, one per line, numbered 1-7. Each prompt 40-70 words.
 EVERY prompt MUST reference "${extractedTitle}" or the specific foods mentioned.`;
 
-  const userPrompt = `PERFORM OCR-STYLE CONTENT ANALYSIS and create 7 image prompts.
+  const userPrompt = `Create 7 photorealistic food photography prompts for this article.
 
-MAIN TOPIC FROM TITLE: "${extractedTitle}"
+MAIN TOPIC: "${extractedTitle}"
 DISH NAME: "${dishName}"
-IDENTIFIED FOOD ITEMS: ${identifiedFoods.join(', ') || 'analyze from article content'}
-ARTICLE SECTIONS: ${extractedHeadings}
+IDENTIFIED FOODS: ${identifiedFoods.join(', ') || 'analyze from article content'}
 
-FULL ARTICLE CONTENT TO ANALYZE:
+ARTICLE CONTENT:
 ${excerpt}
 
-INSTRUCTIONS:
-- READ the article carefully
-- IDENTIFY the EXACT foods/dishes described
-- CREATE prompts that show THOSE SPECIFIC foods
-
 Create prompts for:
-1. Hero shot of "${extractedTitle}" - the MAIN dish/food from the title
-2. Texture close-up of the specific ${identifiedFoods[0] || 'dessert/food'} mentioned
-3. Ingredients flat lay showing ONLY ingredients from this article
-4. Cooking/preparation action shot for "${extractedTitle}"
-5. Party/serving scene featuring "${extractedTitle}" 
-6. Multiple ${identifiedFoods[0] || 'items'} arranged together
-7. Final beauty shot of "${extractedTitle}" ready to serve
+1. Hero shot of "${extractedTitle}" - main dish beauty shot
+2. Texture close-up showing delicious details
+3. Ingredients flat lay - all ingredients arranged beautifully
+4. Cooking action shot - being prepared
+5. Serving scene - ready to eat presentation
+6. Multiple portions arranged together
+7. Final beauty shot with garnish
 
-Return only the 7 numbered lines. EVERY prompt MUST be about "${extractedTitle}".`;
+Return only the 7 numbered lines.`;
 
   try {
     const response = await callAI(userPrompt, systemPrompt, AI_API_KEY, aiProvider as 'lovable' | 'groq' | 'openai');
@@ -364,19 +669,16 @@ Return only the 7 numbered lines. EVERY prompt MUST be about "${extractedTitle}"
       throw new Error('No response from AI for image prompts');
     }
     
-    // Parse the numbered prompts
     const lines = response.split('\n').filter(line => line.trim());
     const prompts: string[] = [];
     
     for (const line of lines) {
-      // Remove numbering like "1.", "1)", "1:" etc
       const cleanedPrompt = line.replace(/^\d+[\.\)\:]\s*/, '').trim();
       if (cleanedPrompt.length > 20) {
         prompts.push(cleanedPrompt + ' Professional food photography, magazine quality. NO text, NO watermarks.');
       }
     }
     
-    // Ensure we have exactly 7 prompts, fill with defaults if needed
     while (prompts.length < 7) {
       prompts.push(`Professional food photography of ${dishName}. Beautiful plating, natural lighting, appetizing presentation. NO text, NO watermarks.`);
     }
@@ -386,7 +688,6 @@ Return only the 7 numbered lines. EVERY prompt MUST be about "${extractedTitle}"
     
   } catch (error) {
     console.error('Error analyzing article for prompts:', error);
-    // Return default prompts if analysis fails
     return [
       `Professional food photography of ${dishName}. Hero shot, overhead angle, beautifully plated. Natural lighting, appetizing. NO text.`,
       `Close-up macro food photography of ${dishName} showing texture details. Soft lighting, bokeh background. NO text.`,
@@ -399,7 +700,7 @@ Return only the 7 numbered lines. EVERY prompt MUST be about "${extractedTitle}"
   }
 }
 
-// Generate UNIQUE AI image for each recipe section using Replicate Flux
+// Generate UNIQUE AI image using Replicate Flux
 async function generateUniqueImage(
   prompt: string,
   imageNumber: number,
@@ -409,9 +710,8 @@ async function generateUniqueImage(
   dishName: string = ""
 ): Promise<string> {
   try {
-    console.log(`Generating image ${imageNumber} with contextual prompt: ${prompt.substring(0, 100)}...`);
+    console.log(`Generating image ${imageNumber} with prompt: ${prompt.substring(0, 100)}...`);
 
-    // Create enhanced photorealistic prompt - REAL food photography style
     const realisticPrompt = `Professional food photography, DSLR camera shot, ${prompt}. 
 STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art.
 CAMERA: Shot on Canon EOS R5, 50mm f/1.8 lens, natural lighting from window.
@@ -419,7 +719,6 @@ COMPOSITION: Overhead or 45-degree angle, wooden cutting board or marble surface
 DETAILS: Visible texture, natural imperfections, authentic food styling, soft shadows.
 QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or Food Network.`;
 
-    // Call Replicate API (async). Add backoff retries on 429 to prevent random/unrelated fallbacks.
     let prediction: any | null = null;
     const maxCreateAttempts = 8;
 
@@ -471,7 +770,6 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
         continue;
       }
 
-      // Non-retryable error
       break;
     }
 
@@ -479,8 +777,7 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
       return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
     }
 
-    
-    // Poll for result (Replicate is async)
+    // Poll for result
     let result = prediction;
     let attempts = 0;
     const maxAttempts = 30;
@@ -508,11 +805,11 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
     const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
     console.log(`Replicate generated image ${imageNumber}:`, imageUrl);
 
-    // Download and upload to Supabase Storage for persistence
+    // Download and upload to Supabase Storage
     const imgResp = await fetch(imageUrl);
     if (!imgResp.ok) {
       console.error(`Failed to download Replicate image ${imageNumber}`);
-      return imageUrl; // Return Replicate URL directly as fallback
+      return imageUrl;
     }
 
     const bytes = new Uint8Array(await imgResp.arrayBuffer());
@@ -527,7 +824,7 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
-      return imageUrl; // Return Replicate URL if upload fails
+      return imageUrl;
     }
 
     const { data: urlData } = supabase.storage
@@ -541,7 +838,6 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
     return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
   }
 }
-
 
 // Find relevant URLs from sitemap
 async function findRelevantUrls(
@@ -576,7 +872,7 @@ Only return valid JSON array, nothing else.`;
   return [];
 }
 
-// Validate and fix internal links in article content
+// Validate and fix internal links
 function validateInternalLinks(
   content: string, 
   expectedLinks: Array<{ url: string; anchorText: string }>
@@ -584,7 +880,6 @@ function validateInternalLinks(
   const missingLinks: Array<{ url: string; anchorText: string }> = [];
   
   for (const link of expectedLinks) {
-    // Check if the URL exists in the content
     if (!content.includes(link.url)) {
       missingLinks.push(link);
     }
@@ -598,7 +893,7 @@ function validateInternalLinks(
   };
 }
 
-// Insert missing internal links into article content
+// Insert missing internal links
 function insertMissingInternalLinks(
   content: string, 
   missingLinks: Array<{ url: string; anchorText: string }>
@@ -609,16 +904,13 @@ function insertMissingInternalLinks(
   
   let updatedContent = content;
   
-  // Find paragraphs and insert links naturally
   for (const link of missingLinks) {
-    // Look for the first <p> after the intro that doesn't already have a link
     const paragraphRegex = /<p>([^<]*?)(\.)<\/p>/g;
     let match;
     let inserted = false;
     
     while ((match = paragraphRegex.exec(updatedContent)) !== null && !inserted) {
       const paragraph = match[0];
-      // Skip very short paragraphs or those that already have links
       if (paragraph.length > 100 && !paragraph.includes('<a href')) {
         const insertPoint = match.index + match[1].length;
         const linkHtml = ` For more ideas, check out <a href="${link.url}">${link.anchorText}</a>`;
@@ -628,7 +920,6 @@ function insertMissingInternalLinks(
       }
     }
     
-    // If we couldn't insert in a paragraph, add before the FAQ section
     if (!inserted) {
       const faqIndex = updatedContent.indexOf('<h2>FAQ');
       if (faqIndex > -1) {
@@ -642,6 +933,162 @@ function insertMissingInternalLinks(
   return updatedContent;
 }
 
+// ============================================================================
+// GENERATE RECIPE CARD WITH STRUCTURED DATA
+// ============================================================================
+function generateRecipeCardHTML(recipeData: any, heroImageUrl: string): string {
+  const {
+    name,
+    description,
+    prepTime,
+    cookTime,
+    totalTime,
+    servings,
+    difficulty,
+    ingredients,
+    instructions,
+    tips,
+    calories,
+    protein,
+    carbs,
+    fat
+  } = recipeData;
+
+  // Generate JSON-LD Schema
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "name": name,
+    "description": description,
+    "image": heroImageUrl,
+    "author": {
+      "@type": "Person",
+      "name": "Recipe Writer"
+    },
+    "datePublished": new Date().toISOString().split('T')[0],
+    "prepTime": `PT${prepTime}M`,
+    "cookTime": `PT${cookTime}M`,
+    "totalTime": `PT${totalTime}M`,
+    "recipeYield": `${servings} servings`,
+    "recipeCategory": "Main Course",
+    "recipeCuisine": "International",
+    "recipeIngredient": ingredients,
+    "recipeInstructions": instructions.map((step: string, index: number) => ({
+      "@type": "HowToStep",
+      "position": index + 1,
+      "text": step
+    })),
+    "nutrition": {
+      "@type": "NutritionInformation",
+      "calories": `${calories} calories`,
+      "proteinContent": `${protein}g`,
+      "carbohydrateContent": `${carbs}g`,
+      "fatContent": `${fat}g`
+    }
+  };
+
+  const ingredientsList = ingredients.map((ing: string) => `<li>${ing}</li>`).join('\n');
+  const instructionsList = instructions.map((step: string) => `<li>${step}</li>`).join('\n');
+
+  return `
+<!-- Recipe Card with JSON-LD Schema -->
+<script type="application/ld+json">
+${JSON.stringify(jsonLd, null, 2)}
+</script>
+
+${RECIPE_CARD_STYLES}
+
+<div class="recipe-card-container" id="recipe-card">
+  <div class="recipe-card-header">
+    <h2>${name}</h2>
+    <p class="recipe-tagline">${description}</p>
+  </div>
+  
+  <div class="recipe-meta-grid">
+    <div class="recipe-meta-item">
+      <div class="meta-icon">⏱️</div>
+      <div class="meta-label">Prep Time</div>
+      <div class="meta-value">${prepTime} min</div>
+    </div>
+    <div class="recipe-meta-item">
+      <div class="meta-icon">🍳</div>
+      <div class="meta-label">Cook Time</div>
+      <div class="meta-value">${cookTime} min</div>
+    </div>
+    <div class="recipe-meta-item">
+      <div class="meta-icon">🍽️</div>
+      <div class="meta-label">Servings</div>
+      <div class="meta-value">${servings}</div>
+    </div>
+    <div class="recipe-meta-item">
+      <div class="meta-icon">📊</div>
+      <div class="meta-label">Difficulty</div>
+      <div class="meta-value">${difficulty}</div>
+    </div>
+  </div>
+  
+  <div class="recipe-card-body">
+    <div class="recipe-section">
+      <h3>Ingredients</h3>
+      <ul class="ingredients-list">
+        ${ingredientsList}
+      </ul>
+    </div>
+    
+    <div class="recipe-section">
+      <h3>Instructions</h3>
+      <ol class="instructions-list">
+        ${instructionsList}
+      </ol>
+    </div>
+    
+    ${tips ? `
+    <div class="recipe-notes">
+      <h4>💡 Pro Tips</h4>
+      <p>${tips}</p>
+    </div>
+    ` : ''}
+    
+    <div class="recipe-section">
+      <h3>Nutrition Facts (per serving)</h3>
+      <div class="nutrition-grid">
+        <div class="nutrition-item">
+          <div class="nutrition-value">${calories}</div>
+          <div class="nutrition-label">Calories</div>
+        </div>
+        <div class="nutrition-item">
+          <div class="nutrition-value">${protein}g</div>
+          <div class="nutrition-label">Protein</div>
+        </div>
+        <div class="nutrition-item">
+          <div class="nutrition-value">${carbs}g</div>
+          <div class="nutrition-label">Carbs</div>
+        </div>
+        <div class="nutrition-item">
+          <div class="nutrition-value">${fat}g</div>
+          <div class="nutrition-label">Fat</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="recipe-card-footer">
+    <div class="recipe-card-actions">
+      <button class="recipe-btn recipe-btn-print" onclick="window.print()">
+        🖨️ Print Recipe
+      </button>
+      <button class="recipe-btn recipe-btn-save" onclick="navigator.clipboard.writeText(window.location.href); alert('Recipe link copied!')">
+        📋 Copy Link
+      </button>
+    </div>
+  </div>
+</div>
+`;
+}
+
+// ============================================================================
+// MAIN SERVER HANDLER
+// ============================================================================
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -662,11 +1109,10 @@ serve(async (req) => {
       customReplicateKey
     } = requestBody;
     
-    console.log(`Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}`);
-    
-    console.log(`Generating article for focus keyword: ${focusKeyword} (ID: ${recipeId})`);
+    console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${recipeId})`);
+    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}`);
 
-    // Determine which API key to use based on provider
+    // Determine which API key to use
     let AI_API_KEY: string;
     if (aiProvider === 'lovable') {
       AI_API_KEY = Deno.env.get('LOVABLE_API_KEY') || '';
@@ -679,7 +1125,6 @@ serve(async (req) => {
       throw new Error(`Custom API key required for ${aiProvider} provider. Please add your API key in Settings.`);
     }
     
-    // Use custom Replicate key if provided, otherwise use default
     const REPLICATE_API_KEY = customReplicateKey || Deno.env.get('REPLICATE_API_KEY');
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
@@ -696,8 +1141,8 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', recipeId);
 
-    // Step 0: Generate SEO-optimized title from focus keyword
-    console.log('Generating SEO title from focus keyword...');
+    // Step 1: Generate SEO-optimized title
+    console.log('📝 Generating SEO title from focus keyword...');
     
     const titleSystemPrompt = `You are an SEO expert. Generate a beautiful, click-worthy title that:
 1. MUST include the exact focus keyword naturally
@@ -715,7 +1160,7 @@ Return ONLY the title, nothing else.`;
       const generatedTitle = await callAI(titlePrompt, titleSystemPrompt, AI_API_KEY, aiProvider);
       if (generatedTitle && generatedTitle.trim().length > 0) {
         seoTitle = generatedTitle.trim().replace(/^["']|["']$/g, '').trim();
-        console.log(`Generated SEO title: ${seoTitle}`);
+        console.log(`✅ Generated SEO title: ${seoTitle}`);
         
         await supabase
           .from('recipes')
@@ -731,15 +1176,13 @@ Return ONLY the title, nothing else.`;
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
       relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, AI_API_KEY, aiProvider);
-      console.log(`Found ${relevantLinks.length} relevant internal links`);
+      console.log(`🔗 Found ${relevantLinks.length} relevant internal links`);
     }
 
-    // IMPORTANT: Use a short food/topic phrase for images (not the full clickbait title)
     const imageSubject = getImageSubject(focusKeyword, seoTitle);
-    console.log(`Image subject: ${imageSubject}`);
+    console.log(`📷 Image subject: ${imageSubject}`);
 
-    // Build internal links section
-    // Build internal links section
+    // Build internal links instruction
     let internalLinksInstruction = '';
     if (relevantLinks.length > 0) {
       internalLinksInstruction = `
@@ -751,154 +1194,218 @@ ${relevantLinks.map(link => `- <a href="${link.url}">${link.anchorText}</a>`).jo
 Place these links naturally within paragraphs where they make sense.`;
     }
 
-    // Step 2: Generate SEO-optimized article content
-    console.log('Generating article content with Groq...');
+    // Step 2: Generate structured recipe data for the recipe card
+    console.log('🍳 Generating structured recipe data...');
+    
+    const recipeDataPrompt = `Generate structured recipe data for: "${seoTitle}"
+
+Return a JSON object with this EXACT structure (no markdown, just JSON):
+{
+  "name": "Recipe Name",
+  "description": "A short, appetizing description (1-2 sentences)",
+  "prepTime": 15,
+  "cookTime": 30,
+  "totalTime": 45,
+  "servings": 4,
+  "difficulty": "Easy",
+  "ingredients": [
+    "1 cup flour",
+    "2 eggs",
+    "etc..."
+  ],
+  "instructions": [
+    "Step 1 instruction text",
+    "Step 2 instruction text",
+    "etc..."
+  ],
+  "tips": "One helpful cooking tip",
+  "calories": 350,
+  "protein": 25,
+  "carbs": 30,
+  "fat": 15
+}
+
+Make it realistic and delicious. Return ONLY valid JSON.`;
+
+    const recipeDataSystemPrompt = `You are a professional chef creating recipe data. Return ONLY valid JSON with realistic cooking information. No markdown formatting.`;
+
+    let recipeData = {
+      name: seoTitle,
+      description: `A delicious ${imageSubject} recipe that everyone will love`,
+      prepTime: 15,
+      cookTime: 30,
+      totalTime: 45,
+      servings: 4,
+      difficulty: "Easy",
+      ingredients: ["See recipe below for full ingredients list"],
+      instructions: ["Follow the detailed instructions in the article"],
+      tips: "Season to taste and adjust spices based on preference",
+      calories: 350,
+      protein: 25,
+      carbs: 30,
+      fat: 15
+    };
+
+    try {
+      const recipeDataResponse = await callAI(recipeDataPrompt, recipeDataSystemPrompt, AI_API_KEY, aiProvider);
+      const jsonMatch = recipeDataResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        recipeData = JSON.parse(jsonMatch[0]);
+        console.log('✅ Generated structured recipe data');
+      }
+    } catch (e) {
+      console.log('Using default recipe data structure');
+    }
+
+    // Step 3: Generate article content
+    console.log('📄 Generating article content...');
     
     const articleSystemPrompt = `You are a fun, relatable food blogger writing for friends. Write a detailed, conversational, SEO-optimized recipe article in English (1000-1200 words).
 ${internalLinksInstruction}
 
+YOUR PERSONALITY:
+- You're like that friend who ALWAYS has the best food recommendations
+- You get genuinely excited about good food (but not annoyingly so)
+- You're helpful but not preachy
+- You admit when shortcuts work just as well as fancy techniques
+- You're the type to say "Look, I'm not judging if you eat this straight from the pan"
+
 TONE & STYLE RULES:
-- Informal, playful tone like talking to a friend
+- Informal, playful tone like talking to a friend over coffee
 - Use humor, mild sarcasm, and relatability
-- Avoid cliches like "In today's world"
+- AVOID cliches like "In today's fast-paced world" or "Whether you're a seasoned chef"
 - Keep paragraphs SHORT and engaging (2-3 sentences max)
 - Use bold to highlight key tips
-- Use occasional slang like FYI or IMO (but limit to 2-3 times)
-- Avoid passive voice as much as possible
+- Use occasional slang like "FYI" or "IMO" (but limit to 2-3 times)
+- Active voice only - passive voice is banned
 - Make it mobile-friendly with short paragraphs
-- No emojis
+- No emojis anywhere
 
 EXACT STRUCTURE TO FOLLOW:
 
-<h1>[Create a catchy, fun, click-worthy title]</h1>
+<h1>[Create a catchy, fun, click-worthy title that makes people hungry]</h1>
+
+<a href="#recipe-card" class="jump-to-recipe">⬇️ Jump to Recipe</a>
 
 {{IMAGE_1}}
 
-<h2>Short, Catchy Intro</h2>
-<p>Start with humor or relatability. Hook the reader immediately. No formal textbook tone. Keep it light and friendly. 2-3 short paragraphs.</p>
+<h2>Okay, Let Me Tell You About This [Dish Name]</h2>
+<p>Start with a hook. Why did you make this? What problem does it solve? Make it relatable - maybe you were tired, maybe takeout was getting expensive, maybe you just really needed comfort food.</p>
+<p>Keep it SHORT. No life story. Just enough to connect, then get to the good stuff.</p>
 
-<h2>Why This Recipe Is Awesome</h2>
-<p>Explain why this recipe is great with fun tone, mild sarcasm allowed.</p>
+<h2>Why This Recipe Actually Works</h2>
+<p>Explain why this recipe is a winner. Be specific and helpful.</p>
 <ul>
-<li><strong>Beginner-friendly:</strong> playful explanation</li>
-<li><strong>Comfort food level:</strong> 100/10</li>
-<li><strong>Customizable:</strong> playful note</li>
-<li><strong>Budget-friendly:</strong> basic ingredients, big flavor</li>
-<li><strong>Crowd-pleaser:</strong> everyone is happy</li>
-<li><strong>Reheats beautifully:</strong> future-you will thank present-you</li>
+<li><strong>Beginner-friendly:</strong> if you can boil water, you can make this</li>
+<li><strong>Comfort level:</strong> off the charts</li>
+<li><strong>Customizable:</strong> picky eaters? swap things around</li>
+<li><strong>Budget-friendly:</strong> no fancy ingredients required</li>
+<li><strong>Crowd-pleaser:</strong> everyone gets seconds</li>
+<li><strong>Reheats like a champ:</strong> meal prep approved</li>
 </ul>
 
 {{IMAGE_2}}
 
-<h2>Quick Recipe Overview</h2>
+<h2>What You Need</h2>
+<p>Quick intro - nothing you need to hunt down at specialty stores.</p>
 <ul>
-<li><strong>Prep Time:</strong> X minutes</li>
-<li><strong>Cook Time:</strong> X minutes</li>
-<li><strong>Servings:</strong> X people</li>
-<li><strong>Difficulty:</strong> Easy/Medium</li>
-<li><strong>Flavor:</strong> describe flavor profile</li>
-</ul>
-
-<h2>Ingredients You Will Need</h2>
-<p>Brief playful intro about ingredients.</p>
-<ul>
-<li>Ingredient 1 with measurement</li>
+<li>Ingredient 1 with measurement - add a tiny note if helpful</li>
 <li>Ingredient 2 with measurement</li>
-(list all ingredients)
+<li>Continue listing all ingredients</li>
 </ul>
-<p><strong>Important tip:</strong> Season your food. Bland food is the villain of every kitchen story.</p>
+<p><strong>Real talk:</strong> Quality ingredients make a difference, but don't stress if you're working with what you've got.</p>
 
 {{IMAGE_3}}
 
-<h2>Step-by-Step Instructions</h2>
+<h2>Let's Make This Thing</h2>
 
-<h3>1. First Step Title</h3>
-<p>2-4 sentences max. Active voice. Include small helpful tip in <strong>bold</strong> if relevant.</p>
+<h3>Step 1: [Action-Based Title]</h3>
+<p>Clear instruction. Include a helpful tip in <strong>bold</strong> if relevant. Keep it casual but informative.</p>
 
-<h3>2. Second Step Title</h3>
-<p>Continue with clear, fun instructions...</p>
+<h3>Step 2: [Action-Based Title]</h3>
+<p>Continue with the next step. Remember: active voice, short sentences.</p>
 
-(Continue with 6-10 numbered steps, each with H3)
+<h3>Step 3: [And So On]</h3>
+<p>Keep going with 6-10 numbered steps. Each step should be actionable and clear.</p>
 
 {{IMAGE_4}}
 
-<h2>Common Mistakes to Avoid</h2>
-<p>A few traps people fall into (learn from them):</p>
+<h2>Rookie Mistakes to Avoid</h2>
+<p>Learn from the collective wisdom of the internet (and my own failures):</p>
 <ul>
-<li>mistake 1 with humorous explanation</li>
-<li>mistake 2 with humorous explanation</li>
-<li>mistake 3 with humorous explanation</li>
-<li>mistake 4 with humorous explanation</li>
+<li><strong>Mistake 1:</strong> What it is and why it ruins everything</li>
+<li><strong>Mistake 2:</strong> The thing everyone does wrong</li>
+<li><strong>Mistake 3:</strong> The sneaky mistake you don't realize you're making</li>
+<li><strong>Mistake 4:</strong> The "I thought I was being helpful" mistake</li>
 </ul>
-<p><strong>Golden rule:</strong> Taste as you cook. Your tongue is your best tool.</p>
+<p><strong>Golden rule:</strong> Taste as you go. Your tongue knows what it wants.</p>
 
 {{IMAGE_5}}
 
-<h2>Alternatives and Substitutions</h2>
-<p>This recipe is flexible - vibe with it:</p>
+<h2>Substitutions That Actually Work</h2>
+<p>Life happens. Here's how to work around it:</p>
 <ul>
-<li><strong>No [ingredient]?</strong> use [alternative]</li>
-<li><strong>Vegetarian version:</strong> replace with [option]</li>
-<li><strong>Gluten-free:</strong> use [alternative]</li>
-<li><strong>Low-carb:</strong> use [alternative]</li>
-<li><strong>Extra cheesy:</strong> add [option] (you are welcome)</li>
+<li><strong>No [ingredient]?</strong> Use [alternative] - works just as well</li>
+<li><strong>Vegetarian version:</strong> [specific swap]</li>
+<li><strong>Gluten-free:</strong> [specific swap]</li>
+<li><strong>Lower carb:</strong> [specific swap]</li>
+<li><strong>Want it spicier?</strong> [suggestion] - go wild</li>
 </ul>
-<p>Cooking is not a contract - it is controlled chaos.</p>
+<p>Cooking is creative - don't let missing ingredients stop you.</p>
 
-<h2>Serving Suggestions</h2>
-<p>Want to make it feel fancy without actually trying?</p>
+<h2>Serving It Up</h2>
+<p>Turn this into a full meal:</p>
 <ul>
-<li>Side option 1</li>
-<li>Side option 2</li>
-<li>Side option 3</li>
+<li>Side option 1 - why it works</li>
+<li>Side option 2 - for variety</li>
+<li>Side option 3 - if you're feeling fancy</li>
 </ul>
-<p>Or straight out of the baking dish while standing over the stove - zero judgment.</p>
+<p>Or honestly? Eat it straight from the pot. I won't tell anyone.</p>
 
 {{IMAGE_6}}
 
-<h2>Storage, Freezing and Reheating</h2>
-<h3>Refrigeration</h3>
-<p>Store leftovers up to X days in an airtight container.</p>
+<h2>Storage and Leftovers</h2>
+<h3>Fridge Life</h3>
+<p>Stores for X days in an airtight container. Actually tastes better the next day (controversial opinion, but true).</p>
 
-<h3>Freezing</h3>
-<p>Freeze portions for X months.</p>
+<h3>Freezer Friendly?</h3>
+<p>Yes/No and why. If yes, explain the best way to freeze and thaw.</p>
 
-<h3>Reheat</h3>
-<p>Oven or microwave both work. Add a little extra cheese because you deserve happiness.</p>
+<h3>Reheating Tips</h3>
+<p>Best reheating method. Add a splash of [liquid] if it dried out.</p>
 
-<p><strong>Fun fact:</strong> it somehow tastes even better the next day.</p>
+<h2>FAQ</h2>
 
-<h2>FAQ - [Recipe Name]</h2>
+<h3>Can I make this ahead?</h3>
+<p>Helpful answer with specific timing advice.</p>
 
-<h3>Is this [dish] spicy?</h3>
-<p>Conversational answer with humor.</p>
+<h3>Is this [diet-specific descriptor]?</h3>
+<p>Clear answer with any necessary modifications.</p>
 
-<h3>Which [ingredient variation] works best?</h3>
-<p>Helpful answer with personality.</p>
+<h3>What if I don't have [common ingredient question]?</h3>
+<p>Practical substitution advice.</p>
 
-<h3>Can I make it ahead?</h3>
-<p>Yes. Assemble, refrigerate, bake later. Easy.</p>
+<h3>Why did my [dish] turn out [problem]?</h3>
+<p>Troubleshooting advice for common issues.</p>
 
-<h3>Can I skip the [optional ingredient]?</h3>
-<p>You can. But your conscience might side-eye you.</p>
-
-<h3>Can I add [common addition]?</h3>
-<p>Absolutely. This recipe loves new friends.</p>
+<h3>Can I add [popular variation]?</h3>
+<p>Enthusiastic yes or honest no with explanation.</p>
 
 {{IMAGE_7}}
 
-<h2>Final Thoughts</h2>
-<p>2-3 short paragraphs with friendly encouragement. Keep tone playful and motivating. End with something like "Now go impress someone, even if it is just yourself."</p>
-<p>And yes, licking the spoon is technically optional - but highly recommended.</p>
+<h2>Go Forth and Cook</h2>
+<p>Wrap it up with encouragement. Remind them they've got this. Maybe a final tip or call to action.</p>
+<p>And remember: the best recipe is the one you actually make. So stop scrolling and start cooking.</p>
 
 CRITICAL GUIDELINES:
 - Write 1000-1200 words
 - Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
 - Keep it FUN, conversational, like a friend sharing a recipe
-- Use proper H1, H2, H3 headings hierarchy
-- No emojis
+- Use proper H1, H2, H3 heading hierarchy
+- No emojis anywhere
 - Output clean HTML only
-- Include the focus keyword naturally 8-12 times throughout`;
+- Include the focus keyword naturally 8-12 times throughout
+- START with the jump-to-recipe button right after the H1`;
 
     const articlePrompt = `RECIPE TOPIC: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
@@ -908,6 +1415,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
 - Include the focus keyword "${focusKeyword}" naturally 8-12 times
 - Include ALL 7 image placeholders: {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
 - Keep paragraphs SHORT and punchy
+- Include the jump-to-recipe link at the top
 - Make it genuinely fun to read!`;
 
     const articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
@@ -916,19 +1424,19 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
       throw new Error("No content generated");
     }
 
-    console.log('Article content generated successfully. Now analyzing for contextual images...');
+    console.log('✅ Article content generated successfully');
 
-    // Step 2: Analyze article content and generate contextual image prompts
+    // Step 4: Analyze article and generate image prompts
     const imagePrompts = await analyzeArticleForImagePrompts(
       articleContent,
       imageSubject,
       AI_API_KEY,
       aiProvider
     );
-    console.log(`Generated ${imagePrompts.length} contextual image prompts based on article content`);
+    console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts`);
 
-    // Step 3: Generate contextual images using the analyzed prompts
-    console.log('Generating contextual AI images with Replicate Flux...');
+    // Step 5: Generate images
+    console.log('🖼️ Generating AI images with Replicate Flux...');
     const imageUrls: string[] = [];
     
     for (let i = 0; i < 7; i++) {
@@ -943,16 +1451,14 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
       );
       imageUrls.push(imageUrl);
       
-      // Small delay between image generations to avoid rate limits
       if (i < 6) {
         await new Promise(resolve => setTimeout(resolve, 2500));
       }
     }
     
-    console.log(`Generated ${imageUrls.length} contextual images with aspect ratio: ${aspectRatio}`);
+    console.log(`✅ Generated ${imageUrls.length} images with aspect ratio: ${aspectRatio}`);
 
-    // Step 4: Replace image placeholders with real image URLs
-    // Use consistent image sizing based on aspect ratio from settings
+    // Step 6: Replace image placeholders
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       const dimensions: Record<string, { width: number; height: number }> = {
         '1:1': { width: 1024, height: 1024 },
@@ -968,7 +1474,7 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
     };
     
     const imgDimensions = getImageDimensions(aspectRatio);
-    console.log(`Using image dimensions: ${imgDimensions.width}x${imgDimensions.height} (aspect: ${aspectRatio})`);
+    console.log(`📐 Using image dimensions: ${imgDimensions.width}x${imgDimensions.height}`);
     
     let finalContent = articleContent;
     for (let i = 0; i < 7; i++) {
@@ -983,44 +1489,39 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
       }
     }
 
-    // Step 5: Validate and fix internal links
+    // Step 7: Generate and append recipe card with structured data
+    console.log('🃏 Generating recipe card with JSON-LD schema...');
+    const recipeCardHTML = generateRecipeCardHTML(recipeData, imageUrls[0] || '');
+    
+    // Insert recipe card before the FAQ section or at the end
+    const faqIndex = finalContent.indexOf('<h2>FAQ');
+    if (faqIndex > -1) {
+      finalContent = finalContent.slice(0, faqIndex) + recipeCardHTML + '\n\n' + finalContent.slice(faqIndex);
+    } else {
+      finalContent = finalContent + '\n\n' + recipeCardHTML;
+    }
+
+    // Step 8: Validate and fix internal links
     if (relevantLinks.length > 0) {
       const linkValidation = validateInternalLinks(finalContent, relevantLinks);
       
       if (!linkValidation.isValid) {
-        console.log(`Internal linking validation failed: ${linkValidation.missingLinks.length} links missing`);
+        console.log(`🔧 Fixing ${linkValidation.missingLinks.length} missing internal links`);
         finalContent = insertMissingInternalLinks(finalContent, linkValidation.missingLinks);
-        
-        // Re-validate after insertion
-        const reValidation = validateInternalLinks(finalContent, relevantLinks);
-        console.log(`After fix: ${relevantLinks.length - reValidation.missingLinks.length}/${relevantLinks.length} links present`);
       } else {
-        console.log('Internal linking validation passed - all links present');
+        console.log('✅ Internal linking validation passed');
       }
     }
     
-    // Check for broken links (links with empty href or placeholder text)
+    // Clean up broken links
     const brokenLinkPattern = /<a\s+href=["']?(?:javascript:|#|undefined|null|)["']?[^>]*>/gi;
     const brokenLinks = finalContent.match(brokenLinkPattern);
     if (brokenLinks && brokenLinks.length > 0) {
-      console.log(`Warning: Found ${brokenLinks.length} potentially broken links, removing them...`);
+      console.log(`🧹 Removing ${brokenLinks.length} broken links`);
       finalContent = finalContent.replace(brokenLinkPattern, '');
     }
-    
-    // Check for duplicate internal links
-    const linkHrefPattern = /<a\s+href=["']([^"']+)["']/gi;
-    const foundHrefs: string[] = [];
-    let duplicateMatch;
-    while ((duplicateMatch = linkHrefPattern.exec(finalContent)) !== null) {
-      const href = duplicateMatch[1];
-      if (foundHrefs.includes(href)) {
-        console.log(`Warning: Duplicate link found: ${href}`);
-      } else {
-        foundHrefs.push(href);
-      }
-    }
 
-    console.log(`Article generated successfully for: ${seoTitle}`);
+    console.log(`🎉 Article generated successfully for: ${seoTitle}`);
 
     // Update recipe with generated content
     const { error: updateError } = await supabase
@@ -1038,16 +1539,18 @@ Write a FUN, CONVERSATIONAL (1000-1200 words), SEO-optimized recipe article foll
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Article generated with UNIQUE AI images and validated internal links',
+      message: 'Article generated with Recipe Card, JSON-LD schema, and AI images',
       imageCount: imageUrls.length,
       aspectRatio: aspectRatio,
-      internalLinksCount: relevantLinks.length
+      internalLinksCount: relevantLinks.length,
+      hasRecipeCard: true,
+      hasSchema: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in generate-article:', error);
+    console.error('❌ Error in generate-article:', error);
     
     try {
       const recipeId = requestBody?.recipeId;
