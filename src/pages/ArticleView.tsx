@@ -10,11 +10,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { format } from "date-fns";
+
+interface WordPressSite {
+  id: string;
+  name: string;
+  url: string;
+  apiKey: string;
+}
 
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +38,10 @@ const ArticleView = () => {
   const [copied, setCopied] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [wordpressSites, setWordpressSites] = useState<WordPressSite[]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+  const [isSending, setIsSending] = useState(false);
+  const [wpSuccess, setWpSuccess] = useState<{ editUrl: string } | null>(null);
 
   const fetchArticle = useCallback(async () => {
     if (!id) return;
@@ -54,6 +72,19 @@ const ArticleView = () => {
 
   useEffect(() => {
     fetchArticle();
+    // Load WordPress sites from settings
+    const savedSettings = localStorage.getItem('article_settings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.wordpressSites && parsed.wordpressSites.length > 0) {
+          setWordpressSites(parsed.wordpressSites);
+          setSelectedSiteId(parsed.wordpressSites[0].id);
+        }
+      } catch (e) {
+        console.error('Failed to parse settings:', e);
+      }
+    }
   }, [fetchArticle]);
 
   // Process HTML - optimize images for lazy loading
@@ -93,9 +124,44 @@ const ArticleView = () => {
     }
   }, [article?.article_content]);
 
-  const handleSendToWordPress = useCallback(() => {
-    toast.info('WordPress integration coming soon!');
-  }, []);
+  const handleSendToWordPress = useCallback(async () => {
+    if (!article?.article_content || !article?.title) return;
+    
+    const selectedSite = wordpressSites.find(s => s.id === selectedSiteId);
+    if (!selectedSite) {
+      toast.error('Please select a WordPress site first');
+      return;
+    }
+
+    setIsSending(true);
+    setWpSuccess(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-to-wordpress', {
+        body: {
+          siteUrl: selectedSite.url,
+          apiKey: selectedSite.apiKey,
+          title: article.title,
+          content: article.article_content,
+          status: 'draft',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setWpSuccess({ editUrl: data.editUrl });
+        toast.success('Article sent to WordPress!');
+      } else {
+        throw new Error(data?.error || 'Failed to send article');
+      }
+    } catch (err) {
+      console.error('Error sending to WordPress:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to send article');
+    } finally {
+      setIsSending(false);
+    }
+  }, [article, selectedSiteId, wordpressSites]);
 
   const handleExportHTML = useCallback(() => {
     if (!article?.article_content || !article?.title) return;
@@ -211,30 +277,58 @@ const ArticleView = () => {
     <AppLayout>
       <div className="p-8 max-w-5xl mx-auto">
         {/* Header with Back and Actions */}
-        <div className="flex items-center justify-between mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/completed')}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Articles
-          </Button>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/completed')}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Articles
+            </Button>
+            
+            {wordpressSites.length > 0 && (
+              <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                <SelectTrigger className="w-[180px] bg-background">
+                  <Globe className="w-4 h-4 mr-2 text-emerald-600" />
+                  <SelectValue placeholder="Select site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wordpressSites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               onClick={handleCopyWPBlocks}
               className="gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? 'Copied!' : 'Copy as WP Blocks'}
+              Copy as WP Blocks
             </Button>
             <Button 
               onClick={handleSendToWordPress}
-              className="gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0"
+              disabled={isSending || wordpressSites.length === 0}
+              className="gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0"
             >
-              <Upload className="w-4 h-4" />
-              Send to WordPress
+              {isSending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  Send to WordPress
+                </>
+              )}
             </Button>
             <Button 
               onClick={handleExportHTML}
@@ -253,6 +347,27 @@ const ArticleView = () => {
             </Button>
           </div>
         </div>
+
+        {/* WordPress Success Banner */}
+        {wpSuccess && (
+          <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium mb-1">
+              <CheckCircle className="w-5 h-5" />
+              Article Sent to WordPress! ✅
+            </div>
+            <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-2">
+              Article created successfully as draft!
+            </p>
+            <a 
+              href={wpSuccess.editUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+            >
+              Open in WordPress →
+            </a>
+          </div>
+        )}
 
         {/* Article Title and Meta */}
         <div className="border-b border-border pb-6 mb-8">
