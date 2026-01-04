@@ -225,6 +225,16 @@ const Pinterest = () => {
     }
   };
 
+// Extract focus keyword from title (first main word after emoji)
+  const extractFocusKeyword = (title: string): string => {
+    if (!title) return 'pin';
+    // Remove emoji at start and get the main topic
+    const cleaned = title.replace(/^[\u{1F300}-\u{1F9FF}\s]+/u, '').trim();
+    // Get first 2-3 meaningful words for filename
+    const words = cleaned.split(/[\s–-]+/).filter(w => w.length > 2).slice(0, 3);
+    return words.join('-').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'pin';
+  };
+
   const handleDownloadPin = useCallback(async (pin: PinData) => {
     if (!pin.imageUrl) {
       toast.error('No image to download');
@@ -234,15 +244,38 @@ const Pinterest = () => {
     try {
       const response = await fetch(pin.imageUrl);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      
+      // Convert to WebP
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(blob);
+      });
+      
+      const webpBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), 'image/webp', 0.9);
+      });
+      
+      const url = URL.createObjectURL(webpBlob);
+      const focusKeyword = extractFocusKeyword(pin.title || pin.topic);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pinterest-${pin.topic.replace(/\s+/g, '-')}.webp`;
+      a.download = `${focusKeyword}.webp`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Pin downloaded!');
+      URL.revokeObjectURL(img.src);
+      toast.success('Pin downloaded as WebP!');
     } catch (error) {
       console.error('Error downloading:', error);
       toast.error('Failed to download pin');
@@ -543,14 +576,52 @@ const Pinterest = () => {
                         <div className="pt-2 border-t border-border space-y-2">
                           {pin.title && (
                             <div>
-                              <Label className="text-xs text-muted-foreground">Title</Label>
-                              <p className="text-xs font-medium">{pin.title}</p>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Title</Label>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-2 text-xs gap-1"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(pin.title || '');
+                                    toast.success('Title copied!');
+                                  }}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                  Copy
+                                </Button>
+                              </div>
+                              <p className="text-sm font-medium mt-1">{pin.title}</p>
                             </div>
                           )}
                           {pin.description && (
                             <div>
-                              <Label className="text-xs text-muted-foreground">Description</Label>
-                              <p className="text-xs text-muted-foreground">{pin.description}</p>
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Description</Label>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-2 text-xs gap-1"
+                                  onClick={() => {
+                                    // Copy without markdown formatting
+                                    const plainText = (pin.description || '').replace(/\*\*([^*]+)\*\*/g, '$1');
+                                    navigator.clipboard.writeText(plainText);
+                                    toast.success('Description copied!');
+                                  }}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                  Copy
+                                </Button>
+                              </div>
+                              <p 
+                                className="text-sm text-muted-foreground mt-1"
+                                dangerouslySetInnerHTML={{
+                                  __html: (pin.description || '').replace(
+                                    /\*\*([^*]+)\*\*/g, 
+                                    '<a href="#" class="text-primary font-medium hover:underline">$1</a>'
+                                  )
+                                }}
+                              />
                             </div>
                           )}
                         </div>
