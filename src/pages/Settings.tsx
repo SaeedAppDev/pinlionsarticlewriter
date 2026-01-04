@@ -122,6 +122,8 @@ const Settings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [newSite, setNewSite] = useState({ name: '', url: '', apiKey: '' });
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [isUploadingLinks, setIsUploadingLinks] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('article_settings');
@@ -190,6 +192,76 @@ const Settings = () => {
       wordpressSites: settings.wordpressSites.filter(s => s.id !== id),
     });
     toast.success('Site removed');
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLinks(true);
+    
+    try {
+      const text = await file.text();
+      const links: InternalLink[] = [];
+      
+      // Check if it's CSV
+      if (file.name.endsWith('.csv')) {
+        const lines = text.split('\n').filter(line => line.trim());
+        const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        const keywordIdx = headers.findIndex(h => h === 'keyword' || h === 'keywords');
+        const urlIdx = headers.findIndex(h => h === 'url' || h === 'link');
+        const titleIdx = headers.findIndex(h => h === 'title' || h === 'anchor' || h === 'anchor text');
+        const categoryIdx = headers.findIndex(h => h === 'category' || h === 'cat');
+        
+        if (keywordIdx === -1 || urlIdx === -1) {
+          toast.error('CSV must have "keyword" and "url" columns');
+          return;
+        }
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+          if (values[keywordIdx] && values[urlIdx]) {
+            links.push({
+              id: Date.now().toString() + i,
+              keyword: values[keywordIdx],
+              url: values[urlIdx],
+              title: titleIdx !== -1 ? values[titleIdx] || values[keywordIdx] : values[keywordIdx],
+              category: categoryIdx !== -1 ? values[categoryIdx] : undefined,
+            });
+          }
+        }
+      } else {
+        // Handle Excel files - parse as CSV-like (basic XLSX parsing)
+        toast.error('Please use CSV format. Excel support coming soon.');
+        return;
+      }
+      
+      if (links.length === 0) {
+        toast.error('No valid links found in file');
+        return;
+      }
+      
+      setSettings({
+        ...settings,
+        internalLinks: [...settings.internalLinks, ...links],
+      });
+      
+      toast.success(`${links.length} internal links imported successfully!`);
+    } catch (error) {
+      console.error('Error parsing file:', error);
+      toast.error('Failed to parse file');
+    } finally {
+      setIsUploadingLinks(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const clearInternalLinks = () => {
+    setSettings({ ...settings, internalLinks: [] });
+    toast.success('All internal links cleared');
   };
 
   return (
@@ -453,16 +525,40 @@ const Settings = () => {
                   <div className="border-2 border-dashed border-border rounded-lg p-4 bg-cyan-50/50 dark:bg-cyan-950/20">
                     <h3 className="font-medium mb-3 flex items-center gap-2">
                       <FileSpreadsheet className="w-4 h-4" />
-                      Upload Links (Excel/CSV)
+                      Upload Links (CSV)
                     </h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Upload an Excel or CSV file with columns: <strong>keyword</strong>, <strong>url</strong>, <strong>title</strong>, <strong>category</strong> (optional)
+                      Upload a CSV file with columns: <strong>keyword</strong>, <strong>url</strong>, <strong>title</strong> (optional), <strong>category</strong> (optional)
                     </p>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        accept=".csv"
+                        className="hidden"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingLinks}
+                      >
                         <Upload className="w-4 h-4" />
-                        Upload Excel/CSV
+                        {isUploadingLinks ? 'Uploading...' : 'Upload CSV'}
                       </Button>
+                      {settings.internalLinks.length > 0 && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2 text-destructive hover:text-destructive"
+                          onClick={clearInternalLinks}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Clear All
+                        </Button>
+                      )}
                     </div>
                     {settings.internalLinks.length > 0 && (
                       <div className="mt-4">
@@ -472,7 +568,7 @@ const Settings = () => {
                         <div className="max-h-32 overflow-y-auto space-y-1">
                           {settings.internalLinks.slice(0, 5).map((link) => (
                             <div key={link.id} className="text-xs bg-muted/50 px-2 py-1 rounded flex justify-between">
-                              <span className="truncate">{link.keyword}</span>
+                              <span className="truncate font-medium">{link.keyword}</span>
                               <span className="text-muted-foreground truncate ml-2">{link.url}</span>
                             </div>
                           ))}
