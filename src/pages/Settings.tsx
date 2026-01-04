@@ -100,7 +100,45 @@ interface SettingsData {
   enableInternalLinking: boolean;
   internalLinks: InternalLink[];
   sitemapUrl: string;
+  // Pinterest settings
+  pinterestStyleGuidelines: string;
+  pinterestTitlePrompt: string;
 }
+
+const DEFAULT_PINTEREST_STYLE_GUIDELINES = `Viral Pinterest pin. Text overlay directly in the middle. Two images - one at the top, one at the bottom. Text with modern white bold font.
+
+OR
+
+Use MY BRAND colors: coral pink (#FF6B9D) and navy.
+Signature: 'by YourBrand'
+
+The AI will follow these guidelines when generating prompts.`;
+
+const DEFAULT_PINTEREST_TITLE_PROMPT = `You're a Pinterest content writer optimizing blog posts for maximum search visibility and clicks.
+
+For this blog post URL, write:
+
+1. A Pinterest title (under 80 characters) that starts with an emoji and includes the main keyword
+
+2. A Pinterest description (EXACTLY 3 sentences, NO MORE) that clearly summarizes the post
+
+CRITICAL RULES FOR DESCRIPTION:
+- EXACTLY 3 sentences (not 4, not 5, just 3)
+- Main keyword must appear in the first sentence
+- Bold 3-4 searchable SEO keywords using **keyword** syntax (choose the most relevant ones)
+- Be concise and punchy - every word must count
+- Focus on benefits and what readers will learn/get
+- Keywords should flow naturally, not feel forced
+
+Blog post URL: \${url}\${interestsNote}
+
+Format your response EXACTLY like this example:
+
+🥗 Vegan Buddha Bowl – Clean, Colorful, and Fully Customizable
+
+This **vegan Buddha bowl** is packed with **plant-based ingredients**, quinoa, and roasted vegetables. Perfect for **meal prep** or a quick **healthy lunch**. Customizable, colorful, and delicious!
+
+Generate the title and description now (remember: EXACTLY 3 sentences):`;
 
 const DEFAULT_SETTINGS: SettingsData = {
   replicateApiKey: '',
@@ -118,6 +156,8 @@ const DEFAULT_SETTINGS: SettingsData = {
   enableInternalLinking: false,
   internalLinks: [],
   sitemapUrl: '',
+  pinterestStyleGuidelines: '',
+  pinterestTitlePrompt: '',
 };
 
 const Settings = () => {
@@ -698,6 +738,52 @@ const Settings = () => {
                 <p>🎯 <strong>How to use:</strong> This prompt controls how AI generates image descriptions for your articles.</p>
                 <p>💡 <strong>Placeholders:</strong> Use <code className="bg-muted px-1 py-0.5 rounded">{'{title}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{count}'}</code>, and <code className="bg-muted px-1 py-0.5 rounded">{'{content}'}</code>.</p>
                 <p>✨ <strong>Examples:</strong> Change style (realistic, artistic, minimalist), modify format (short/long descriptions), adjust tone (professional, casual, creative).</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pinterest Settings */}
+          <div className="card-modern p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">Pinterest Pin Settings</h2>
+                <p className="text-sm text-muted-foreground">Configure pin generation prompts and style guidelines</p>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label className="font-medium">Custom Style Guidelines (Optional)</Label>
+                <Textarea
+                  value={settings.pinterestStyleGuidelines}
+                  onChange={(e) => setSettings({ ...settings, pinterestStyleGuidelines: e.target.value })}
+                  placeholder={DEFAULT_PINTEREST_STYLE_GUIDELINES}
+                  className="min-h-[120px] font-mono text-sm bg-background"
+                />
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Define your brand style guidelines that the AI will follow when generating pin descriptions.</p>
+                  <p><strong>Note:</strong> Your guidelines will be used as instructions to generate prompts that match your brand style.</p>
+                  <p>All prompts will automatically start with "This Pinterest pin is viral" and include the URL topic.</p>
+                  <p>This will be used when you select "Custom" as the pin style.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="font-medium">Title & Description Generation Prompt (Optional)</Label>
+                <Textarea
+                  value={settings.pinterestTitlePrompt}
+                  onChange={(e) => setSettings({ ...settings, pinterestTitlePrompt: e.target.value })}
+                  placeholder={DEFAULT_PINTEREST_TITLE_PROMPT}
+                  className="min-h-[200px] font-mono text-sm bg-background"
+                />
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Customize the prompt sent to AI for generating Pinterest titles and descriptions.</p>
+                  <p><strong>Available variables:</strong> <code className="bg-muted px-1 py-0.5 rounded">{`\${url}`}</code> - Blog post URL, <code className="bg-muted px-1 py-0.5 rounded">{`\${interestsNote}`}</code> - Annotated interests</p>
+                  <p><strong>Tip:</strong> Adjust character limits, sentence count, keyword rules, or tone to match your brand.</p>
+                  <p>Leave empty to use the default prompt.</p>
+                </div>
               </div>
             </div>
           </div>

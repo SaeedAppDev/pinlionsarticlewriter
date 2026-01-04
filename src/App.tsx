@@ -8,6 +8,7 @@ import Queue from "./pages/Queue";
 import Completed from "./pages/Completed";
 import ArticleView from "./pages/ArticleView";
 import Settings from "./pages/Settings";
+import Pinterest from "./pages/Pinterest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/recipes" element={<Navigate to="/queue" replace />} />
           <Route path="/completed" element={<Completed />} />
           <Route path="/article/:id" element={<ArticleView />} />
+          <Route path="/pinterest" element={<Pinterest />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
