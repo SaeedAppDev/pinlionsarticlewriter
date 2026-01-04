@@ -1,1 +1,4 @@
 project_id = "oztnbxuxhonoyzzwlhin"
+
+[functions.fix-article]
+verify_jwt = false
