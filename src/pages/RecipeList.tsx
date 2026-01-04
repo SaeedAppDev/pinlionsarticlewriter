@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye, Clock, Timer, Settings } from 'lucide-react';
+import { Plus, Play, PlayCircle, Trash2, RefreshCw, Eye, Clock, Timer, Settings, Wand2, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 // Estimated time per article in seconds (based on 4 images + content generation)
@@ -43,6 +43,7 @@ const RecipeList = () => {
   const [progressData, setProgressData] = useState({ current: 0, total: 0 });
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [fixingId, setFixingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Timer effect for countdown
@@ -324,6 +325,54 @@ const RecipeList = () => {
     }
   };
 
+  const fixArticle = async (recipe: Recipe) => {
+    setFixingId(recipe.id);
+    toast.info('Rewriting article with optimized SEO prompt...');
+
+    try {
+      // First fetch the article content
+      const { data: articleData, error: fetchError } = await supabase
+        .from('recipes')
+        .select('article_content')
+        .eq('id', recipe.id)
+        .single();
+
+      if (fetchError || !articleData?.article_content) {
+        throw new Error('Failed to fetch article content');
+      }
+
+      const { data, error } = await supabase.functions.invoke('fix-article', {
+        body: {
+          articleContent: articleData.article_content,
+          focusKeyword: recipe.title,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.rewrittenContent) {
+        // Update the article in the database
+        const { error: updateError } = await supabase
+          .from('recipes')
+          .update({ article_content: data.rewrittenContent })
+          .eq('id', recipe.id);
+
+        if (updateError) throw updateError;
+
+        toast.success('Article rewritten successfully!');
+        // Open the updated article
+        window.open(`/article/${recipe.id}`, '_blank');
+      } else {
+        throw new Error(data?.error || 'Failed to rewrite article');
+      }
+    } catch (err) {
+      console.error('Error fixing article:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to rewrite article');
+    } finally {
+      setFixingId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -481,13 +530,29 @@ const RecipeList = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteRecipe(recipe.id)}
-                          >
-                            Delete
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            {recipe.status === 'completed' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fixArticle(recipe)}
+                                disabled={fixingId === recipe.id}
+                              >
+                                {fixingId === recipe.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Wand2 className="w-4 h-4" />
+                                )}
+                              </Button>
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteRecipe(recipe.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

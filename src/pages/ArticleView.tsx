@@ -1,49 +1,47 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy, Check } from "lucide-react";
+import { ArrowLeft, Copy, Check, Wand2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
   const [article, setArticle] = useState<{ title: string; article_content: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
 
-  useEffect(() => {
+  const fetchArticle = useCallback(async () => {
     if (!id) return;
 
-    // Use simple fetch - fastest approach
-    const controller = new AbortController();
-    
-    fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content`,
-      {
-        signal: controller.signal,
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-      }
-    )
-    .then(res => res.json())
-    .then(data => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      const data = await response.json();
       if (data?.[0]) {
         setArticle(data[0]);
       } else {
         toast.error('Article not found');
       }
-    })
-    .catch(err => {
-      if (err.name !== 'AbortError') {
-        console.error('Error:', err);
-        toast.error('Failed to load article');
-      }
-    })
-    .finally(() => setIsLoading(false));
-
-    return () => controller.abort();
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Failed to load article');
+    } finally {
+      setIsLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchArticle();
+  }, [fetchArticle]);
 
   // Process HTML - optimize images for lazy loading
   const processedContent = useMemo(() => {
@@ -69,6 +67,45 @@ const ArticleView = () => {
       toast.error('Failed to copy HTML');
     }
   }, [article?.article_content]);
+
+  const handleFixArticle = useCallback(async () => {
+    if (!article?.article_content || !id) return;
+
+    setIsFixing(true);
+    toast.info('Rewriting article with optimized SEO prompt...');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('fix-article', {
+        body: {
+          articleContent: article.article_content,
+          focusKeyword: article.title,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.rewrittenContent) {
+        // Update the article in the database
+        const { error: updateError } = await supabase
+          .from('recipes')
+          .update({ article_content: data.rewrittenContent })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+
+        // Refresh the article
+        setArticle(prev => prev ? { ...prev, article_content: data.rewrittenContent } : null);
+        toast.success('Article rewritten successfully!');
+      } else {
+        throw new Error(data?.error || 'Failed to rewrite article');
+      }
+    } catch (err) {
+      console.error('Error fixing article:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to rewrite article');
+    } finally {
+      setIsFixing(false);
+    }
+  }, [article, id]);
 
   if (isLoading) {
     return (
@@ -107,14 +144,25 @@ const ArticleView = () => {
             Close
           </Button>
           
-          <Button 
-            variant="outline"
-            onClick={handleCopyHTML}
-            className="gap-2"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copied ? 'Copied!' : 'Copy HTML'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={handleFixArticle}
+              disabled={isFixing}
+              className="gap-2"
+            >
+              {isFixing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              {isFixing ? 'Rewriting...' : 'Fix Article'}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleCopyHTML}
+              className="gap-2"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? 'Copied!' : 'Copy HTML'}
+            </Button>
+          </div>
         </div>
 
         <article className="prose prose-lg max-w-none dark:prose-invert">
