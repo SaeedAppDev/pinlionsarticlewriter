@@ -1,79 +1,108 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { ArrowLeft, Settings as SettingsIcon, Save, Image, Link2, Sparkles, FileCode, Key, Bot } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { AppLayout } from '@/components/AppLayout';
 
-// Aspect ratio options
-const ASPECT_RATIOS = [
-  { value: '1:1', label: '1:1', desc: 'Square', width: 1024, height: 1024 },
-  { value: '16:9', label: '16:9', desc: 'Landscape', width: 1920, height: 1080 },
-  { value: '4:3', label: '4:3', desc: 'Standard', width: 1024, height: 768 },
-  { value: '3:2', label: '3:2', desc: 'Photo', width: 1200, height: 800 },
-  { value: '2:3', label: '2:3', desc: 'Portrait', width: 800, height: 1200 },
-  { value: '9:16', label: '9:16', desc: 'Vertical', width: 1080, height: 1920 },
-  { value: '3:4', label: '3:4', desc: 'Portrait', width: 768, height: 1024 },
-  { value: '21:9', label: '21:9', desc: 'Ultrawide', width: 1680, height: 720 },
-];
+const DEFAULT_ARTICLE_PROMPT = `Write an engaging, conversational article about "{title}".
 
-// Quality options
-const QUALITY_OPTIONS = [
-  { value: 'low', label: 'Low', desc: 'Faster generation, smaller images' },
-  { value: 'medium', label: 'Medium', desc: 'Balanced quality and speed' },
-  { value: 'high', label: 'High', desc: 'Best quality, slower generation' },
-];
+Target length: Around 1000 words.
 
-// Sitemap type options
-const SITEMAP_TYPES = [
-  { value: 'auto', label: 'Auto Detect', desc: 'Automatically detect sitemap format' },
-  { value: 'standard', label: 'Standard XML', desc: 'sitemap.xml - Standard XML sitemap' },
-  { value: 'wordpress', label: 'WordPress Native', desc: 'wp-sitemap.xml - WordPress default sitemap index' },
-  { value: 'yoast', label: 'Yoast SEO', desc: 'sitemap_index.xml - Yoast SEO plugin sitemap' },
-  { value: 'rankmath', label: 'RankMath', desc: 'sitemap_index.xml - RankMath plugin sitemap' },
-  { value: 'custom', label: 'Custom URL', desc: 'Enter your exact sitemap URL' },
-];
+STRUCTURE:
+1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title – start directly with the introduction paragraph.
 
-// AI Provider options
-const AI_PROVIDERS = [
-  { value: 'lovable', label: 'Lovable AI (Default)', desc: 'Built-in AI - no API key needed' },
-  { value: 'groq', label: 'Groq API', desc: 'Fast inference with Llama models' },
-  { value: 'openai', label: 'OpenAI API', desc: 'GPT models from OpenAI' },
-];
+2. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic.
+
+3. After some sections, include H3 subsections where it makes sense for deeper dives into specific points.
+
+4. Include an FAQ section with 4-6 questions formatted as <h3> tags, with answers in paragraphs.
+
+5. End with a brief conclusion section using an <h2> tag.
+
+TONE & STYLE:
+- Conversational and informal - write like you're chatting with a friend
+- Approachable, light-hearted, and occasionally sarcastic
+- Use active voice only - avoid passive constructions entirely
+- Keep paragraphs SHORT (3-4 sentences max) - make it scannable
+- Use rhetorical questions to engage readers and break up text
+- Sprinkle in internet slang sparingly: "FYI", "IMO" (2-3 times max per article)
+- Include occasional humor to keep things fun
+- Bold key information with <strong> tags (but NOT in the introduction)
+
+FORMATTING:
+- Use proper HTML: <h2> for main sections, <h3> for subsections
+- Use lists when appropriate: <ul> with <li> for bullets, <ol> with <li> for numbered
+- Break down technical details into easy-to-read lists
+- Avoid dense blocks of text
+- NO Markdown, code fences, or backticks
+- No extraneous preamble before content starts`;
+
+const DEFAULT_IMAGE_PROMPT = `Based on this article about "{title}", create {count} SPECIFIC image prompts for professional photography.
+
+Article excerpt:
+{content}
+
+Requirements:
+- Each prompt should be SHORT (under 10 words)
+- Be SPECIFIC to this article topic
+- Simple subjects only - avoid complex scenes
+- Professional, high-quality photography style
+- Examples of GOOD prompts:
+  - "chocolate chip cookies on white plate"
+  - "golden retriever puppy playing"
+  - "modern kitchen with marble countertops"
+
+BAD prompts (too generic):
+- "a dog"
+- "cookies"
+
+Create {count} SPECIFIC prompts with details related to this article.
+
+Format as a numbered list:
+1. [specific detailed prompt]
+2. [specific detailed prompt]
+etc.`;
+
+interface WordPressSite {
+  id: string;
+  name: string;
+  url: string;
+  apiKey: string;
+}
 
 interface SettingsData {
-  sitemapUrl: string;
-  sitemapType: 'auto' | 'standard' | 'wordpress' | 'yoast' | 'rankmath' | 'custom';
-  imageQuality: 'low' | 'medium' | 'high';
-  aspectRatio: string;
-  aiProvider: 'lovable' | 'groq' | 'openai';
-  customApiKey: string;
   replicateApiKey: string;
+  articleLength: string;
+  generateImages: boolean;
+  imageCount: string;
+  articlePrompt: string;
+  imagePrompt: string;
+  wordpressSites: WordPressSite[];
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
-  sitemapUrl: '',
-  sitemapType: 'auto',
-  imageQuality: 'medium',
-  aspectRatio: '16:9',
-  aiProvider: 'lovable',
-  customApiKey: '',
   replicateApiKey: '',
+  articleLength: 'long',
+  generateImages: true,
+  imageCount: '3',
+  articlePrompt: DEFAULT_ARTICLE_PROMPT,
+  imagePrompt: DEFAULT_IMAGE_PROMPT,
+  wordpressSites: [],
 };
 
 const Settings = () => {
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
-  const navigate = useNavigate();
+  const [newSite, setNewSite] = useState({ name: '', url: '', apiKey: '' });
+  const [testingConnection, setTestingConnection] = useState<string | null>(null);
 
-  // Load settings from localStorage on mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('recipe_settings');
+    const savedSettings = localStorage.getItem('article_settings');
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
@@ -82,24 +111,12 @@ const Settings = () => {
         console.error('Failed to parse settings:', e);
       }
     }
-    
-    // Also check for legacy sitemap URL
-    const legacySitemap = localStorage.getItem('recipe_sitemap_url');
-    if (legacySitemap && !savedSettings) {
-      setSettings(prev => ({ ...prev, sitemapUrl: legacySitemap }));
-    }
   }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      localStorage.setItem('recipe_settings', JSON.stringify(settings));
-      // Also save sitemap URL in legacy format for backward compatibility
-      if (settings.sitemapUrl) {
-        localStorage.setItem('recipe_sitemap_url', settings.sitemapUrl);
-      } else {
-        localStorage.removeItem('recipe_sitemap_url');
-      }
+      localStorage.setItem('article_settings', JSON.stringify(settings));
       toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -109,307 +126,338 @@ const Settings = () => {
     }
   };
 
-  const getAspectRatioPreviewStyle = (ratio: string) => {
-    const [w, h] = ratio.split(':').map(Number);
-    const maxSize = 60;
-    let width, height;
-    
-    if (w > h) {
-      width = maxSize;
-      height = (h / w) * maxSize;
-    } else {
-      height = maxSize;
-      width = (w / h) * maxSize;
+  const resetArticlePrompt = () => {
+    setSettings({ ...settings, articlePrompt: DEFAULT_ARTICLE_PROMPT });
+    toast.info('Article prompt reset to default');
+  };
+
+  const resetImagePrompt = () => {
+    setSettings({ ...settings, imagePrompt: DEFAULT_IMAGE_PROMPT });
+    toast.info('Image prompt reset to default');
+  };
+
+  const testConnection = async (siteId: string) => {
+    setTestingConnection(siteId);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast.success('Connection successful!');
+    setTestingConnection(null);
+  };
+
+  const addWordPressSite = () => {
+    if (!newSite.name || !newSite.url || !newSite.apiKey) {
+      toast.error('Please fill in all fields');
+      return;
     }
     
-    return { width: `${width}px`, height: `${height}px` };
+    const site: WordPressSite = {
+      id: Date.now().toString(),
+      ...newSite,
+    };
+    
+    setSettings({
+      ...settings,
+      wordpressSites: [...settings.wordpressSites, site],
+    });
+    setNewSite({ name: '', url: '', apiKey: '' });
+    toast.success('WordPress site added');
+  };
+
+  const removeSite = (id: string) => {
+    setSettings({
+      ...settings,
+      wordpressSites: settings.wordpressSites.filter(s => s.id !== id),
+    });
+    toast.success('Site removed');
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground py-3 px-4">
-        <div className="container mx-auto flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/recipes')}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to List
-          </Button>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <SettingsIcon className="w-5 h-5" />
-            Settings
-          </h1>
+    <AppLayout>
+      <div className="p-8 max-w-4xl">
+        <div className="mb-8">
+          <h1 className="page-title mb-2">Settings</h1>
+          <p className="text-muted-foreground">
+            Configure your API keys and generation preferences
+          </p>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 space-y-6 max-w-4xl">
-        {/* Sitemap Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Link2 className="w-5 h-5" />
-              Sitemap Configuration
-            </CardTitle>
-            <CardDescription>
-              Configure your website's sitemap for automatic internal linking in generated articles.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Sitemap Type */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <FileCode className="w-4 h-4" />
-                Sitemap Type
-              </Label>
-              <Select
-                value={settings.sitemapType}
-                onValueChange={(value) => setSettings({ ...settings, sitemapType: value as SettingsData['sitemapType'] })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sitemap type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SITEMAP_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{type.label}</span>
-                        <span className="text-xs text-muted-foreground">{type.desc}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                {settings.sitemapType === 'wordpress' && 'WordPress native sitemap index at /wp-sitemap.xml with child sitemaps for posts, pages, and taxonomies.'}
-                {settings.sitemapType === 'yoast' && 'Yoast SEO creates sitemap_index.xml with separate sitemaps for posts, pages, categories.'}
-                {settings.sitemapType === 'rankmath' && 'RankMath creates sitemap_index.xml similar to Yoast structure.'}
-                {settings.sitemapType === 'standard' && 'Standard XML sitemap with all URLs in a single file.'}
-                {settings.sitemapType === 'auto' && 'Will automatically detect and parse the correct sitemap format.'}
-                {settings.sitemapType === 'custom' && 'Enter the complete URL to your sitemap file.'}
-              </p>
+        <div className="space-y-6">
+          <div className="card-modern p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <Key className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h2 className="font-semibold text-lg">API Configuration</h2>
             </div>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="replicate-key">Replicate API Token</Label>
+                <Input
+                  id="replicate-key"
+                  type="password"
+                  placeholder="••••••••••••••••••••••••••••••••••••••"
+                  value={settings.replicateApiKey}
+                  onChange={(e) => setSettings({ ...settings, replicateApiKey: e.target.value })}
+                  className="mt-1.5 bg-background"
+                />
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Your Replicate API token for accessing GPT-5 and Seedream-4 models.{' '}
+                  <a href="https://replicate.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    Get yours at replicate.com
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
 
-            {/* Sitemap URL */}
-            <div className="space-y-2">
-              <Label>
-                {settings.sitemapType === 'custom' ? 'Complete Sitemap URL' : 'Website Base URL'}
-              </Label>
-              <Input
-                type="url"
-                placeholder={
-                  settings.sitemapType === 'custom' 
-                    ? "https://yourwebsite.com/custom-sitemap.xml"
-                    : "https://yourwebsite.com"
-                }
-                value={settings.sitemapUrl}
-                onChange={(e) => setSettings({ ...settings, sitemapUrl: e.target.value })}
-              />
-              {settings.sitemapType !== 'custom' && settings.sitemapUrl && (
-                <div className="text-sm bg-muted/50 p-2 rounded">
-                  <span className="text-muted-foreground">Sitemap URL: </span>
-                  <code className="text-primary">
-                    {settings.sitemapUrl.replace(/\/$/, '')}
-                    {settings.sitemapType === 'wordpress' && '/wp-sitemap.xml'}
-                    {settings.sitemapType === 'yoast' && '/sitemap_index.xml'}
-                    {settings.sitemapType === 'rankmath' && '/sitemap_index.xml'}
-                    {settings.sitemapType === 'standard' && '/sitemap.xml'}
-                    {settings.sitemapType === 'auto' && ' (auto-detect)'}
-                  </code>
+          <div className="card-modern p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+              </div>
+              <h2 className="font-semibold text-lg">Article Settings</h2>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>Article Length</Label>
+                <Select
+                  value={settings.articleLength}
+                  onValueChange={(value) => setSettings({ ...settings, articleLength: value })}
+                >
+                  <SelectTrigger className="mt-1.5 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short">Short (500-700 words)</SelectItem>
+                    <SelectItem value="medium">Medium (700-900 words)</SelectItem>
+                    <SelectItem value="long">Long (900-1200 words)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Choose the target length for generated articles
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card-modern p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h2 className="font-semibold text-lg">Image Settings</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="generate-images"
+                  checked={settings.generateImages}
+                  onCheckedChange={(checked) => 
+                    setSettings({ ...settings, generateImages: checked as boolean })
+                  }
+                />
+                <Label htmlFor="generate-images" className="cursor-pointer">
+                  Generate in-text images using Seedream-4
+                </Label>
+              </div>
+              
+              {settings.generateImages && (
+                <div>
+                  <Label>Number of In-Text Images</Label>
+                  <Select
+                    value={settings.imageCount}
+                    onValueChange={(value) => setSettings({ ...settings, imageCount: value })}
+                  >
+                    <SelectTrigger className="mt-1.5 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Image</SelectItem>
+                      <SelectItem value="2">2 Images</SelectItem>
+                      <SelectItem value="3">3 Images</SelectItem>
+                      <SelectItem value="4">4 Images</SelectItem>
+                      <SelectItem value="5">5 Images</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-1.5">
+                    Images will be placed throughout the article at strategic H2 positions
+                  </p>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Image Quality */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              Image Quality
-            </CardTitle>
-            <CardDescription>
-              Control the quality vs speed tradeoff for generated images.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={settings.imageQuality}
-              onValueChange={(value) => setSettings({ ...settings, imageQuality: value as 'low' | 'medium' | 'high' })}
-              className="grid gap-3"
-            >
-              {QUALITY_OPTIONS.map((option) => (
-                <div key={option.value} className="flex items-center space-x-3">
-                  <RadioGroupItem value={option.value} id={`quality-${option.value}`} />
-                  <Label htmlFor={`quality-${option.value}`} className="flex-1 cursor-pointer">
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-sm text-muted-foreground">{option.desc}</div>
-                  </Label>
+          <div className="card-modern p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
-              ))}
-            </RadioGroup>
-          </CardContent>
-        </Card>
-
-        {/* Aspect Ratio */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Image className="w-5 h-5" />
-              Image Aspect Ratio
-            </CardTitle>
-            <CardDescription>
-              Select the aspect ratio for generated article images.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {ASPECT_RATIOS.map((ratio) => (
-                <button
-                  key={ratio.value}
-                  onClick={() => setSettings({ ...settings, aspectRatio: ratio.value })}
-                  className={cn(
-                    "p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
-                    settings.aspectRatio === ratio.value
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50 hover:bg-muted/50"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "border-2 rounded",
-                      settings.aspectRatio === ratio.value
-                        ? "border-primary bg-primary/20"
-                        : "border-muted-foreground/50"
-                    )}
-                    style={getAspectRatioPreviewStyle(ratio.value)}
-                  />
-                  <div className="text-center">
-                    <div className="font-medium text-sm">{ratio.label}</div>
-                    <div className="text-xs text-muted-foreground">{ratio.desc}</div>
-                  </div>
-                </button>
-              ))}
+                <h2 className="font-semibold text-lg">Article Generation Prompt</h2>
+              </div>
+              <Button variant="ghost" size="sm" onClick={resetArticlePrompt}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset to Default
+              </Button>
             </div>
-            
-            {/* Current selection preview */}
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Selected Dimensions:</span>
-                <span className="font-mono font-medium">
-                  {ASPECT_RATIOS.find(r => r.value === settings.aspectRatio)?.width || 1920} × {ASPECT_RATIOS.find(r => r.value === settings.aspectRatio)?.height || 1080} px
-                </span>
+            <div className="space-y-3">
+              <Label>Custom AI Prompt</Label>
+              <Textarea
+                value={settings.articlePrompt}
+                onChange={(e) => setSettings({ ...settings, articlePrompt: e.target.value })}
+                className="min-h-[200px] font-mono text-sm bg-background"
+              />
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>🎯 <strong>How to use:</strong> This prompt controls how AI generates article content for your articles.</p>
+                <p>💡 <strong>Placeholders:</strong> Use <code className="bg-muted px-1 py-0.5 rounded">{'{title}'}</code> for the article title.</p>
+                <p>✨ <strong>Examples:</strong> Change style (realistic, artistic, minimalist), modify format (short/long descriptions), adjust tone (professional, casual, creative).</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* AI API Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot className="w-5 h-5" />
-              AI API Configuration
-            </CardTitle>
-            <CardDescription>
-              Configure your AI provider for article generation. Switch providers if you hit rate limits.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* AI Provider Selection */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Key className="w-4 h-4" />
-                AI Provider
-              </Label>
-              <Select
-                value={settings.aiProvider}
-                onValueChange={(value) => setSettings({ ...settings, aiProvider: value as SettingsData['aiProvider'] })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select AI provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AI_PROVIDERS.map((provider) => (
-                    <SelectItem key={provider.value} value={provider.value}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{provider.label}</span>
-                        <span className="text-xs text-muted-foreground">{provider.desc}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="card-modern p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                </div>
+                <h2 className="font-semibold text-lg">Image Generation Prompt</h2>
+              </div>
+              <Button variant="ghost" size="sm" onClick={resetImagePrompt}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset to Default
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <Label>Custom Image Prompt</Label>
+              <Textarea
+                value={settings.imagePrompt}
+                onChange={(e) => setSettings({ ...settings, imagePrompt: e.target.value })}
+                className="min-h-[200px] font-mono text-sm bg-background"
+              />
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>🎯 <strong>How to use:</strong> This prompt controls how AI generates image descriptions for your articles.</p>
+                <p>💡 <strong>Placeholders:</strong> Use <code className="bg-muted px-1 py-0.5 rounded">{'{title}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{count}'}</code>, and <code className="bg-muted px-1 py-0.5 rounded">{'{content}'}</code>.</p>
+                <p>✨ <strong>Examples:</strong> Change style (realistic, artistic, minimalist), modify format (short/long descriptions), adjust tone (professional, casual, creative).</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card-modern p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <Globe className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-lg">WordPress Sites</h2>
+                  <p className="text-sm text-muted-foreground">Manage multiple WordPress sites</p>
+                </div>
+              </div>
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+                {settings.wordpressSites.length} sites
+              </span>
             </div>
 
-            {/* Custom API Key - only show for non-lovable providers */}
-            {settings.aiProvider !== 'lovable' && (
-              <div className="space-y-2">
-                <Label>
-                  {settings.aiProvider === 'groq' ? 'Groq API Key' : 'OpenAI API Key'}
-                </Label>
-                <Input
-                  type="password"
-                  placeholder={settings.aiProvider === 'groq' ? 'gsk_...' : 'sk-...'}
-                  value={settings.customApiKey}
-                  onChange={(e) => setSettings({ ...settings, customApiKey: e.target.value })}
-                />
-                <p className="text-sm text-muted-foreground">
-                  {settings.aiProvider === 'groq' 
-                    ? 'Get your free API key from console.groq.com'
-                    : 'Get your API key from platform.openai.com'}
-                </p>
+            {settings.wordpressSites.length > 0 && (
+              <div className="space-y-3 mb-6">
+                {settings.wordpressSites.map((site) => (
+                  <div key={site.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <Globe className="w-5 h-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="font-medium">{site.name}</p>
+                      <p className="text-sm text-muted-foreground">{site.url}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeSite(site.id)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Replicate API Key for images */}
-            <div className="space-y-2">
-              <Label>Replicate API Key (for images)</Label>
-              <Input
-                type="password"
-                placeholder="r8_..."
-                value={settings.replicateApiKey}
-                onChange={(e) => setSettings({ ...settings, replicateApiKey: e.target.value })}
-              />
-              <p className="text-sm text-muted-foreground">
-                Optional: Use your own Replicate key for image generation. Leave empty to use default.
-              </p>
-            </div>
-
-            {/* Status indicator */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  settings.aiProvider === 'lovable' ? "bg-green-500" : 
-                  settings.customApiKey ? "bg-green-500" : "bg-yellow-500"
-                )} />
-                <span className="text-sm">
-                  {settings.aiProvider === 'lovable' 
-                    ? 'Using Lovable AI (built-in)' 
-                    : settings.customApiKey 
-                      ? `Using custom ${settings.aiProvider.toUpperCase()} API key`
-                      : 'API key required for selected provider'}
-                </span>
+            <div className="border-2 border-dashed border-border rounded-lg p-4 bg-emerald-50/50 dark:bg-emerald-950/20">
+              <h3 className="font-medium mb-4 flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Add New Site
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <Label>Site Name</Label>
+                  <Input
+                    placeholder="My Food Blog"
+                    value={newSite.name}
+                    onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
+                    className="mt-1.5 bg-background"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Friendly name to identify this site
+                  </p>
+                </div>
+                <div>
+                  <Label>WordPress Site URL</Label>
+                  <Input
+                    placeholder="https://yoursite.com"
+                    value={newSite.url}
+                    onChange={(e) => setNewSite({ ...newSite, url: e.target.value })}
+                    className="mt-1.5 bg-background"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your WordPress site URL (without trailing slash)
+                  </p>
+                </div>
+                <div>
+                  <Label>API Key</Label>
+                  <Input
+                    placeholder="pl_xxxxxxxxxxxxxxxx"
+                    value={newSite.apiKey}
+                    onChange={(e) => setNewSite({ ...newSite, apiKey: e.target.value })}
+                    className="mt-1.5 bg-background"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get this from Settings → Pin Lions Receiver in your WordPress admin
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => testConnection('new')}
+                    disabled={testingConnection === 'new' || !newSite.url || !newSite.apiKey}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {testingConnection === 'new' ? 'Testing...' : 'Test Connection'}
+                  </Button>
+                  <Button
+                    onClick={addWordPressSite}
+                    disabled={!newSite.name || !newSite.url || !newSite.apiKey}
+                    className="gradient-button border-0"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Site
+                  </Button>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving} size="lg">
-            <Save className="w-4 h-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save Settings'}
-          </Button>
+          <div className="sticky bottom-6">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              size="lg"
+              className="w-full gradient-button border-0"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 

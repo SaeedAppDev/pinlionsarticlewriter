@@ -1,12 +1,14 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Check, Wand2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AppLayout } from "@/components/AppLayout";
 
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [article, setArticle] = useState<{ title: string; article_content: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -109,39 +111,43 @@ const ArticleView = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading article...</p>
+      <AppLayout>
+        <div className="flex items-center justify-center h-full min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading article...</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Article not found</p>
-          <Button onClick={() => window.close()}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Close
-          </Button>
+      <AppLayout>
+        <div className="flex items-center justify-center h-full min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Article not found</p>
+            <Button onClick={() => navigate('/completed')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Completed
+            </Button>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="p-8 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <Button 
             variant="ghost" 
-            onClick={() => window.close()}
+            onClick={() => navigate('/completed')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Close
+            Back to Completed
           </Button>
           
           <div className="flex gap-2">
@@ -155,9 +161,8 @@ const ArticleView = () => {
               {isFixing ? 'Rewriting...' : 'Fix Article'}
             </Button>
             <Button 
-              variant="outline"
               onClick={handleCopyHTML}
-              className="gap-2"
+              className="gap-2 gradient-button border-0"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy HTML'}
@@ -165,12 +170,14 @@ const ArticleView = () => {
           </div>
         </div>
 
-        <article className="prose prose-lg max-w-none dark:prose-invert">
-          <div 
-            dangerouslySetInnerHTML={{ __html: processedContent }}
-            className="article-content"
-          />
-        </article>
+        <div className="card-modern p-8">
+          <article className="prose prose-lg max-w-none dark:prose-invert">
+            <div 
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+              className="article-content"
+            />
+          </article>
+        </div>
       </div>
 
       <style>{`
@@ -378,7 +385,7 @@ const ArticleView = () => {
           color: #fef3c7;
         }
       `}</style>
-    </div>
+    </AppLayout>
   );
 };
 
