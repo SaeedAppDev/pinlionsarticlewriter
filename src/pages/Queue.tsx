@@ -180,8 +180,8 @@ const Queue = () => {
     switch (status) {
       case 'completed':
         return (
-          <Badge className="status-completed border-0 gap-1">
-            <CheckCircle className="w-3 h-3" />
+          <Badge className="bg-emerald-100 text-emerald-600 border-0 gap-1.5 px-3 py-1 font-medium dark:bg-emerald-900/40 dark:text-emerald-400">
+            <CheckCircle className="w-3.5 h-3.5" />
             Completed
           </Badge>
         );
