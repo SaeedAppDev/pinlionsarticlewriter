@@ -6,323 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ============================================================================
-// RECIPE CARD STYLES - Print-friendly, modern design
-// ============================================================================
-const RECIPE_CARD_STYLES = `
-<style>
-.recipe-card-container {
-  font-family: 'Georgia', serif;
-  max-width: 800px;
-  margin: 2rem auto;
-  background: linear-gradient(135deg, #fefefe 0%, #f8f5f0 100%);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-  overflow: hidden;
-  border: 1px solid #e8e0d5;
-}
-
-.recipe-card-header {
-  background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%);
-  color: white;
-  padding: 2rem;
-  text-align: center;
-}
-
-.recipe-card-header h2 {
-  font-size: 1.8rem;
-  margin: 0 0 0.5rem 0;
-  font-weight: 700;
-}
-
-.recipe-card-header .recipe-tagline {
-  font-style: italic;
-  opacity: 0.9;
-  font-size: 1rem;
-}
-
-.recipe-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  padding: 1.5rem 2rem;
-  background: #fff;
-  border-bottom: 2px dashed #e8e0d5;
-}
-
-.recipe-meta-item {
-  text-align: center;
-}
-
-.recipe-meta-item .meta-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.recipe-meta-item .meta-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #888;
-  letter-spacing: 0.5px;
-}
-
-.recipe-meta-item .meta-value {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2d5a27;
-}
-
-.recipe-card-body {
-  padding: 2rem;
-}
-
-.recipe-section {
-  margin-bottom: 2rem;
-}
-
-.recipe-section h3 {
-  font-size: 1.3rem;
-  color: #2d5a27;
-  border-bottom: 2px solid #4a7c43;
-  padding-bottom: 0.5rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.recipe-section h3::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: #4a7c43;
-  border-radius: 50%;
-}
-
-.ingredients-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  columns: 2;
-  column-gap: 2rem;
-}
-
-.ingredients-list li {
-  padding: 0.5rem 0;
-  border-bottom: 1px dotted #ddd;
-  break-inside: avoid;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.ingredients-list li::before {
-  content: '✓';
-  color: #4a7c43;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.instructions-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  counter-reset: step-counter;
-}
-
-.instructions-list li {
-  padding: 1rem 0 1rem 3.5rem;
-  border-bottom: 1px solid #eee;
-  position: relative;
-  line-height: 1.6;
-}
-
-.instructions-list li::before {
-  counter-increment: step-counter;
-  content: counter(step-counter);
-  position: absolute;
-  left: 0;
-  top: 1rem;
-  width: 2rem;
-  height: 2rem;
-  background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-.recipe-notes {
-  background: #fff9e6;
-  border-left: 4px solid #f0c14b;
-  padding: 1rem 1.5rem;
-  border-radius: 0 8px 8px 0;
-  margin-top: 1.5rem;
-}
-
-.recipe-notes h4 {
-  margin: 0 0 0.5rem 0;
-  color: #8a6d3b;
-  font-size: 1rem;
-}
-
-.recipe-notes p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #666;
-}
-
-.recipe-card-footer {
-  background: #f8f5f0;
-  padding: 1.5rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 2px dashed #e8e0d5;
-}
-
-.recipe-card-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.recipe-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  border: none;
-  font-size: 0.9rem;
-}
-
-.recipe-btn-print {
-  background: #2d5a27;
-  color: white;
-}
-
-.recipe-btn-print:hover {
-  background: #1e3d1a;
-  transform: translateY(-2px);
-}
-
-.recipe-btn-save {
-  background: transparent;
-  border: 2px solid #2d5a27;
-  color: #2d5a27;
-}
-
-.recipe-btn-save:hover {
-  background: #2d5a27;
-  color: white;
-}
-
-.nutrition-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.nutrition-item {
-  text-align: center;
-  padding: 1rem;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e8e0d5;
-}
-
-.nutrition-item .nutrition-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #2d5a27;
-}
-
-.nutrition-item .nutrition-label {
-  font-size: 0.75rem;
-  color: #888;
-  text-transform: uppercase;
-}
-
-/* Jump to Recipe Button */
-.jump-to-recipe {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 30px;
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-  transition: all 0.3s ease;
-  margin: 1.5rem 0;
-}
-
-.jump-to-recipe:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
-}
-
-/* Print Styles */
-@media print {
-  .recipe-card-container {
-    box-shadow: none;
-    border: 2px solid #333;
-    page-break-inside: avoid;
-  }
-  
-  .jump-to-recipe,
-  .recipe-btn,
-  .recipe-card-actions {
-    display: none !important;
-  }
-  
-  .recipe-card-header {
-    background: #333 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  
-  .ingredients-list {
-    columns: 1;
-  }
-  
-  body {
-    font-size: 12pt;
-  }
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .recipe-meta-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .ingredients-list {
-    columns: 1;
-  }
-  
-  .nutrition-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .recipe-card-footer {
-    flex-direction: column;
-    gap: 1rem;
-  }
-}
-</style>
-`;
+// No recipe card - simpler article generation
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -915,158 +599,7 @@ function insertMissingInternalLinks(
   return updatedContent;
 }
 
-// ============================================================================
-// GENERATE RECIPE CARD WITH STRUCTURED DATA
-// ============================================================================
-function generateRecipeCardHTML(recipeData: any, heroImageUrl: string): string {
-  const {
-    name,
-    description,
-    prepTime,
-    cookTime,
-    totalTime,
-    servings,
-    difficulty,
-    ingredients,
-    instructions,
-    tips,
-    calories,
-    protein,
-    carbs,
-    fat
-  } = recipeData;
-
-  // Generate JSON-LD Schema
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Recipe",
-    "name": name,
-    "description": description,
-    "image": heroImageUrl,
-    "author": {
-      "@type": "Person",
-      "name": "Recipe Writer"
-    },
-    "datePublished": new Date().toISOString().split('T')[0],
-    "prepTime": `PT${prepTime}M`,
-    "cookTime": `PT${cookTime}M`,
-    "totalTime": `PT${totalTime}M`,
-    "recipeYield": `${servings} servings`,
-    "recipeCategory": "Main Course",
-    "recipeCuisine": "International",
-    "recipeIngredient": ingredients,
-    "recipeInstructions": instructions.map((step: string, index: number) => ({
-      "@type": "HowToStep",
-      "position": index + 1,
-      "text": step
-    })),
-    "nutrition": {
-      "@type": "NutritionInformation",
-      "calories": `${calories} calories`,
-      "proteinContent": `${protein}g`,
-      "carbohydrateContent": `${carbs}g`,
-      "fatContent": `${fat}g`
-    }
-  };
-
-  const ingredientsList = ingredients.map((ing: string) => `<li>${ing}</li>`).join('\n');
-  const instructionsList = instructions.map((step: string) => `<li>${step}</li>`).join('\n');
-
-  return `
-<!-- Recipe Card with JSON-LD Schema -->
-<script type="application/ld+json">
-${JSON.stringify(jsonLd, null, 2)}
-</script>
-
-${RECIPE_CARD_STYLES}
-
-<div class="recipe-card-container" id="recipe-card">
-  <div class="recipe-card-header">
-    <h2>${name}</h2>
-    <p class="recipe-tagline">${description}</p>
-  </div>
-  
-  <div class="recipe-meta-grid">
-    <div class="recipe-meta-item">
-      <div class="meta-icon">⏱️</div>
-      <div class="meta-label">Prep Time</div>
-      <div class="meta-value">${prepTime} min</div>
-    </div>
-    <div class="recipe-meta-item">
-      <div class="meta-icon">🍳</div>
-      <div class="meta-label">Cook Time</div>
-      <div class="meta-value">${cookTime} min</div>
-    </div>
-    <div class="recipe-meta-item">
-      <div class="meta-icon">🍽️</div>
-      <div class="meta-label">Servings</div>
-      <div class="meta-value">${servings}</div>
-    </div>
-    <div class="recipe-meta-item">
-      <div class="meta-icon">📊</div>
-      <div class="meta-label">Difficulty</div>
-      <div class="meta-value">${difficulty}</div>
-    </div>
-  </div>
-  
-  <div class="recipe-card-body">
-    <div class="recipe-section">
-      <h3>Ingredients</h3>
-      <ul class="ingredients-list">
-        ${ingredientsList}
-      </ul>
-    </div>
-    
-    <div class="recipe-section">
-      <h3>Instructions</h3>
-      <ol class="instructions-list">
-        ${instructionsList}
-      </ol>
-    </div>
-    
-    ${tips ? `
-    <div class="recipe-notes">
-      <h4>💡 Pro Tips</h4>
-      <p>${tips}</p>
-    </div>
-    ` : ''}
-    
-    <div class="recipe-section">
-      <h3>Nutrition Facts (per serving)</h3>
-      <div class="nutrition-grid">
-        <div class="nutrition-item">
-          <div class="nutrition-value">${calories}</div>
-          <div class="nutrition-label">Calories</div>
-        </div>
-        <div class="nutrition-item">
-          <div class="nutrition-value">${protein}g</div>
-          <div class="nutrition-label">Protein</div>
-        </div>
-        <div class="nutrition-item">
-          <div class="nutrition-value">${carbs}g</div>
-          <div class="nutrition-label">Carbs</div>
-        </div>
-        <div class="nutrition-item">
-          <div class="nutrition-value">${fat}g</div>
-          <div class="nutrition-label">Fat</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="recipe-card-footer">
-    <div class="recipe-card-actions">
-      <button class="recipe-btn recipe-btn-print" onclick="window.print()">
-        🖨️ Print Recipe
-      </button>
-      <button class="recipe-btn recipe-btn-save" onclick="navigator.clipboard.writeText(window.location.href); alert('Recipe link copied!')">
-        📋 Copy Link
-      </button>
-    </div>
-  </div>
-</div>
-`;
-}
+// Recipe card generation removed - using simplified article structure
 
 // ============================================================================
 // MAIN SERVER HANDLER
@@ -1176,176 +709,51 @@ ${relevantLinks.map(link => `- <a href="${link.url}">${link.anchorText}</a>`).jo
 Place these links naturally within paragraphs where they make sense.`;
     }
 
-    // Step 2: Generate structured recipe data for the recipe card
-    console.log('🍳 Generating structured recipe data...');
-    
-    const recipeDataPrompt = `Generate structured recipe data for: "${seoTitle}"
-
-Return a JSON object with this EXACT structure (no markdown, just JSON):
-{
-  "name": "Recipe Name",
-  "description": "A short, appetizing description (1-2 sentences)",
-  "prepTime": 15,
-  "cookTime": 30,
-  "totalTime": 45,
-  "servings": 4,
-  "difficulty": "Easy",
-  "ingredients": [
-    "1 cup flour",
-    "2 eggs",
-    "etc..."
-  ],
-  "instructions": [
-    "Step 1 instruction text",
-    "Step 2 instruction text",
-    "etc..."
-  ],
-  "tips": "One helpful cooking tip",
-  "calories": 350,
-  "protein": 25,
-  "carbs": 30,
-  "fat": 15
-}
-
-Make it realistic and delicious. Return ONLY valid JSON.`;
-
-    const recipeDataSystemPrompt = `You are a professional chef creating recipe data. Return ONLY valid JSON with realistic cooking information. No markdown formatting.`;
-
-    let recipeData = {
-      name: seoTitle,
-      description: `A delicious ${imageSubject} recipe that everyone will love`,
-      prepTime: 15,
-      cookTime: 30,
-      totalTime: 45,
-      servings: 4,
-      difficulty: "Easy",
-      ingredients: ["See recipe below for full ingredients list"],
-      instructions: ["Follow the detailed instructions in the article"],
-      tips: "Season to taste and adjust spices based on preference",
-      calories: 350,
-      protein: 25,
-      carbs: 30,
-      fat: 15
-    };
-
-    try {
-      const recipeDataResponse = await callAI(recipeDataPrompt, recipeDataSystemPrompt, AI_API_KEY, aiProvider);
-      const jsonMatch = recipeDataResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        recipeData = JSON.parse(jsonMatch[0]);
-        console.log('✅ Generated structured recipe data');
-      }
-    } catch (e) {
-      console.log('Using default recipe data structure');
-    }
-
-    // Step 3: Generate article content
+    // Step 2: Generate article content (simplified - no recipe card)
     console.log('📄 Generating article content...');
-    
+
     const articleSystemPrompt = `Write an engaging, conversational article about "${seoTitle}".
 
-Target length: Around 1,500 words.
+Target length: Around 1000 words.
 ${internalLinksInstruction}
 
-=== EXACT ARTICLE STRUCTURE ===
+STRUCTURE:
 
-1. **INTRODUCTION** (NO heading - just start with content):
-   - Start with a short, punchy intro paragraph (3-4 sentences)
-   - Hook the reader immediately. No generic phrases like "In today's world..." or "In modern times..."
-   - Be direct and engaging - get straight to the point
-   - After intro paragraph, place: <a href="#recipe-card" class="jump-to-recipe">⬇️ Jump to Recipe</a>
-   - Then place {{IMAGE_1}}
+1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title – start directly with the introduction paragraph.
 
-2. **FIRST H2 SECTION** - "Why [Topic] Rules/Matters/Works" or similar benefit-focused heading:
-   - 2-3 paragraphs explaining the main benefits/appeal
-   - Include an H3 subsection for a specific related point
-   - Use <strong>FYI:</strong> or similar to highlight key tips inline
+2. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic.
 
-3. **SECOND H2 SECTION** - "Key [Tips/Swaps/Techniques] That Actually Work":
-   - Short intro sentence
-   - Bullet list with format: <li><strong>Label:</strong> Description text</li>
-   - Cover 5-7 key items
-   - Place {{IMAGE_2}} after this section
+3. After some sections, include H3 subsections where it makes sense for deeper dives into specific points.
 
-4. **OPTIONAL H3 SUBSECTION** - Deeper dive on a specific topic:
-   - 1-2 paragraphs with practical details
-   - Place {{IMAGE_3}} if appropriate
+4. Include an FAQ section with 4-6 questions formatted as <h3> tags, with answers in paragraphs.
 
-5. **MAIN CONTENT H2 SECTION** - "X [Recipes/Items/Options] Everyone [Loves/Fights Over/Needs]":
-   - Short intro sentence ("These are party-proof, potluck-proof, and picky-eater-proof.")
-   - Then numbered H3 items like: <h3>1) Item Name (Key Details, More Info)</h3>
-   - Each H3 item has:
-     - Short description sentence
-     - Bullet list with <strong>Label:</strong> format for specifics (Base:, Upgrades:, Bake:, etc.)
-   - Include 4-6 numbered items
-   - Place {{IMAGE_4}} after 2-3 items
-   - Place {{IMAGE_5}} after remaining items
+5. End with a brief conclusion section using an <h2> tag.
 
-6. **TIPS/TECHNIQUES H2 SECTION** - "Getting [Result] Right" or troubleshooting section:
-   - Intro sentence about the challenge
-   - Bullet list with <strong>Label:</strong> format
-   - Include an H3 subsection for specific technique (like "Binding Without Eggs")
-   - More bullet points with practical tips
-
-7. **ADDITIONAL TIPS H2 SECTION** - "[Flavor/Style/Safety] Tips You'll Actually Use":
-   - Intro sentence
-   - Bullet list with <strong>Label:</strong> format
-   - Include H3 subsection if needed for related topic
-   - More bullet points
-   - Place {{IMAGE_6}} after this section
-
-8. **FAQ SECTION** - Use <h2>FAQ</h2>:
-   - Include 5-7 common questions
-   - Each question as <h3>Question text?</h3>
-   - Each answer as a regular paragraph (2-4 sentences)
-   - Place {{IMAGE_7}} before this section
-
-9. **CONCLUSION** - Use <h2>Conclusion</h2>:
-   - 1-2 paragraphs wrapping up the topic
-   - Encouraging, friendly tone
-   - Light humor at the end
-
-=== TONE & STYLE ===
+TONE & STYLE:
 
 - Conversational and informal - write like you're chatting with a friend
-- Approachable, light-hearted, and occasionally witty
-- Use active voice only - avoid passive constructions
-- Keep paragraphs SHORT (2-4 sentences max)
-- Use rhetorical questions occasionally
-- Sprinkle in internet slang: "FYI", "IMO" (2-3 times max)
-- Include occasional humor
-- Bold key information inline with <strong>Label:</strong> format
+- Approachable, light-hearted, and occasionally sarcastic
+- Use active voice only - avoid passive constructions entirely
+- Keep paragraphs SHORT (3-4 sentences max) - make it scannable
+- Use rhetorical questions to engage readers and break up text
+- Sprinkle in internet slang sparingly: "FYI", "IMO" (2-3 times max per article)
+- Include occasional humor to keep things fun
+- Bold key information with <strong> tags (but NOT in the introduction)
 
-=== FORMATTING RULES ===
+FORMATTING:
 
-- Use <h2> for main sections
-- Use <h3> for subsections and numbered items
-- For bullet lists: <ul><li><strong>Label:</strong> Description text here.</li></ul>
+- Use proper HTML: <h2> for main sections, <h3> for subsections
+- Use lists when appropriate: <ul> with <li> for bullets, <ol> with <li> for numbered
+- Break down technical details into easy-to-read lists
+- Avoid dense blocks of text
 - NO Markdown, code fences, or backticks
-- NO H1 tags (title is separate)
-- Keep everything scannable
+- No extraneous preamble before content starts
 
-=== IMAGE PLACEHOLDERS ===
+IMAGE PLACEHOLDERS:
+Place these placeholders naturally throughout the article where images would enhance the content:
+{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
 
-You MUST use all 7 placeholders in this order:
-- {{IMAGE_1}} - After intro and jump-to-recipe link
-- {{IMAGE_2}} - After the key swaps/tips section
-- {{IMAGE_3}} - After a subsection or between main sections
-- {{IMAGE_4}} - Middle of the numbered recipes/items list
-- {{IMAGE_5}} - End of the numbered recipes/items list
-- {{IMAGE_6}} - Before FAQ section
-- {{IMAGE_7}} - After FAQ, before conclusion
-
-=== CRITICAL REQUIREMENTS ===
-- Write approximately 1,500 words
-- Use ALL 7 image placeholders
-- Follow the EXACT structure above with H2 and H3 tags
-- Use <strong>Label:</strong> format in bullet lists
-- Number the main items like "1) Item Name (Details)"
-- Include 5-7 FAQ questions as H3 tags
-- Active voice ONLY
-- Include the focus keyword naturally 8-12 times
-- Output clean HTML only`;
+Place them on their own lines between sections or after key points.`;
 
     const articlePrompt = `ARTICLE TITLE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
@@ -1437,17 +845,7 @@ Remember: Follow the exact structure. This should read like a helpful friend sha
       }
     }
 
-    // Step 7: Generate and append recipe card with structured data
-    console.log('🃏 Generating recipe card with JSON-LD schema...');
-    const recipeCardHTML = generateRecipeCardHTML(recipeData, imageUrls[0] || '');
-    
-    // Insert recipe card before the FAQ section or at the end
-    const faqIndex = finalContent.indexOf('<h2>FAQ');
-    if (faqIndex > -1) {
-      finalContent = finalContent.slice(0, faqIndex) + recipeCardHTML + '\n\n' + finalContent.slice(faqIndex);
-    } else {
-      finalContent = finalContent + '\n\n' + recipeCardHTML;
-    }
+    // Recipe card removed - simplified article structure
 
     // Step 8: Validate and fix internal links
     if (relevantLinks.length > 0) {
@@ -1487,12 +885,10 @@ Remember: Follow the exact structure. This should read like a helpful friend sha
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Article generated with Recipe Card, JSON-LD schema, and AI images',
+      message: 'Article generated with AI images',
       imageCount: imageUrls.length,
       aspectRatio: aspectRatio,
-      internalLinksCount: relevantLinks.length,
-      hasRecipeCard: true,
-      hasSchema: true
+      internalLinksCount: relevantLinks.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
