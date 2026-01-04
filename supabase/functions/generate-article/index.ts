@@ -621,7 +621,8 @@ serve(async (req) => {
       aspectRatio = '4:3',
       aiProvider = 'lovable',
       customApiKey,
-      customReplicateKey
+      customReplicateKey,
+      internalLinks = []
     } = requestBody;
     
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${recipeId})`);
@@ -691,7 +692,36 @@ Return ONLY the title, nothing else.`;
     if (sitemapUrl) {
       const sitemapUrls = await fetchSitemapUrls(sitemapUrl, sitemapType);
       relevantLinks = await findRelevantUrls(sitemapUrls, seoTitle, AI_API_KEY, aiProvider);
-      console.log(`🔗 Found ${relevantLinks.length} relevant internal links`);
+      console.log(`🔗 Found ${relevantLinks.length} relevant internal links from sitemap`);
+    }
+    
+    // Add uploaded internal links from CSV
+    if (internalLinks && Array.isArray(internalLinks) && internalLinks.length > 0) {
+      console.log(`🔗 Processing ${internalLinks.length} uploaded internal links...`);
+      
+      // Find matching keywords in the title/topic
+      const titleLower = seoTitle.toLowerCase();
+      const focusLower = focusKeyword.toLowerCase();
+      
+      for (const link of internalLinks) {
+        const keywordLower = (link.keyword || '').toLowerCase();
+        const categoryLower = (link.category || '').toLowerCase();
+        
+        // Match by keyword, title similarity, or category
+        const keywordMatch = titleLower.includes(keywordLower) || focusLower.includes(keywordLower) || keywordLower.includes(focusLower.split(' ')[0]);
+        const categoryMatch = categoryLower && (titleLower.includes(categoryLower) || focusLower.includes(categoryLower));
+        
+        if (keywordMatch || categoryMatch) {
+          relevantLinks.push({
+            url: link.url,
+            anchorText: link.title || link.keyword
+          });
+        }
+      }
+      
+      // Limit to 5 internal links max
+      relevantLinks = relevantLinks.slice(0, 5);
+      console.log(`🔗 Total internal links to add: ${relevantLinks.length}`);
     }
 
     const imageSubject = getImageSubject(focusKeyword, seoTitle);

@@ -115,7 +115,7 @@ const Queue = () => {
         const parsed = JSON.parse(savedSettings);
         // Map settings to what the edge function expects
         const result: Record<string, any> = {
-          aspectRatio: parsed.aspectRatio || '4:3',
+          aspectRatio: parsed.imageAspectRatio || parsed.aspectRatio || '4:3',
           aiProvider: parsed.aiProvider || 'lovable',
         };
         
@@ -129,6 +129,16 @@ const Queue = () => {
         // Pass Replicate key if available
         if (parsed.replicateApiKey) {
           result.customReplicateKey = parsed.replicateApiKey;
+        }
+        
+        // Pass internal linking settings
+        if (parsed.enableInternalLinking) {
+          if (parsed.sitemapUrl) {
+            result.sitemapUrl = parsed.sitemapUrl;
+          }
+          if (parsed.internalLinks && parsed.internalLinks.length > 0) {
+            result.internalLinks = parsed.internalLinks;
+          }
         }
         
         return result;
