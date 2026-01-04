@@ -89,6 +89,7 @@ interface SettingsData {
   aiProvider: 'lovable' | 'groq' | 'openai';
   groqApiKey: string;
   openaiApiKey: string;
+  articleStyle: 'recipe' | 'general';
   articleLength: string;
   generateImages: boolean;
   imageCount: string;
@@ -106,6 +107,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   aiProvider: 'lovable',
   groqApiKey: '',
   openaiApiKey: '',
+  articleStyle: 'recipe',
   articleLength: 'long',
   generateImages: true,
   imageCount: '3',
@@ -420,6 +422,25 @@ const Settings = () => {
               <h2 className="font-semibold text-lg">Article Settings</h2>
             </div>
             <div className="space-y-4">
+              <div>
+                <Label>Article Style</Label>
+                <Select
+                  value={settings.articleStyle}
+                  onValueChange={(value: 'recipe' | 'general') => setSettings({ ...settings, articleStyle: value })}
+                >
+                  <SelectTrigger className="mt-1.5 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recipe">Recipe Style</SelectItem>
+                    <SelectItem value="general">General Blog Style</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  <strong>Recipe:</strong> Casual, fun tone with sections like "Why it works", "Ingredients", "Quick method", "FAQ", etc.<br />
+                  <strong>General:</strong> Conversational blog format with intro, main sections, FAQ, and conclusion.
+                </p>
+              </div>
               <div>
                 <Label>Article Length</Label>
                 <Select

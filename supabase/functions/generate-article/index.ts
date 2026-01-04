@@ -620,13 +620,14 @@ serve(async (req) => {
       sitemapType = 'auto', 
       aspectRatio = '4:3',
       aiProvider = 'lovable',
+      articleStyle = 'recipe',
       customApiKey,
       customReplicateKey,
       internalLinks = []
     } = requestBody;
     
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${recipeId})`);
-    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}`);
+    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}`);
 
     // Determine which API key to use
     let AI_API_KEY: string;
@@ -739,10 +740,15 @@ ${relevantLinks.map(link => `- <a href="${link.url}">${link.anchorText}</a>`).jo
 Place these links naturally within paragraphs where they make sense.`;
     }
 
-    // Step 2: Generate article content (simplified - no recipe card)
-    console.log('📄 Generating article content...');
+    // Step 2: Generate article content
+    console.log(`📄 Generating article content (${articleStyle} style)...`);
 
-    const articleSystemPrompt = `You are an experienced food blogger with a casual, witty voice. Write a long-form recipe article using the EXACT structure below.
+    let articleSystemPrompt: string;
+    let articlePrompt: string;
+
+    if (articleStyle === 'recipe') {
+      // Recipe-style article
+      articleSystemPrompt = `You are an experienced food blogger with a casual, witty voice. Write a long-form recipe article using the EXACT structure below.
 
 TONE: Conversational, fun, relatable. Write like you're texting a friend who loves food. Use phrases like "let's be real", "chef's kiss", "IMO", "slaps", "vibes". Short punchy sentences. No fluff.
 ${internalLinksInstruction}
@@ -828,7 +834,7 @@ IMAGE PLACEHOLDERS:
 Place these naturally between sections:
 {{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}`;
 
-    const articlePrompt = `RECIPE: "${seoTitle}"
+      articlePrompt = `RECIPE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
 Write a 2,500+ word recipe blog post following the EXACT 13-section structure in the system prompt.
@@ -859,6 +865,124 @@ REQUIREMENTS:
 - Distribute ALL 7 image placeholders throughout
 
 CRITICAL: Pure HTML only. NO Markdown. Use <strong> for bold, <em> for italics.`;
+    } else {
+      // General blog-style article
+      articleSystemPrompt = `Write a long-form, engaging blog article using the EXACT structure below.
+
+Do NOT skip any section.
+Maintain a conversational, friendly, slightly witty tone.
+Keep paragraphs short (2-4 lines max).
+Avoid sounding robotic or academic.
+${internalLinksInstruction}
+
+STRUCTURE TO FOLLOW:
+
+1. HOOK INTRODUCTION (3-4 short paragraphs)
+   - Start directly, no title, no generic lines
+   - Set the mood and introduce the problem + promise
+   - Make the reader feel "this article is for me"
+
+2. FOUNDATIONAL CONTEXT SECTION
+   - Explain WHY this topic matters
+   - Include benefits, usefulness, or relevance
+   - Add light humor or personality
+
+3. CLARIFICATION / COMPARISON SECTION
+   - Clear a common confusion related to the topic
+   - Compare two commonly misunderstood things
+   - Give practical advice
+
+4. CORE VALUE SECTION (Swaps / Methods / Frameworks)
+   - Break into sub-points using <h3> tags
+   - Use simple explanations
+   - Focus on solutions that actually work
+
+5. FLAVOR / PERSONALITY SECTION
+   - Add a memorable, fun mini-section
+   - Include opinionated commentary
+   - Make it feel human, not AI-written
+
+6. MAIN CONTENT SECTION (5-7 Items)
+   - Numbered list using <ol> and <li>
+   - Each item should include:
+     - Short intro
+     - Practical steps or tips
+     - One smart trick or upgrade
+
+7. PROBLEM-SOLVING SECTION
+   - Common mistakes or issues
+   - Explain WHY they happen
+   - Give clear fixes
+
+8. ADVANCED / REAL-LIFE USE CASE SECTION
+   - Show how this applies in real situations
+   - Hosting, planning, scaling, or practical application
+
+9. FAQ SECTION
+   - 4-6 real questions people actually ask
+   - Format each question as <h3> tag
+   - Clear, helpful answers in paragraphs
+   - Keep tone friendly
+
+10. CONCLUSION
+    - Short summary
+    - Encouraging ending
+    - End with a relatable or humorous line
+
+CRITICAL FORMATTING RULES:
+
+- Output ONLY valid HTML - absolutely NO Markdown syntax
+- Use <h2> for main sections, <h3> for subsections
+- Use <ul> with <li> for bullet lists
+- Use <ol> with <li> for numbered lists
+- Use <strong> for bold text - NEVER use asterisks (*) or double asterisks (**)
+- Use <em> for italic text - NEVER use underscores (_) or single asterisks (*)
+- Use <p> tags for paragraphs
+- NO code fences, backticks, or any Markdown formatting whatsoever
+- NO asterisks anywhere in the output
+- No extraneous preamble before content starts
+- NO emojis
+- NO fluff or filler
+- Use simple English
+- Write like an experienced human, not a teacher
+- Add light humor where natural
+- Avoid repetitive phrases
+
+IMAGE PLACEHOLDERS:
+Place these placeholders naturally throughout the article where images would enhance the content:
+{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
+
+Place them on their own lines between sections or after key points.`;
+
+      articlePrompt = `ARTICLE TITLE: "${seoTitle}"
+FOCUS KEYWORD: "${focusKeyword}"
+
+Write a 2,000+ word SEO article following the EXACT 10-section structure in the system prompt.
+
+SECTION ORDER (DO NOT SKIP ANY):
+1. Hook Introduction (3-4 paragraphs, NO H1 title, start directly)
+2. Foundational Context Section (H2)
+3. Clarification / Comparison Section (H2)
+4. Core Value Section with sub-points (H2 with H3 sub-sections)
+5. Flavor / Personality Section (H2)
+6. Main Content Section with 5-7 numbered items (H2 with numbered list)
+7. Problem-Solving Section (H2)
+8. Advanced / Real-Life Use Case Section (H2)
+9. FAQ Section with 4-6 questions (H2 with H3 for each question)
+10. Conclusion (H2)
+
+KEY REQUIREMENTS:
+- Include focus keyword "${focusKeyword}" naturally 10-15 times throughout
+- Conversational, friendly, slightly witty tone
+- Active voice only
+- Short paragraphs (2-4 lines max)
+- Use ALL 7 image placeholders distributed throughout
+- Add light humor where natural
+- NO emojis, NO fluff, NO filler
+- Write like an experienced human sharing advice with a friend
+
+CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (*), underscores, backticks, or code blocks. Use <strong> for bold, <em> for italics.`;
+    }
 
     let articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 

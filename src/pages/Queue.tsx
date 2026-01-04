@@ -117,6 +117,7 @@ const Queue = () => {
         const result: Record<string, any> = {
           aspectRatio: parsed.imageAspectRatio || parsed.aspectRatio || '4:3',
           aiProvider: parsed.aiProvider || 'lovable',
+          articleStyle: parsed.articleStyle || 'recipe',
         };
         
         // Pass the appropriate API key based on provider
