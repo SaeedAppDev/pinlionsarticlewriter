@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Play, RefreshCw, Trash2, CheckCircle, Loader2 } from 'lucide-react';
+import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { format } from 'date-fns';
 
@@ -24,12 +25,48 @@ interface Recipe {
   created_at: string;
 }
 
+const GENERATION_TIME_SECONDS = 30;
+
 const Queue = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
+
+  const startProgress = () => {
+    setProgress(0);
+    setTimeRemaining(GENERATION_TIME_SECONDS);
+    
+    const startTime = Date.now();
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const newProgress = Math.min((elapsed / GENERATION_TIME_SECONDS) * 100, 95);
+      const remaining = Math.max(GENERATION_TIME_SECONDS - elapsed, 0);
+      
+      setProgress(newProgress);
+      setTimeRemaining(Math.ceil(remaining));
+      
+      if (elapsed >= GENERATION_TIME_SECONDS) {
+        // Keep at 95% until actually complete
+      }
+    }, 100);
+  };
+
+  const stopProgress = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setProgress(100);
+    setTimeout(() => {
+      setProgress(0);
+      setTimeRemaining(0);
+    }, 500);
+  };
 
   useEffect(() => {
     fetchRecipes();
@@ -116,6 +153,7 @@ const Queue = () => {
 
     for (const recipe of pendingRecipes) {
       setProcessingId(recipe.id);
+      startProgress();
       
       try {
         const { error } = await supabase.functions.invoke('generate-article', {
@@ -130,9 +168,11 @@ const Queue = () => {
           console.error('Error generating article:', error);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        stopProgress();
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Error processing recipe:', error);
+        stopProgress();
       }
     }
     
@@ -239,6 +279,26 @@ const Queue = () => {
           </Button>
         </div>
 
+        {/* Progress Bar */}
+        {processingId && progress > 0 && (
+          <div className="mb-6 card-modern p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-sm font-medium">Generating article...</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span>{timeRemaining}s remaining</span>
+              </div>
+            </div>
+            <Progress value={progress} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">
+              {Math.round(progress)}% complete
+            </p>
+          </div>
+        )}
+
         {/* Table */}
         <div className="card-modern overflow-hidden">
           {isLoading ? (
@@ -263,8 +323,11 @@ const Queue = () => {
                     key={recipe.id}
                     className={processingId === recipe.id ? 'bg-primary/5' : ''}
                   >
-                    <TableCell className="font-medium max-w-md truncate">
-                      {recipe.title}
+                    <TableCell className="font-medium max-w-md">
+                      <div className="truncate">{recipe.title}</div>
+                      {processingId === recipe.id && progress > 0 && (
+                        <Progress value={progress} className="h-1 mt-2" />
+                      )}
                     </TableCell>
                     <TableCell>{getStatusBadge(recipe.status)}</TableCell>
                     <TableCell className="text-muted-foreground">
