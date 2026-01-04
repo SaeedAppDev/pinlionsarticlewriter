@@ -123,7 +123,8 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
         <p className="text-xs text-muted-foreground text-center">Version 1.0.0</p>
-        <p className="text-xs text-muted-foreground text-center">© 2024 Pin Lions</p>
+        <p className="text-xs text-muted-foreground text-center">© 2026 Pin Lions</p>
+        <p className="text-xs text-muted-foreground text-center mt-1">Developed by Saeed Ahmed</p>
       </div>
     </aside>
   );
