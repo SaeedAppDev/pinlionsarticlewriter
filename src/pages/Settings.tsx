@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2, Cpu } from 'lucide-react';
+import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2, Cpu, Link, Upload, FileSpreadsheet } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 
 const DEFAULT_ARTICLE_PROMPT = `Write an engaging, conversational article about "{title}".
@@ -75,6 +75,14 @@ interface WordPressSite {
   apiKey: string;
 }
 
+interface InternalLink {
+  id: string;
+  keyword: string;
+  url: string;
+  title: string;
+  category?: string;
+}
+
 interface SettingsData {
   replicateApiKey: string;
   aiProvider: 'lovable' | 'groq' | 'openai';
@@ -83,9 +91,13 @@ interface SettingsData {
   articleLength: string;
   generateImages: boolean;
   imageCount: string;
+  imageAspectRatio: string;
   articlePrompt: string;
   imagePrompt: string;
   wordpressSites: WordPressSite[];
+  enableInternalLinking: boolean;
+  internalLinks: InternalLink[];
+  sitemapUrl: string;
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -96,9 +108,13 @@ const DEFAULT_SETTINGS: SettingsData = {
   articleLength: 'long',
   generateImages: true,
   imageCount: '3',
+  imageAspectRatio: '4:3',
   articlePrompt: DEFAULT_ARTICLE_PROMPT,
   imagePrompt: DEFAULT_IMAGE_PROMPT,
   wordpressSites: [],
+  enableInternalLinking: false,
+  internalLinks: [],
+  sitemapUrl: '',
 };
 
 const Settings = () => {
@@ -344,27 +360,139 @@ const Settings = () => {
               </div>
               
               {settings.generateImages && (
-                <div>
-                  <Label>Number of In-Text Images</Label>
-                  <Select
-                    value={settings.imageCount}
-                    onValueChange={(value) => setSettings({ ...settings, imageCount: value })}
-                  >
-                    <SelectTrigger className="mt-1.5 bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 Image</SelectItem>
-                      <SelectItem value="2">2 Images</SelectItem>
-                      <SelectItem value="3">3 Images</SelectItem>
-                      <SelectItem value="4">4 Images</SelectItem>
-                      <SelectItem value="5">5 Images</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-muted-foreground mt-1.5">
-                    Images will be placed throughout the article at strategic H2 positions
-                  </p>
-                </div>
+                <>
+                  <div>
+                    <Label>Number of In-Text Images</Label>
+                    <Select
+                      value={settings.imageCount}
+                      onValueChange={(value) => setSettings({ ...settings, imageCount: value })}
+                    >
+                      <SelectTrigger className="mt-1.5 bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Image</SelectItem>
+                        <SelectItem value="2">2 Images</SelectItem>
+                        <SelectItem value="3">3 Images</SelectItem>
+                        <SelectItem value="4">4 Images</SelectItem>
+                        <SelectItem value="5">5 Images</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground mt-1.5">
+                      Images will be placed throughout the article at strategic H2 positions
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label>Image Aspect Ratio</Label>
+                    <Select
+                      value={settings.imageAspectRatio}
+                      onValueChange={(value) => setSettings({ ...settings, imageAspectRatio: value })}
+                    >
+                      <SelectTrigger className="mt-1.5 bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                        <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                        <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
+                        <SelectItem value="9:16">9:16 (Portrait/Pinterest)</SelectItem>
+                        <SelectItem value="3:2">3:2 (Classic Photo)</SelectItem>
+                        <SelectItem value="2:3">2:3 (Portrait Photo)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground mt-1.5">
+                      Choose the aspect ratio for generated images
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Internal Linking Settings */}
+          <div className="card-modern p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                <Link className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">Internal Linking</h2>
+                <p className="text-sm text-muted-foreground">Auto-link related content in articles</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="enable-linking"
+                  checked={settings.enableInternalLinking}
+                  onCheckedChange={(checked) => 
+                    setSettings({ ...settings, enableInternalLinking: checked as boolean })
+                  }
+                />
+                <Label htmlFor="enable-linking" className="cursor-pointer">
+                  Enable automatic internal linking
+                </Label>
+              </div>
+
+              {settings.enableInternalLinking && (
+                <>
+                  <div>
+                    <Label>Sitemap URL (Optional)</Label>
+                    <Input
+                      placeholder="https://yoursite.com/sitemap.xml"
+                      value={settings.sitemapUrl}
+                      onChange={(e) => setSettings({ ...settings, sitemapUrl: e.target.value })}
+                      className="mt-1.5 bg-background"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1.5">
+                      Enter your WordPress sitemap URL to auto-fetch links
+                    </p>
+                  </div>
+
+                  <div className="border-2 border-dashed border-border rounded-lg p-4 bg-cyan-50/50 dark:bg-cyan-950/20">
+                    <h3 className="font-medium mb-3 flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Upload Links (Excel/CSV)
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Upload an Excel or CSV file with columns: <strong>keyword</strong>, <strong>url</strong>, <strong>title</strong>, <strong>category</strong> (optional)
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Upload className="w-4 h-4" />
+                        Upload Excel/CSV
+                      </Button>
+                    </div>
+                    {settings.internalLinks.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium mb-2">
+                          {settings.internalLinks.length} links loaded
+                        </p>
+                        <div className="max-h-32 overflow-y-auto space-y-1">
+                          {settings.internalLinks.slice(0, 5).map((link) => (
+                            <div key={link.id} className="text-xs bg-muted/50 px-2 py-1 rounded flex justify-between">
+                              <span className="truncate">{link.keyword}</span>
+                              <span className="text-muted-foreground truncate ml-2">{link.url}</span>
+                            </div>
+                          ))}
+                          {settings.internalLinks.length > 5 && (
+                            <p className="text-xs text-muted-foreground">
+                              +{settings.internalLinks.length - 5} more links
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-sm text-muted-foreground space-y-1 bg-muted/30 p-3 rounded-lg">
+                    <p><strong>How it works:</strong></p>
+                    <p>• <strong>Keyword matching:</strong> Links are added when keywords appear in article text</p>
+                    <p>• <strong>Title matching:</strong> Links are added when article titles are similar</p>
+                    <p>• <strong>Category matching:</strong> Links are added based on topic relevance</p>
+                  </div>
+                </>
               )}
             </div>
           </div>
