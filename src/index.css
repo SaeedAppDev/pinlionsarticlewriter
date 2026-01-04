@@ -63,9 +63,13 @@
     --info-foreground: 0 0% 100%;
 
     /* Gradient tokens - Purple theme */
-    --gradient-primary: linear-gradient(135deg, hsl(252, 85%, 60%) 0%, hsl(280, 80%, 65%) 100%);
-    --gradient-button: linear-gradient(135deg, hsl(270, 70%, 70%) 0%, hsl(280, 60%, 75%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(270, 70%, 65%) 0%, hsl(320, 60%, 70%) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(270, 65%, 68%) 0%, hsl(310, 55%, 72%) 100%);
     --gradient-page: linear-gradient(180deg, hsl(230, 30%, 98%) 0%, hsl(230, 25%, 95%) 100%);
+    
+    /* Clear completed button colors */
+    --clear-button: 350 75% 60%;
+    --clear-button-bg: 350 75% 95%;
 
     /* Shadow tokens */
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);

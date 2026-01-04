@@ -232,7 +232,7 @@ const Queue = () => {
             variant="outline"
             onClick={clearCompleted}
             disabled={completedCount === 0}
-            className="text-destructive border-destructive/50 hover:bg-destructive/10"
+            className="text-rose-500 border-rose-200 bg-rose-50/50 hover:bg-rose-100/50 dark:text-rose-400 dark:border-rose-800 dark:bg-rose-950/30 dark:hover:bg-rose-900/40"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Clear Completed
