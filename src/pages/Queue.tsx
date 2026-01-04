@@ -75,7 +75,26 @@ const Queue = () => {
     try {
       const savedSettings = localStorage.getItem('article_settings');
       if (savedSettings) {
-        return JSON.parse(savedSettings);
+        const parsed = JSON.parse(savedSettings);
+        // Map settings to what the edge function expects
+        const result: Record<string, any> = {
+          aspectRatio: parsed.aspectRatio || '4:3',
+          aiProvider: parsed.aiProvider || 'lovable',
+        };
+        
+        // Pass the appropriate API key based on provider
+        if (parsed.aiProvider === 'groq' && parsed.groqApiKey) {
+          result.customApiKey = parsed.groqApiKey;
+        } else if (parsed.aiProvider === 'openai' && parsed.openaiApiKey) {
+          result.customApiKey = parsed.openaiApiKey;
+        }
+        
+        // Pass Replicate key if available
+        if (parsed.replicateApiKey) {
+          result.customReplicateKey = parsed.replicateApiKey;
+        }
+        
+        return result;
       }
     } catch (e) {
       console.error('Failed to parse settings:', e);
