@@ -3,6 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Eye, Trash2, Grid, List, Filter, Calendar, FileText, Image as ImageIcon } from 'lucide-react';
@@ -24,6 +34,8 @@ const Completed = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,18 +79,28 @@ const Completed = () => {
     }
   };
 
-  const deleteRecipe = async (id: string) => {
+  const handleDeleteClick = (id: string) => {
+    setDeleteTargetId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    
     try {
       const { error } = await supabase
         .from('recipes')
         .delete()
-        .eq('id', id);
+        .eq('id', deleteTargetId);
 
       if (error) throw error;
       toast.success('Article deleted');
     } catch (error) {
       console.error('Error deleting recipe:', error);
       toast.error('Failed to delete article');
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -227,7 +249,7 @@ const Completed = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => deleteRecipe(recipe.id)}
+                        onClick={() => handleDeleteClick(recipe.id)}
                         className="text-destructive border-destructive/50 hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -298,7 +320,7 @@ const Completed = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteRecipe(recipe.id)}
+                        onClick={() => handleDeleteClick(recipe.id)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -310,6 +332,26 @@ const Completed = () => {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this article?</AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-zinc-700 text-white border-0 hover:bg-zinc-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                OK
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

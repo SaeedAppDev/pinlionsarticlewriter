@@ -1,25 +1,36 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy, Check, Wand2, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
+import { format } from "date-fns";
 
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [article, setArticle] = useState<{ title: string; article_content: string } | null>(null);
+  const [article, setArticle] = useState<{ title: string; article_content: string; updated_at: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const fetchArticle = useCallback(async () => {
     if (!id) return;
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content`,
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content,updated_at`,
         {
           headers: {
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -57,18 +68,73 @@ const ArticleView = () => {
         '<img$1$2$3 loading="lazy" decoding="async">');
   }, [article?.article_content]);
 
-  const handleCopyHTML = useCallback(async () => {
+  const getWordCount = (content: string | null) => {
+    if (!content) return 0;
+    const textOnly = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return textOnly.split(' ').filter(word => word.length > 0).length;
+  };
+
+  const getImageCount = (content: string | null) => {
+    if (!content) return 0;
+    const imgMatches = content.match(/<img[^>]*>/g);
+    return imgMatches ? imgMatches.length : 0;
+  };
+
+  const handleCopyWPBlocks = useCallback(async () => {
     if (!article?.article_content) return;
     
     try {
       await navigator.clipboard.writeText(article.article_content);
       setCopied(true);
-      toast.success('HTML copied to clipboard!');
+      toast.success('Copied as WP Blocks!');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Failed to copy HTML');
+      toast.error('Failed to copy');
     }
   }, [article?.article_content]);
+
+  const handleSendToWordPress = useCallback(() => {
+    toast.info('WordPress integration coming soon!');
+  }, []);
+
+  const handleExportHTML = useCallback(() => {
+    if (!article?.article_content || !article?.title) return;
+    
+    const blob = new Blob([article.article_content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${article.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('HTML exported!');
+  }, [article]);
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Article deleted');
+      navigate('/completed');
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      toast.error('Failed to delete article');
+    } finally {
+      setDeleteDialogOpen(false);
+    }
+  };
 
   const handleFixArticle = useCallback(async () => {
     if (!article?.article_content || !id) return;
@@ -130,7 +196,7 @@ const ArticleView = () => {
             <p className="text-muted-foreground mb-4">Article not found</p>
             <Button onClick={() => navigate('/completed')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Completed
+              Back to Articles
             </Button>
           </div>
         </div>
@@ -138,35 +204,74 @@ const ArticleView = () => {
     );
   }
 
+  const wordCount = getWordCount(article.article_content);
+  const imageCount = getImageCount(article.article_content);
+
   return (
     <AppLayout>
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-8 max-w-5xl mx-auto">
+        {/* Header with Back and Actions */}
         <div className="flex items-center justify-between mb-6">
           <Button 
             variant="ghost" 
             onClick={() => navigate('/completed')}
+            className="gap-2"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Completed
+            <ArrowLeft className="w-4 h-4" />
+            Back to Articles
           </Button>
           
           <div className="flex gap-2">
             <Button 
-              variant="outline"
-              onClick={handleFixArticle}
-              disabled={isFixing}
-              className="gap-2"
-            >
-              {isFixing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-              {isFixing ? 'Rewriting...' : 'Fix Article'}
-            </Button>
-            <Button 
-              onClick={handleCopyHTML}
-              className="gap-2 gradient-button border-0"
+              onClick={handleCopyWPBlocks}
+              className="gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? 'Copied!' : 'Copy HTML'}
+              {copied ? 'Copied!' : 'Copy as WP Blocks'}
             </Button>
+            <Button 
+              onClick={handleSendToWordPress}
+              className="gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0"
+            >
+              <Upload className="w-4 h-4" />
+              Send to WordPress
+            </Button>
+            <Button 
+              onClick={handleExportHTML}
+              className="gap-2 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white border-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Export HTML
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleDeleteClick}
+              className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+
+        {/* Article Title and Meta */}
+        <div className="border-b border-border pb-6 mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-3">{article.title}</h1>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              <span>{format(new Date(article.updated_at), 'MMMM d, yyyy \'at\' hh:mm a')}</span>
+            </div>
+            <span>•</span>
+            <div className="flex items-center gap-1">
+              <FileText className="w-4 h-4" />
+              <span>{wordCount} words</span>
+            </div>
+            <span>•</span>
+            <div className="flex items-center gap-1">
+              <ImageIcon className="w-4 h-4" />
+              <span>{imageCount} images</span>
+            </div>
           </div>
         </div>
 
@@ -178,6 +283,26 @@ const ArticleView = () => {
             />
           </article>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this article?</AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-zinc-700 text-white border-0 hover:bg-zinc-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                OK
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <style>{`
