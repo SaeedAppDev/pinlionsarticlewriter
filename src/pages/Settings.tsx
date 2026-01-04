@@ -160,11 +160,42 @@ const Settings = () => {
     toast.info('Image prompt reset to default');
   };
 
+  const [connectionResult, setConnectionResult] = useState<{ siteId: string; data: any } | null>(null);
+
   const testConnection = async (siteId: string) => {
     setTestingConnection(siteId);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    toast.success('Connection successful!');
-    setTestingConnection(null);
+    setConnectionResult(null);
+    
+    const site = siteId === 'new' ? newSite : settings.wordpressSites.find(s => s.id === siteId);
+    if (!site) {
+      toast.error('Site not found');
+      setTestingConnection(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await (await import('@/integrations/supabase/client')).supabase.functions.invoke('send-to-wordpress', {
+        body: {
+          siteUrl: site.url,
+          apiKey: site.apiKey,
+          testOnly: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setConnectionResult({ siteId, data: data.site });
+        toast.success('Connection successful!');
+      } else {
+        throw new Error(data?.error || 'Connection failed');
+      }
+    } catch (err) {
+      console.error('Connection test failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Connection failed');
+    } finally {
+      setTestingConnection(null);
+    }
   };
 
   const addWordPressSite = () => {
@@ -747,6 +778,21 @@ const Settings = () => {
                     Add Site
                   </Button>
                 </div>
+
+                {connectionResult && connectionResult.siteId === 'new' && (
+                  <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium mb-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Connection Successful! ✅
+                    </div>
+                    <div className="text-sm space-y-1 text-emerald-800 dark:text-emerald-300">
+                      <p><strong>Site:</strong> {connectionResult.data.name}</p>
+                      <p><strong>URL:</strong> {connectionResult.data.url}</p>
+                      <p><strong>Posts:</strong> {connectionResult.data.posts} published</p>
+                      <p><strong>WordPress:</strong> {connectionResult.data.version}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
