@@ -1244,95 +1244,127 @@ Make it realistic and delicious. Return ONLY valid JSON.`;
     
     const articleSystemPrompt = `Write an engaging, conversational article about "${seoTitle}".
 
-Target length: Around 1000 words.
+Target length: Around 1,500 words.
 ${internalLinksInstruction}
 
-=== STRUCTURE ===
+=== EXACT ARTICLE STRUCTURE ===
 
-1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title - start directly with the introduction paragraph.
+1. **INTRODUCTION** (NO heading - just start with content):
+   - Start with a short, punchy intro paragraph (3-4 sentences)
+   - Hook the reader immediately. No generic phrases like "In today's world..." or "In modern times..."
+   - Be direct and engaging - get straight to the point
+   - After intro paragraph, place: <a href="#recipe-card" class="jump-to-recipe">⬇️ Jump to Recipe</a>
+   - Then place {{IMAGE_1}}
 
-2. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic - don't force a template. Choose headings that make sense for this specific article topic.
+2. **FIRST H2 SECTION** - "Why [Topic] Rules/Matters/Works" or similar benefit-focused heading:
+   - 2-3 paragraphs explaining the main benefits/appeal
+   - Include an H3 subsection for a specific related point
+   - Use <strong>FYI:</strong> or similar to highlight key tips inline
 
-3. After some sections, include H3 subsections where it makes sense for deeper dives into specific points.
+3. **SECOND H2 SECTION** - "Key [Tips/Swaps/Techniques] That Actually Work":
+   - Short intro sentence
+   - Bullet list with format: <li><strong>Label:</strong> Description text</li>
+   - Cover 5-7 key items
+   - Place {{IMAGE_2}} after this section
 
-4. Include an FAQ section with 4-6 questions formatted as <h3> tags, with answers in paragraphs.
+4. **OPTIONAL H3 SUBSECTION** - Deeper dive on a specific topic:
+   - 1-2 paragraphs with practical details
+   - Place {{IMAGE_3}} if appropriate
 
-5. End with a brief conclusion section using an <h2> tag.
+5. **MAIN CONTENT H2 SECTION** - "X [Recipes/Items/Options] Everyone [Loves/Fights Over/Needs]":
+   - Short intro sentence ("These are party-proof, potluck-proof, and picky-eater-proof.")
+   - Then numbered H3 items like: <h3>1) Item Name (Key Details, More Info)</h3>
+   - Each H3 item has:
+     - Short description sentence
+     - Bullet list with <strong>Label:</strong> format for specifics (Base:, Upgrades:, Bake:, etc.)
+   - Include 4-6 numbered items
+   - Place {{IMAGE_4}} after 2-3 items
+   - Place {{IMAGE_5}} after remaining items
+
+6. **TIPS/TECHNIQUES H2 SECTION** - "Getting [Result] Right" or troubleshooting section:
+   - Intro sentence about the challenge
+   - Bullet list with <strong>Label:</strong> format
+   - Include an H3 subsection for specific technique (like "Binding Without Eggs")
+   - More bullet points with practical tips
+
+7. **ADDITIONAL TIPS H2 SECTION** - "[Flavor/Style/Safety] Tips You'll Actually Use":
+   - Intro sentence
+   - Bullet list with <strong>Label:</strong> format
+   - Include H3 subsection if needed for related topic
+   - More bullet points
+   - Place {{IMAGE_6}} after this section
+
+8. **FAQ SECTION** - Use <h2>FAQ</h2>:
+   - Include 5-7 common questions
+   - Each question as <h3>Question text?</h3>
+   - Each answer as a regular paragraph (2-4 sentences)
+   - Place {{IMAGE_7}} before this section
+
+9. **CONCLUSION** - Use <h2>Conclusion</h2>:
+   - 1-2 paragraphs wrapping up the topic
+   - Encouraging, friendly tone
+   - Light humor at the end
 
 === TONE & STYLE ===
 
-- Conversational and informal - write like you're chatting with a friend or fellow enthusiast
-- Approachable, light-hearted, and occasionally sarcastic (but don't overdo the sarcasm)
-- Use active voice only - avoid passive constructions entirely
-- Keep paragraphs SHORT (3-4 sentences max) - make it scannable
-- Use rhetorical questions to engage readers and break up text
-- Sprinkle in internet slang sparingly: "FYI", "IMO" (2-3 times max per article)
-- Include occasional humor to keep things fun
-- Personal opinions and commentary when appropriate
-- Bold key information with <strong> tags (but NOT in the introduction)
+- Conversational and informal - write like you're chatting with a friend
+- Approachable, light-hearted, and occasionally witty
+- Use active voice only - avoid passive constructions
+- Keep paragraphs SHORT (2-4 sentences max)
+- Use rhetorical questions occasionally
+- Sprinkle in internet slang: "FYI", "IMO" (2-3 times max)
+- Include occasional humor
+- Bold key information inline with <strong>Label:</strong> format
 
-=== FORMATTING ===
+=== FORMATTING RULES ===
 
-- Use proper HTML: <h2> for main sections, <h3> for subsections
-- Use lists when appropriate: <ul> with <li> for bullets, <ol> with <li> for numbered
-- Break down technical details into easy-to-read lists
-- Avoid dense blocks of text
+- Use <h2> for main sections
+- Use <h3> for subsections and numbered items
+- For bullet lists: <ul><li><strong>Label:</strong> Description text here.</li></ul>
 - NO Markdown, code fences, or backticks
-- No extraneous preamble before content starts
+- NO H1 tags (title is separate)
+- Keep everything scannable
 
 === IMAGE PLACEHOLDERS ===
 
-Insert these image placeholders throughout the article in natural locations:
-- {{IMAGE_1}} - After the introduction
-- {{IMAGE_2}} - After the second main section
-- {{IMAGE_3}} - After the ingredients/preparation section
-- {{IMAGE_4}} - After a step-by-step or process section
-- {{IMAGE_5}} - After tips or mistakes section
-- {{IMAGE_6}} - Before the FAQ section
-- {{IMAGE_7}} - Before the conclusion
-
-=== RECIPE CARD LINK ===
-
-Include this link near the beginning, after your introduction paragraph:
-<a href="#recipe-card" class="jump-to-recipe">⬇️ Jump to Recipe</a>
-
-The article should feel like a friendly conversation with someone experienced who doesn't take themselves too seriously.
+You MUST use all 7 placeholders in this order:
+- {{IMAGE_1}} - After intro and jump-to-recipe link
+- {{IMAGE_2}} - After the key swaps/tips section
+- {{IMAGE_3}} - After a subsection or between main sections
+- {{IMAGE_4}} - Middle of the numbered recipes/items list
+- {{IMAGE_5}} - End of the numbered recipes/items list
+- {{IMAGE_6}} - Before FAQ section
+- {{IMAGE_7}} - After FAQ, before conclusion
 
 === CRITICAL REQUIREMENTS ===
 - Write approximately 1,500 words
-- Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
-- Maintain conversational, friend-to-friend tone throughout
-- Use proper H1, H2, H3 heading hierarchy
-- Include 2-3 emoticons maximum (:) or :/ only)
-- Include 2-3 slang terms maximum (FYI, IMO, etc.)
-- Use rhetorical questions to engage readers
-- Bold key information and important points
-- Keep paragraphs to 3-4 sentences maximum
-- Active voice ONLY - no passive constructions
+- Use ALL 7 image placeholders
+- Follow the EXACT structure above with H2 and H3 tags
+- Use <strong>Label:</strong> format in bullet lists
+- Number the main items like "1) Item Name (Details)"
+- Include 5-7 FAQ questions as H3 tags
+- Active voice ONLY
 - Include the focus keyword naturally 8-12 times
-- Output clean HTML only
-- NO generic AI phrases like "dive into", "in today's world", "whether you're a seasoned..."`;
+- Output clean HTML only`;
 
     const articlePrompt = `ARTICLE TITLE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a 1,500-word SEO article following the exact structure and tone requirements above.
+Write a 1,500-word SEO article following the EXACT structure in the system prompt.
 
 KEY REQUIREMENTS:
-- Write as if talking to a friend - relaxed, engaging, approachable
-- Include light sarcasm and witty humor throughout
-- Add personal opinions and anecdotes for authenticity
-- Use rhetorical questions to engage readers (e.g., "Ever wondered why...?")
-- Use 2-3 instances of slang like "FYI", "IMO" and emoticons like ":)" or ":/"
-- Bold all key information and important points
-- Keep paragraphs SHORT (3-4 sentences max)
-- ACTIVE VOICE ONLY - check every sentence
-- Include the focus keyword "${focusKeyword}" naturally 8-12 times
-- Use ALL 7 image placeholders: {{IMAGE_1}} through {{IMAGE_7}}
-- Include the jump-to-recipe link after the H1
-- Make it genuinely fun and engaging to read!
+- Start with engaging intro paragraph (NO H1 tag)
+- Use H2 for main sections, H3 for subsections and numbered items
+- Format bullet lists with <strong>Label:</strong> Description pattern
+- Number main content items as "1) Name (Details)" format
+- Include 5-7 FAQ questions with H3 tags and paragraph answers
+- End with H2 Conclusion
+- Use ALL 7 image placeholders in order
+- Include focus keyword "${focusKeyword}" naturally 8-12 times
+- Conversational, friendly tone throughout
+- Active voice only
 
-Remember: This should sound like a human wrote it, not AI. Be direct, be personal, be helpful.`;
+Remember: Follow the exact structure. This should read like a helpful friend sharing expert advice.`;
 
     const articleContent = await callAI(articlePrompt, articleSystemPrompt, AI_API_KEY, aiProvider);
 
