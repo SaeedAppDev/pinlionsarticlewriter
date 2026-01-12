@@ -42,31 +42,112 @@ FORMATTING:
 - NO Markdown, code fences, or backticks
 - No extraneous preamble before content starts`;
 
-const DEFAULT_IMAGE_PROMPT = `Based on this article about "{title}", create {count} SPECIFIC image prompts for professional photography.
+const DEFAULT_IMAGE_PROMPT = `Based on this article about "{title}", create {count} SPECIFIC image prompts for ultra-realistic professional photography.
 
 Article excerpt:
 {content}
 
 Requirements:
-- Each prompt should be SHORT (under 10 words)
+- Each prompt should be SHORT (under 15 words)
 - Be SPECIFIC to this article topic
 - Simple subjects only - avoid complex scenes
-- Professional, high-quality photography style
+- Ultra-realistic, high-quality professional photography style
+- Natural lighting, sharp focus, magazine-quality
 - Examples of GOOD prompts:
-  - "chocolate chip cookies on white plate"
-  - "golden retriever puppy playing"
-  - "modern kitchen with marble countertops"
+  - "chocolate chip cookies on white marble counter, natural light, steam rising"
+  - "golden retriever puppy playing in grass, soft bokeh background"
+  - "modern minimalist kitchen with marble countertops, morning light"
 
 BAD prompts (too generic):
 - "a dog"
 - "cookies"
 
-Create {count} SPECIFIC prompts with details related to this article.
+Create {count} SPECIFIC prompts with realistic details related to this article.
 
 Format as a numbered list:
 1. [specific detailed prompt]
 2. [specific detailed prompt]
 etc.`;
+
+const DEFAULT_IMAGE_PROMPTS: Record<string, string> = {
+  general: DEFAULT_IMAGE_PROMPT,
+  food: `Based on this food/recipe article about "{title}", create {count} SPECIFIC image prompts for ultra-realistic food photography.
+
+Article excerpt:
+{content}
+
+FOOD PHOTOGRAPHY REQUIREMENTS:
+- Each prompt should be SHORT (under 15 words)
+- Focus on appetizing, mouth-watering food visuals
+- Ultra-realistic, professional food photography style
+- Natural lighting, shallow depth of field, steam/freshness visible
+- Include plating details, textures, and garnishes
+- Magazine-quality food styling
+
+Examples of GOOD food prompts:
+- "creamy pasta carbonara on white plate, parmesan shavings, fresh basil, steam rising"
+- "stack of fluffy pancakes with maple syrup drizzle, butter pat melting"
+- "colorful buddha bowl with quinoa, roasted vegetables, tahini drizzle, overhead shot"
+- "fresh sushi rolls on black slate, chopsticks, wasabi, ginger, minimalist"
+
+Create {count} SPECIFIC food photography prompts related to this article.
+
+Format as a numbered list:
+1. [specific food prompt]
+2. [specific food prompt]
+etc.`,
+  home: `Based on this home decor article about "{title}", create {count} SPECIFIC image prompts for ultra-realistic interior design photography.
+
+Article excerpt:
+{content}
+
+HOME DECOR PHOTOGRAPHY REQUIREMENTS:
+- Each prompt should be SHORT (under 15 words)
+- Focus on beautiful, aspirational interior spaces
+- Ultra-realistic, professional interior photography style
+- Natural lighting, styled spaces, magazine-quality
+- Include textures, materials, and decor details
+- Warm, inviting atmosphere
+
+Examples of GOOD home decor prompts:
+- "cozy living room with velvet emerald sofa, brass accents, morning light streaming"
+- "minimalist bedroom with white linen bedding, wooden headboard, potted plants"
+- "modern farmhouse kitchen with open shelving, copper pots, marble countertops"
+- "bohemian reading nook with hanging macrame, floor cushions, warm sunset light"
+
+Create {count} SPECIFIC interior design prompts related to this article.
+
+Format as a numbered list:
+1. [specific interior prompt]
+2. [specific interior prompt]
+etc.`,
+  fashion: `Based on this fashion/outfit article about "{title}", create {count} SPECIFIC image prompts for ultra-realistic fashion photography.
+
+Article excerpt:
+{content}
+
+FASHION PHOTOGRAPHY REQUIREMENTS:
+- Each prompt should be SHORT (under 15 words)
+- Focus on stylish outfits and clothing details
+- Ultra-realistic, professional fashion photography style
+- Natural or studio lighting, clean backgrounds
+- Show fabric textures, fits, and styling details
+- Editorial, magazine-quality fashion shots
+- NEVER use words like "nude" or "naked" - use "beige", "tan", "cream" instead
+
+Examples of GOOD fashion prompts:
+- "oversized cream knit sweater with gold jewelry, soft natural light, cozy"
+- "high-waisted black jeans with white blouse, minimalist studio shot"
+- "tan trench coat over floral dress, autumn street style, golden hour"
+- "layered boho outfit with turquoise accessories, desert backdrop, warm tones"
+
+Create {count} SPECIFIC fashion photography prompts related to this article.
+
+Format as a numbered list:
+1. [specific fashion prompt]
+2. [specific fashion prompt]
+etc.`,
+};
 
 interface WordPressSite {
   id: string;
@@ -97,10 +178,12 @@ interface SettingsData {
   imageModel: 'seedream' | 'zimage';
   articlePrompt: string;
   imagePrompt: string;
+  imagePrompts: Record<string, string>;
   wordpressSites: WordPressSite[];
   enableInternalLinking: boolean;
   internalLinks: InternalLink[];
   sitemapUrl: string;
+  sitemapUrls: string[];
   // Pinterest settings
   pinterestStyleGuidelines: string;
   pinterestTitlePrompt: string;
@@ -582,10 +665,12 @@ const DEFAULT_SETTINGS: SettingsData = {
   imageModel: 'zimage',
   articlePrompt: DEFAULT_ARTICLE_PROMPT,
   imagePrompt: DEFAULT_IMAGE_PROMPT,
+  imagePrompts: DEFAULT_IMAGE_PROMPTS,
   wordpressSites: [],
   enableInternalLinking: false,
   internalLinks: [],
   sitemapUrl: '',
+  sitemapUrls: [],
   pinterestStyleGuidelines: '',
   pinterestTitlePrompt: '',
   listicleCategory: 'general',
@@ -987,21 +1072,54 @@ const Settings = () => {
               {settings.enableInternalLinking && (
                 <>
                   <div>
-                    <Label>Sitemap URL</Label>
-                    <Input
-                      placeholder="https://yoursite.com/sitemap.xml"
-                      value={settings.sitemapUrl}
-                      onChange={(e) => setSettings({ ...settings, sitemapUrl: e.target.value })}
-                      className="mt-1.5 bg-background"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1.5">
-                      Enter your site's sitemap URL. AI will automatically find relevant articles for internal linking.
+                    <Label>Sitemap URLs</Label>
+                    <div className="space-y-2 mt-1.5">
+                      {(settings.sitemapUrls.length === 0 ? [''] : settings.sitemapUrls).map((url, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            placeholder="https://yoursite.com/post-sitemap.xml"
+                            value={url}
+                            onChange={(e) => {
+                              const newUrls = [...settings.sitemapUrls];
+                              if (newUrls.length === 0) newUrls.push('');
+                              newUrls[index] = e.target.value;
+                              setSettings({ ...settings, sitemapUrls: newUrls });
+                            }}
+                            className="bg-background flex-1"
+                          />
+                          {settings.sitemapUrls.length > 1 && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="text-destructive hover:text-destructive shrink-0"
+                              onClick={() => {
+                                const newUrls = settings.sitemapUrls.filter((_, i) => i !== index);
+                                setSettings({ ...settings, sitemapUrls: newUrls });
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setSettings({ ...settings, sitemapUrls: [...settings.sitemapUrls, ''] })}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Another Sitemap
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Add multiple sitemap URLs (e.g., post-sitemap.xml, page-sitemap.xml). AI will find relevant articles from all sitemaps.
                     </p>
                   </div>
 
                   <div className="text-sm text-muted-foreground space-y-1 bg-muted/30 p-3 rounded-lg">
                     <p><strong>🔗 How it works:</strong></p>
-                    <p>• AI fetches all URLs from your sitemap automatically</p>
+                    <p>• AI fetches all URLs from your sitemaps automatically</p>
                     <p>• Analyzes article content to find relevant internal links</p>
                     <p>• Inserts contextual links naturally within your article</p>
                   </div>
@@ -1123,24 +1241,76 @@ const Settings = () => {
                 <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
                   <ImageIcon className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 </div>
-                <h2 className="font-semibold text-lg">Image Generation Prompt</h2>
+                <div>
+                  <h2 className="font-semibold text-lg">Image Generation Prompts</h2>
+                  <p className="text-sm text-muted-foreground">Category-specific ultra-realistic image prompts</p>
+                </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={resetImagePrompt}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSettings({ 
+                    ...settings, 
+                    imagePrompts: {
+                      ...settings.imagePrompts,
+                      [settings.listicleCategory]: DEFAULT_IMAGE_PROMPTS[settings.listicleCategory]
+                    }
+                  });
+                  toast.info('Image prompt reset to default for this category');
+                }}
+              >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset to Default
               </Button>
             </div>
-            <div className="space-y-3">
-              <Label>Custom Image Prompt</Label>
-              <Textarea
-                value={settings.imagePrompt}
-                onChange={(e) => setSettings({ ...settings, imagePrompt: e.target.value })}
-                className="min-h-[200px] font-mono text-sm bg-background"
-              />
+            <div className="space-y-4">
+              <div>
+                <Label>Image Category</Label>
+                <Select
+                  value={settings.listicleCategory}
+                  onValueChange={(value: 'general' | 'food' | 'home' | 'fashion') => setSettings({ ...settings, listicleCategory: value })}
+                >
+                  <SelectTrigger className="mt-1.5 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">
+                      <span className="flex items-center gap-2">⭐ General (Default)</span>
+                    </SelectItem>
+                    <SelectItem value="food">
+                      <span className="flex items-center gap-2">🍳 Food & Recipes</span>
+                    </SelectItem>
+                    <SelectItem value="home">
+                      <span className="flex items-center gap-2">🏠 Home Decor</span>
+                    </SelectItem>
+                    <SelectItem value="fashion">
+                      <span className="flex items-center gap-2">👗 Fashion & Outfits</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Select a category to customize its image generation prompt. Images will match the selected style.
+                </p>
+              </div>
+              <div>
+                <Label>Custom AI Prompt for {settings.listicleCategory === 'general' ? 'General' : settings.listicleCategory === 'food' ? 'Food & Recipes' : settings.listicleCategory === 'home' ? 'Home Decor' : 'Fashion & Outfits'}</Label>
+                <Textarea
+                  value={settings.imagePrompts?.[settings.listicleCategory] || DEFAULT_IMAGE_PROMPTS[settings.listicleCategory]}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    imagePrompts: {
+                      ...settings.imagePrompts,
+                      [settings.listicleCategory]: e.target.value
+                    }
+                  })}
+                  className="min-h-[200px] font-mono text-sm bg-background mt-1.5"
+                />
+              </div>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>🎯 <strong>How to use:</strong> This prompt controls how AI generates image descriptions for your articles.</p>
+                <p>📸 <strong>How to use:</strong> Each category has optimized prompts for ultra-realistic images.</p>
                 <p>💡 <strong>Placeholders:</strong> Use <code className="bg-muted px-1 py-0.5 rounded">{'{title}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{count}'}</code>, and <code className="bg-muted px-1 py-0.5 rounded">{'{content}'}</code>.</p>
-                <p>✨ <strong>Examples:</strong> Change style (realistic, artistic, minimalist), modify format (short/long descriptions), adjust tone (professional, casual, creative).</p>
+                <p>✨ <strong>Categories:</strong> Food prompts focus on appetizing shots, Home on interior design, Fashion on outfit styling.</p>
               </div>
             </div>
           </div>
