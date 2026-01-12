@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2, Cpu, Link, Upload, FileSpreadsheet } from 'lucide-react';
+import { Save, Key, FileText, Image as ImageIcon, Sparkles, Globe, Plus, CheckCircle, RotateCcw, Trash2, Cpu, Link } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 
 const DEFAULT_ARTICLE_PROMPT = `Write an engaging, conversational article about "{title}".
@@ -597,8 +597,6 @@ const Settings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [newSite, setNewSite] = useState({ name: '', url: '', username: '', apiKey: '' });
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
-  const [isUploadingLinks, setIsUploadingLinks] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('article_settings');
@@ -700,75 +698,6 @@ const Settings = () => {
     toast.success('Site removed');
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingLinks(true);
-    
-    try {
-      const text = await file.text();
-      const links: InternalLink[] = [];
-      
-      // Check if it's CSV
-      if (file.name.endsWith('.csv')) {
-        const lines = text.split('\n').filter(line => line.trim());
-        const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g, ''));
-        
-        const keywordIdx = headers.findIndex(h => h === 'keyword' || h === 'keywords');
-        const urlIdx = headers.findIndex(h => h === 'url' || h === 'link');
-        const titleIdx = headers.findIndex(h => h === 'title' || h === 'anchor' || h === 'anchor text');
-        const categoryIdx = headers.findIndex(h => h === 'category' || h === 'cat');
-        
-        if (keywordIdx === -1 || urlIdx === -1) {
-          toast.error('CSV must have "keyword" and "url" columns');
-          return;
-        }
-        
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-          if (values[keywordIdx] && values[urlIdx]) {
-            links.push({
-              id: Date.now().toString() + i,
-              keyword: values[keywordIdx],
-              url: values[urlIdx],
-              title: titleIdx !== -1 ? values[titleIdx] || values[keywordIdx] : values[keywordIdx],
-              category: categoryIdx !== -1 ? values[categoryIdx] : undefined,
-            });
-          }
-        }
-      } else {
-        // Handle Excel files - parse as CSV-like (basic XLSX parsing)
-        toast.error('Please use CSV format. Excel support coming soon.');
-        return;
-      }
-      
-      if (links.length === 0) {
-        toast.error('No valid links found in file');
-        return;
-      }
-      
-      setSettings({
-        ...settings,
-        internalLinks: [...settings.internalLinks, ...links],
-      });
-      
-      toast.success(`${links.length} internal links imported successfully!`);
-    } catch (error) {
-      console.error('Error parsing file:', error);
-      toast.error('Failed to parse file');
-    } finally {
-      setIsUploadingLinks(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const clearInternalLinks = () => {
-    setSettings({ ...settings, internalLinks: [] });
-    toast.success('All internal links cleared');
-  };
 
   return (
     <AppLayout>
@@ -1058,7 +987,7 @@ const Settings = () => {
               {settings.enableInternalLinking && (
                 <>
                   <div>
-                    <Label>Sitemap URL (Optional)</Label>
+                    <Label>Sitemap URL</Label>
                     <Input
                       placeholder="https://yoursite.com/sitemap.xml"
                       value={settings.sitemapUrl}
@@ -1066,75 +995,15 @@ const Settings = () => {
                       className="mt-1.5 bg-background"
                     />
                     <p className="text-sm text-muted-foreground mt-1.5">
-                      Enter your WordPress sitemap URL to auto-fetch links
+                      Enter your site's sitemap URL. AI will automatically find relevant articles for internal linking.
                     </p>
-                  </div>
-
-                  <div className="border-2 border-dashed border-border rounded-lg p-4 bg-cyan-50/50 dark:bg-cyan-950/20">
-                    <h3 className="font-medium mb-3 flex items-center gap-2">
-                      <FileSpreadsheet className="w-4 h-4" />
-                      Upload Links (CSV)
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Upload a CSV file with columns: <strong>keyword</strong>, <strong>url</strong>, <strong>title</strong> (optional), <strong>category</strong> (optional)
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        accept=".csv"
-                        className="hidden"
-                      />
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploadingLinks}
-                      >
-                        <Upload className="w-4 h-4" />
-                        {isUploadingLinks ? 'Uploading...' : 'Upload CSV'}
-                      </Button>
-                      {settings.internalLinks.length > 0 && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="gap-2 text-destructive hover:text-destructive"
-                          onClick={clearInternalLinks}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Clear All
-                        </Button>
-                      )}
-                    </div>
-                    {settings.internalLinks.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium mb-2">
-                          {settings.internalLinks.length} links loaded
-                        </p>
-                        <div className="max-h-32 overflow-y-auto space-y-1">
-                          {settings.internalLinks.slice(0, 5).map((link) => (
-                            <div key={link.id} className="text-xs bg-muted/50 px-2 py-1 rounded flex justify-between">
-                              <span className="truncate font-medium">{link.keyword}</span>
-                              <span className="text-muted-foreground truncate ml-2">{link.url}</span>
-                            </div>
-                          ))}
-                          {settings.internalLinks.length > 5 && (
-                            <p className="text-xs text-muted-foreground">
-                              +{settings.internalLinks.length - 5} more links
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="text-sm text-muted-foreground space-y-1 bg-muted/30 p-3 rounded-lg">
-                    <p><strong>How it works:</strong></p>
-                    <p>• <strong>Keyword matching:</strong> Links are added when keywords appear in article text</p>
-                    <p>• <strong>Title matching:</strong> Links are added when article titles are similar</p>
-                    <p>• <strong>Category matching:</strong> Links are added based on topic relevance</p>
+                    <p><strong>🔗 How it works:</strong></p>
+                    <p>• AI fetches all URLs from your sitemap automatically</p>
+                    <p>• Analyzes article content to find relevant internal links</p>
+                    <p>• Inserts contextual links naturally within your article</p>
                   </div>
                 </>
               )}
