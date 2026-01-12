@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, List, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/AppLayout';
 import { cn } from '@/lib/utils';
 
@@ -19,19 +20,21 @@ const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => {
   const isListicle = mode === 'listicle';
   
   return (
-    <button
+    <motion.button
       onClick={onClick}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
       className={cn(
-        "relative flex flex-col items-center justify-center p-8 rounded-2xl transition-all duration-300 min-h-[220px] w-[320px]",
-        "hover:scale-[1.03] hover:shadow-2xl",
+        "relative flex flex-col items-center justify-center p-8 rounded-2xl transition-colors duration-300 min-h-[220px] w-[320px]",
         isListicle && isActive
-          ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/40"
+          ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/30"
           : isActive && !isListicle
-            ? "bg-card border-2 border-primary shadow-lg hover:shadow-primary/20"
+            ? "bg-card border-2 border-primary shadow-lg"
             : "bg-card border border-border hover:border-primary/50 hover:shadow-lg"
       )}
     >
-      <div
+      <motion.div
         className={cn(
           "w-16 h-16 rounded-xl flex items-center justify-center mb-5",
           isListicle && isActive
@@ -40,6 +43,10 @@ const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => {
               ? "bg-emerald-100"
               : "bg-gradient-to-br from-indigo-400 to-purple-500"
         )}
+        animate={{ 
+          scale: isActive ? [1, 1.1, 1] : 1,
+        }}
+        transition={{ duration: 0.4 }}
       >
         <span className={cn(
           "w-8 h-8",
@@ -51,23 +58,31 @@ const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => {
         )}>
           {icon}
         </span>
-      </div>
+      </motion.div>
       <h3 className={cn(
         "text-xl font-semibold",
         isListicle && isActive ? "text-white" : "text-foreground"
       )}>
         {title}
       </h3>
-      {isActive && (
-        <div className={cn(
-          "flex items-center gap-1.5 mt-3 text-sm font-medium",
-          isListicle ? "text-white/90" : "text-emerald-500"
-        )}>
-          <Check className="w-4 h-4" />
-          <span>Active</span>
-        </div>
-      )}
-    </button>
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              "flex items-center gap-1.5 mt-3 text-sm font-medium",
+              isListicle ? "text-white/90" : "text-emerald-500"
+            )}
+          >
+            <Check className="w-4 h-4" />
+            <span>Active</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
   );
 };
 
