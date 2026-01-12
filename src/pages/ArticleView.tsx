@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle } from "lucide-react";
+import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle, Sparkles, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -29,6 +29,13 @@ interface WordPressSite {
   url: string;
   username: string;
   apiKey: string;
+}
+
+interface PinterestPin {
+  imageUrl?: string;
+  title?: string;
+  description?: string;
+  isGenerating?: boolean;
 }
 
 const ArticleView = () => {
@@ -43,6 +50,12 @@ const ArticleView = () => {
   const [selectedSiteId, setSelectedSiteId] = useState<string>('');
   const [isSending, setIsSending] = useState(false);
   const [wpSuccess, setWpSuccess] = useState<{ editUrl: string } | null>(null);
+  
+  // Pinterest states
+  const [showPinterest, setShowPinterest] = useState(false);
+  const [pinterestPin, setPinterestPin] = useState<PinterestPin>({});
+  const [isGeneratingPinImage, setIsGeneratingPinImage] = useState(false);
+  const [isGeneratingPinTitle, setIsGeneratingPinTitle] = useState(false);
 
   const fetchArticle = useCallback(async () => {
     if (!id) return;
@@ -243,6 +256,154 @@ const ArticleView = () => {
     }
   }, [article, id]);
 
+  // Pinterest pin generation handlers
+  const getSettings = () => {
+    try {
+      const saved = localStorage.getItem('article_settings');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse settings:', e);
+    }
+    return {};
+  };
+
+  const handleGeneratePinImage = async () => {
+    if (!article?.title) return;
+    
+    setIsGeneratingPinImage(true);
+    setPinterestPin(prev => ({ ...prev, isGenerating: true }));
+
+    try {
+      const settings = getSettings();
+      
+      // First generate a prompt based on the article
+      const { data: promptData, error: promptError } = await supabase.functions.invoke('generate-pinterest-prompts', {
+        body: {
+          urls: [`article://${article.title}`],
+          pinStyle: 'basic-bottom',
+          customStyleGuidelines: settings.pinterestStyleGuidelines || '',
+          articleContent: article.article_content,
+        },
+      });
+
+      if (promptError) throw promptError;
+
+      const imagePrompt = promptData?.prompts?.[0]?.imagePrompt || `Professional food photography of ${article.title}, Pinterest style, 9:16 aspect ratio, soft natural lighting, appetizing presentation`;
+
+      // Generate the image
+      const { data, error } = await supabase.functions.invoke('generate-pinterest-image', {
+        body: {
+          prompt: imagePrompt,
+          aspectRatio: '9:16',
+          imageModel: 'lovable',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.imageUrl) {
+        setPinterestPin(prev => ({ ...prev, imageUrl: data.imageUrl, isGenerating: false }));
+        toast.success('Pinterest image generated!');
+      } else {
+        throw new Error(data?.error || 'Failed to generate image');
+      }
+    } catch (error) {
+      console.error('Error generating pin image:', error);
+      toast.error('Failed to generate Pinterest image');
+      setPinterestPin(prev => ({ ...prev, isGenerating: false }));
+    } finally {
+      setIsGeneratingPinImage(false);
+    }
+  };
+
+  const handleGeneratePinTitle = async () => {
+    if (!article?.title) return;
+    
+    setIsGeneratingPinTitle(true);
+    const settings = getSettings();
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-pinterest-title', {
+        body: {
+          urls: [`article://${article.title}`],
+          interests: [''],
+          customPrompt: settings.pinterestTitlePrompt || '',
+          articleTitle: article.title,
+          articleContent: article.article_content,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.titles?.[0]) {
+        setPinterestPin(prev => ({
+          ...prev,
+          title: data.titles[0].title,
+          description: data.titles[0].description,
+        }));
+        toast.success('Title and description generated!');
+      }
+    } catch (error) {
+      console.error('Error generating pin title:', error);
+      toast.error('Failed to generate title');
+    } finally {
+      setIsGeneratingPinTitle(false);
+    }
+  };
+
+  const extractFocusKeyword = (title: string): string => {
+    if (!title) return 'pin';
+    const cleaned = title.replace(/^[\u{1F300}-\u{1F9FF}\s]+/u, '').trim();
+    const words = cleaned.split(/[\s–-]+/).filter(w => w.length > 2).slice(0, 3);
+    return words.join('-').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'pin';
+  };
+
+  const handleDownloadPinImage = async () => {
+    if (!pinterestPin.imageUrl) {
+      toast.error('No image to download');
+      return;
+    }
+
+    try {
+      const response = await fetch(pinterestPin.imageUrl);
+      const blob = await response.blob();
+      
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(blob);
+      });
+      
+      const webpBlob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), 'image/webp', 0.9);
+      });
+      
+      const url = URL.createObjectURL(webpBlob);
+      const focusKeyword = extractFocusKeyword(pinterestPin.title || article?.title || 'pin');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${focusKeyword}.webp`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(img.src);
+      toast.success('Pin downloaded as WebP!');
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast.error('Failed to download pin');
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -333,6 +494,16 @@ const ArticleView = () => {
               )}
             </Button>
             <Button 
+              onClick={() => setShowPinterest(!showPinterest)}
+              className={`gap-2 ${showPinterest 
+                ? 'bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600' 
+                : 'bg-gradient-to-r from-pink-400 to-red-400 hover:from-pink-500 hover:to-red-500'
+              } text-white border-0`}
+            >
+              <Sparkles className="w-4 h-4" />
+              {showPinterest ? 'Hide Pinterest' : 'Pinterest Image'}
+            </Button>
+            <Button 
               onClick={handleExportHTML}
               className="gap-2 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white border-0"
             >
@@ -349,6 +520,137 @@ const ArticleView = () => {
             </Button>
           </div>
         </div>
+
+        {/* Pinterest Image Generator Panel */}
+        {showPinterest && (
+          <div className="mb-6 p-6 bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-950/30 dark:to-red-950/30 border border-pink-200 dark:border-pink-800 rounded-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-pink-600" />
+              <h3 className="font-semibold text-lg text-foreground">Pinterest Image Generator</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Image Preview */}
+              <div className="aspect-[9/16] bg-muted rounded-lg overflow-hidden relative max-h-[400px]">
+                {isGeneratingPinImage || pinterestPin.isGenerating ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-pink-500" />
+                      <p className="text-sm text-muted-foreground">Generating image...</p>
+                    </div>
+                  </div>
+                ) : pinterestPin.imageUrl ? (
+                  <img
+                    src={pinterestPin.imageUrl}
+                    alt="Pinterest Pin"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <ImageIcon className="w-12 h-12 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Click "Generate Image" to create a pin</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Controls & Title/Description */}
+              <div className="space-y-4">
+                {/* Generate Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={handleGeneratePinImage}
+                    disabled={isGeneratingPinImage}
+                    className="gap-2 bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 text-white border-0"
+                  >
+                    {isGeneratingPinImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-4 h-4" />
+                    )}
+                    Generate Image
+                  </Button>
+                  <Button
+                    onClick={handleGeneratePinTitle}
+                    disabled={isGeneratingPinTitle}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {isGeneratingPinTitle ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FileText className="w-4 h-4" />
+                    )}
+                    Generate Title & Description
+                  </Button>
+                </div>
+
+                {/* Title */}
+                {pinterestPin.title && (
+                  <div className="bg-background/80 rounded-lg p-4 border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pin Title</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => {
+                          navigator.clipboard.writeText(pinterestPin.title || '');
+                          toast.success('Title copied!');
+                        }}
+                      >
+                        <Copy className="w-3 h-3" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="font-medium text-foreground">{pinterestPin.title}</p>
+                  </div>
+                )}
+
+                {/* Description */}
+                {pinterestPin.description && (
+                  <div className="bg-background/80 rounded-lg p-4 border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pin Description</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs gap-1"
+                        onClick={() => {
+                          const plainText = (pinterestPin.description || '').replace(/\*\*([^*]+)\*\*/g, '$1');
+                          navigator.clipboard.writeText(plainText);
+                          toast.success('Description copied!');
+                        }}
+                      >
+                        <Copy className="w-3 h-3" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p 
+                      className="text-sm text-muted-foreground"
+                      dangerouslySetInnerHTML={{
+                        __html: (pinterestPin.description || '').replace(
+                          /\*\*([^*]+)\*\*/g, 
+                          '<span class="text-pink-600 dark:text-pink-400 font-medium">$1</span>'
+                        )
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Download Button */}
+                {pinterestPin.imageUrl && (
+                  <Button
+                    onClick={handleDownloadPinImage}
+                    className="w-full gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download as WebP
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* WordPress Success Banner */}
         {wpSuccess && (

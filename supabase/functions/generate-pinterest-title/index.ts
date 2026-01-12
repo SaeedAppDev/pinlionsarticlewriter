@@ -37,7 +37,7 @@ serve(async (req) => {
   }
 
   try {
-    const { urls, interests, customPrompt } = await req.json();
+    const { urls, interests, customPrompt, articleTitle, articleContent } = await req.json();
     
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       throw new Error("URLs array is required");
@@ -55,12 +55,50 @@ serve(async (req) => {
       const urlInterests = interests?.[i] || '';
       
       try {
+        // Check if this is an article reference
+        const isArticle = url.startsWith('article://');
         const interestsNote = urlInterests ? `\n\nAnnotated interests: ${urlInterests}` : '';
         
-        // Use custom prompt or default
-        let prompt = customPrompt || DEFAULT_PROMPT;
-        prompt = prompt.replace(/\$\{url\}/g, url);
-        prompt = prompt.replace(/\$\{interestsNote\}/g, interestsNote);
+        let prompt = '';
+        
+        if (isArticle && articleContent) {
+          // Use article content for better title/description generation
+          const textContent = articleContent.replace(/<[^>]*>/g, ' ').substring(0, 3000);
+          const title = articleTitle || url.replace('article://', '');
+          
+          prompt = `You're a Pinterest content writer optimizing blog posts for maximum search visibility and clicks.
+
+For this article, write:
+
+1. A Pinterest title (under 80 characters) that starts with an emoji and includes the main keyword
+
+2. A Pinterest description (EXACTLY 3 sentences, NO MORE) that clearly summarizes the post
+
+CRITICAL RULES FOR DESCRIPTION:
+- EXACTLY 3 sentences (not 4, not 5, just 3)
+- Main keyword must appear in the first sentence
+- Bold 3-4 searchable SEO keywords using **keyword** syntax (choose the most relevant ones)
+- Be concise and punchy - every word must count
+- Focus on benefits and what readers will learn/get
+- Keywords should flow naturally, not feel forced
+
+Article Title: ${title}
+Article Content Excerpt:
+${textContent}${interestsNote}
+
+Format your response EXACTLY like this example:
+
+🥗 Vegan Buddha Bowl – Clean, Colorful, and Fully Customizable
+
+This **vegan Buddha bowl** is packed with **plant-based ingredients**, quinoa, and roasted vegetables. Perfect for **meal prep** or a quick **healthy lunch**. Customizable, colorful, and delicious!
+
+Generate the title and description now (remember: EXACTLY 3 sentences):`;
+        } else {
+          // Use custom prompt or default for URLs
+          prompt = customPrompt || DEFAULT_PROMPT;
+          prompt = prompt.replace(/\$\{url\}/g, url);
+          prompt = prompt.replace(/\$\{interestsNote\}/g, interestsNote);
+        }
 
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
