@@ -441,10 +441,12 @@ async function generateUniqueImage(
   supabase: any,
   aspectRatio: string = "4:3",
   dishName: string = "",
-  articleCategory: string = "food"
+  articleCategory: string = "food",
+  imageModel: string = "zimage"
 ): Promise<string> {
   try {
-    console.log(`Generating image ${imageNumber} with prompt: ${prompt.substring(0, 100)}... (category: ${articleCategory})`);
+    console.log(`🖼️ Generating image ${imageNumber} with model: ${imageModel}, category: ${articleCategory}`);
+    console.log(`   Prompt: ${prompt.substring(0, 80)}...`);
 
     // Category-specific image prompts for ultra-realistic photography
     let realisticPrompt: string;
@@ -473,7 +475,7 @@ DETAILS: Visible texture, natural imperfections, authentic food styling, soft sh
 QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or Food Network.`;
     }
 
-    // Parse aspect ratio to get width/height for z-image-turbo model
+    // Parse aspect ratio to get dimensions
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       const ratioMap: { [key: string]: { width: number; height: number } } = {
         '1:1': { width: 1024, height: 1024 },
@@ -488,120 +490,211 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
     };
 
     const dimensions = getImageDimensions(aspectRatio);
-    
-    let prediction: any | null = null;
-    const maxCreateAttempts = 8;
+    let imageUrl: string | null = null;
 
-    for (let attempt = 0; attempt < maxCreateAttempts; attempt++) {
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${REPLICATE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          version: "prunaai/z-image-turbo",
+    // ============ GPT-IMAGE (OpenAI) ============
+    if (imageModel === 'gpt-image') {
+      const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+      if (!OPENAI_API_KEY) {
+        console.log('⚠️ OPENAI_API_KEY not set, falling back to z-image');
+        imageModel = 'zimage';
+      } else {
+        try {
+          const sizeMap: { [key: string]: string } = {
+            '1:1': '1024x1024',
+            '4:3': '1536x1024',
+            '3:4': '1024x1536',
+            '16:9': '1536x1024',
+            '9:16': '1024x1536',
+          };
+          const size = sizeMap[aspectRatio] || '1024x1024';
+
+          const response = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-image-1',
+              prompt: realisticPrompt,
+              n: 1,
+              size,
+              quality: 'high',
+              output_format: 'webp',
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            // gpt-image-1 returns base64
+            const b64 = data.data?.[0]?.b64_json;
+            if (b64) {
+              // Upload to Supabase Storage
+              const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+              const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('article-images')
+                .upload(fileName, bytes, { contentType: 'image/webp', upsert: true });
+
+              if (!uploadError) {
+                const { data: urlData } = supabase.storage.from('article-images').getPublicUrl(fileName);
+                imageUrl = urlData?.publicUrl;
+                console.log(`✅ GPT-Image generated and uploaded: image ${imageNumber}`);
+              }
+            }
+          } else {
+            const errorText = await response.text();
+            console.error(`OpenAI error for image ${imageNumber}:`, response.status, errorText);
+          }
+        } catch (e) {
+          console.error(`GPT-Image error:`, e);
+        }
+      }
+    }
+
+    // ============ REPLICATE MODELS (z-image, flux-schnell, seedream) ============
+    if (!imageUrl && (imageModel === 'zimage' || imageModel === 'flux-schnell' || imageModel === 'seedream' || imageModel === 'gpt-image')) {
+      const modelVersions: { [key: string]: { version: string; input: any } } = {
+        'zimage': {
+          version: 'prunaai/z-image-turbo',
           input: {
             prompt: realisticPrompt,
             width: dimensions.width,
             height: dimensions.height,
             num_inference_steps: 8,
             guidance_scale: 0,
-            output_format: "webp",
+            output_format: 'webp',
             output_quality: 90,
           },
-        }),
-      });
+        },
+        'flux-schnell': {
+          version: 'black-forest-labs/flux-schnell',
+          input: {
+            prompt: realisticPrompt,
+            go_fast: true,
+            megapixels: '1',
+            num_outputs: 1,
+            aspect_ratio: aspectRatio,
+            output_format: 'webp',
+            output_quality: 90,
+            num_inference_steps: 4,
+          },
+        },
+        'seedream': {
+          version: 'bytedance/seedream-4.5',
+          input: {
+            prompt: realisticPrompt,
+            aspect_ratio: aspectRatio,
+            output_format: 'webp',
+          },
+        },
+      };
 
-      if (response.ok) {
-        prediction = await response.json();
+      // If gpt-image failed, fall back to zimage
+      const selectedModel = imageModel === 'gpt-image' ? 'zimage' : imageModel;
+      const modelConfig = modelVersions[selectedModel] || modelVersions['zimage'];
+
+      let prediction: any | null = null;
+      const maxCreateAttempts = 8;
+
+      for (let attempt = 0; attempt < maxCreateAttempts; attempt++) {
+        const response = await fetch('https://api.replicate.com/v1/predictions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            version: modelConfig.version,
+            input: modelConfig.input,
+          }),
+        });
+
+        if (response.ok) {
+          prediction = await response.json();
+          break;
+        }
+
+        const errorText = await response.text();
+        console.error(`Replicate API error for image ${imageNumber}:`, response.status, errorText);
+
+        if (response.status === 429) {
+          let retryAfterMs = 6000;
+          try {
+            const parsed = JSON.parse(errorText);
+            const retryAfter = Number(parsed?.retry_after);
+            if (Number.isFinite(retryAfter) && retryAfter > 0) {
+              retryAfterMs = retryAfter * 1000;
+            }
+          } catch {
+            // ignore parse errors
+          }
+
+          const waitMs = retryAfterMs + 250;
+          console.log(`Replicate throttled. Waiting ${waitMs}ms then retrying (attempt ${attempt + 1}/${maxCreateAttempts})...`);
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+          continue;
+        }
+
         break;
       }
 
-      const errorText = await response.text();
-      console.error(`Replicate API error for image ${imageNumber}:`, response.status, errorText);
-
-      if (response.status === 429) {
-        let retryAfterMs = 6000;
-        try {
-          const parsed = JSON.parse(errorText);
-          const retryAfter = Number(parsed?.retry_after);
-          if (Number.isFinite(retryAfter) && retryAfter > 0) {
-            retryAfterMs = retryAfter * 1000;
+      if (prediction) {
+        // Poll for result
+        let result = prediction;
+        let attempts = 0;
+        const maxAttempts = 60; // Increased for slower models
+        
+        while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+            headers: { 'Authorization': `Bearer ${REPLICATE_API_KEY}` },
+          });
+          
+          if (statusResponse.ok) {
+            result = await statusResponse.json();
           }
-        } catch {
-          // ignore parse errors
+          attempts++;
         }
 
-        const waitMs = retryAfterMs + 250;
-        console.log(`Replicate throttled. Waiting ${waitMs}ms then retrying (attempt ${attempt + 1}/${maxCreateAttempts})...`);
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
-        continue;
-      }
+        if (result.status === 'succeeded' && result.output) {
+          const rawUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+          console.log(`✅ ${selectedModel} generated image ${imageNumber}`);
 
-      break;
+          // Download and upload to Supabase Storage
+          const imgResp = await fetch(rawUrl);
+          if (imgResp.ok) {
+            const bytes = new Uint8Array(await imgResp.arrayBuffer());
+            const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('article-images')
+              .upload(fileName, bytes, { contentType: 'image/webp', upsert: true });
+
+            if (!uploadError) {
+              const { data: urlData } = supabase.storage.from('article-images').getPublicUrl(fileName);
+              imageUrl = urlData?.publicUrl || rawUrl;
+            } else {
+              imageUrl = rawUrl;
+            }
+          } else {
+            imageUrl = rawUrl;
+          }
+        } else {
+          console.error(`Replicate generation failed for image ${imageNumber}:`, result.status, result.error);
+        }
+      }
     }
 
-    if (!prediction) {
+    // Fallback if all else fails
+    if (!imageUrl) {
       return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
     }
 
-    // Poll for result
-    let result = prediction;
-    let attempts = 0;
-    const maxAttempts = 30;
-    
-    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: {
-          'Authorization': `Bearer ${REPLICATE_API_KEY}`,
-        },
-      });
-      
-      if (statusResponse.ok) {
-        result = await statusResponse.json();
-      }
-      attempts++;
-    }
-
-    if (result.status !== 'succeeded' || !result.output || result.output.length === 0) {
-      console.error(`Replicate generation failed for image ${imageNumber}:`, result.status, result.error);
-      return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
-    }
-
-    const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-    console.log(`Replicate generated image ${imageNumber}:`, imageUrl);
-
-    // Download and upload to Supabase Storage
-    const imgResp = await fetch(imageUrl);
-    if (!imgResp.ok) {
-      console.error(`Failed to download Replicate image ${imageNumber}`);
-      return imageUrl;
-    }
-
-    const bytes = new Uint8Array(await imgResp.arrayBuffer());
-    const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('article-images')
-      .upload(fileName, bytes, {
-        contentType: 'image/webp',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return imageUrl;
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('article-images')
-      .getPublicUrl(fileName);
-
-    console.log(`Image ${imageNumber} generated and uploaded successfully`);
-    return urlData?.publicUrl || imageUrl;
+    return imageUrl;
   } catch (error) {
     console.error(`Error generating image ${imageNumber}:`, error);
     return await generateFallbackImage(dishName, `image ${imageNumber}`, imageNumber, supabase);
@@ -724,13 +817,14 @@ serve(async (req) => {
       aspectRatio = '4:3',
       aiProvider = 'lovable',
       articleStyle = 'recipe',
+      imageModel = 'zimage',
       customApiKey,
       customReplicateKey,
       internalLinks = []
     } = requestBody;
     
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${recipeId})`);
-    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}`);
+    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}, Image Model: ${imageModel}`);
     
     // Detect image count from title (e.g., "12 Easy Kitchen Ideas" → 12)
     const numberMatch = focusKeyword.match(/\b(\d+)\b/);
@@ -1243,11 +1337,11 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts for ${articleCategory} category`);
 
     // Step 5: Generate images (matching detected count from title)
-    console.log(`🖼️ Generating ${imageCount} AI images with Replicate Flux (${articleCategory} style)...`);
+    console.log(`🖼️ Generating ${imageCount} AI images with ${imageModel} (${articleCategory} style)...`);
     const imageUrls: string[] = [];
     
     for (let i = 0; i < imageCount; i++) {
-      console.log(`Generating image ${i + 1}/${imageCount} with aspect ratio ${aspectRatio}...`);
+      console.log(`Generating image ${i + 1}/${imageCount} with model ${imageModel}, aspect ratio ${aspectRatio}...`);
       const imageUrl = await generateUniqueImage(
         imagePrompts[i] || `${imageSubject} professional photo ${i + 1}`,
         i + 1,
@@ -1255,7 +1349,8 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
         supabase,
         aspectRatio,
         imageSubject,
-        articleCategory
+        articleCategory,
+        imageModel
       );
       imageUrls.push(imageUrl);
       
