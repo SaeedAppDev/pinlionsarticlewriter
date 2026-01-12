@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Send, Clock, CheckCircle, Settings, Sun, Moon, Image as ImageIcon } from 'lucide-react';
+import { Send, Clock, CheckCircle, Settings, Sun, Moon, Image as ImageIcon, Layers, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -98,8 +98,13 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
         <NavItem
-          icon={<Send className="w-5 h-5" />}
-          label="Add Articles"
+          icon={<Layers className="w-5 h-5" />}
+          label="Mode"
+          path="/mode"
+        />
+        <NavItem
+          icon={<PlusCircle className="w-5 h-5" />}
+          label="Add"
           path="/add-articles"
         />
         <NavItem
@@ -114,11 +119,6 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
           badge={completedCount}
         />
         <NavItem
-          icon={<ImageIcon className="w-5 h-5" />}
-          label="Pinterest Pins"
-          path="/pinterest"
-        />
-        <NavItem
           icon={<Settings className="w-5 h-5" />}
           label="Settings"
           path="/settings"
@@ -127,9 +127,8 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
-        <p className="text-xs text-muted-foreground text-center">Version 1.0.0</p>
+        <p className="text-xs text-muted-foreground text-center">Version 1.1.0</p>
         <p className="text-xs text-muted-foreground text-center">© 2026 Pin Lions</p>
-        <p className="text-xs text-muted-foreground text-center mt-1">Developed by Saeed Ahmed</p>
       </div>
     </aside>
   );

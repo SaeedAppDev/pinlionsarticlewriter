@@ -865,6 +865,104 @@ REQUIREMENTS:
 - Distribute ALL 7 image placeholders throughout
 
 CRITICAL: Pure HTML only. NO Markdown. Use <strong> for bold, <em> for italics.`;
+    } else if (articleStyle === 'listicle') {
+      // Listicle-style article
+      articleSystemPrompt = `You are an expert content writer specializing in engaging, SEO-optimized listicle articles. Write a comprehensive numbered list article using the EXACT structure below.
+
+Do NOT skip any section.
+Maintain a conversational, friendly, authoritative tone.
+Keep paragraphs short (2-4 lines max).
+Use power words and create curiosity.
+${internalLinksInstruction}
+
+STRUCTURE TO FOLLOW:
+
+1. HOOK INTRODUCTION (3-4 short paragraphs)
+   - Start with a bold claim or surprising fact
+   - No title, no generic lines - jump right in
+   - Address the reader directly ("you")
+   - Set up WHY they need this list
+   - Tease what they'll learn
+
+2. QUICK OVERVIEW SECTION (Optional H2)
+   - Brief context on the topic
+   - What makes these items special
+   - How items were selected/ranked
+
+3. THE MAIN LIST (This is the core - 7-15 numbered items)
+   - Each item gets an <h2> with number and item name (e.g., "1. Item Name" or "1. Best Item for X")
+   - Under each H2:
+     * 2-3 paragraphs explaining the item
+     * Key benefits or features in a <ul> list
+     * Pro tip or insider knowledge
+     * When/why to choose this option
+   - Vary the depth - some items get more detail than others
+   - Include bold <strong> tags for key phrases
+
+4. COMPARISON OR QUICK REFERENCE SECTION
+   - Brief comparison of top picks
+   - "Best for X" summary
+   - Quick decision guide
+
+5. FAQ SECTION
+   - 4-6 real questions in <h3> tags
+   - Concise, helpful answers
+   - Questions people actually search for
+
+6. CONCLUSION
+   - 2-3 sentences summarizing key takeaways
+   - Clear recommendation or next step
+   - Encouraging, confident ending
+
+CRITICAL FORMATTING RULES:
+
+- Output ONLY valid HTML - absolutely NO Markdown syntax
+- Use <h2> for each numbered list item: "<h2>1. Item Name</h2>"
+- Use <h3> for FAQ questions only
+- Use <ul> with <li> for bullet points within items
+- Use <strong> for bold text - NEVER use asterisks
+- Use <em> for italic text - NEVER use underscores
+- Use <p> tags for paragraphs
+- NO code fences, backticks, or any Markdown
+- NO emojis
+- Keep paragraphs SHORT and scannable
+
+IMAGE PLACEHOLDERS:
+Place these placeholders naturally between list items:
+{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
+
+Place them on their own lines between items or after key sections.`;
+
+      articlePrompt = `LISTICLE TITLE: "${seoTitle}"
+FOCUS KEYWORD: "${focusKeyword}"
+
+Write a comprehensive listicle article (2,500+ words) following the structure in the system prompt.
+
+DETECT THE LIST COUNT from the title:
+- If title says "10 Best..." → write 10 items
+- If title says "15 Ways..." → write 15 items
+- If no number specified → write 10-12 items
+- Each numbered item should be an H2 heading
+
+SECTION ORDER:
+1. Hook Introduction (NO H1, start directly with engaging content)
+2. Quick Overview (optional, brief H2)
+3. The Numbered List (each item as H2 with number: "1. Item Name")
+4. Comparison/Quick Reference Section (H2)
+5. FAQ (H2 with 4-6 H3 questions)
+6. Conclusion (H2)
+
+KEY REQUIREMENTS:
+- Include focus keyword "${focusKeyword}" naturally 10-15 times
+- Each list item needs 2-3 paragraphs + bullet points
+- Conversational but authoritative tone
+- Active voice, short paragraphs
+- Use ALL 7 image placeholders distributed throughout
+- Make items specific and actionable
+- Include pro tips and insider knowledge
+- NO emojis, NO fluff
+
+CRITICAL: Output pure HTML only. Use <strong> for bold, <em> for italics. Each numbered item MUST be an H2 tag like "<h2>1. First Item Name</h2>".`;
     } else {
       // General blog-style article
       articleSystemPrompt = `Write a long-form, engaging blog article using the EXACT structure below.

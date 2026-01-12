@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Mode from "./pages/Mode";
 import AddArticles from "./pages/AddArticles";
 import Queue from "./pages/Queue";
 import Completed from "./pages/Completed";
@@ -20,7 +21,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/add-articles" replace />} />
+          <Route path="/" element={<Mode />} />
+          <Route path="/mode" element={<Mode />} />
           <Route path="/add-articles" element={<AddArticles />} />
           <Route path="/add-recipes" element={<Navigate to="/add-articles" replace />} />
           <Route path="/queue" element={<Queue />} />

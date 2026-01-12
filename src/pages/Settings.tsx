@@ -89,7 +89,7 @@ interface SettingsData {
   aiProvider: 'lovable' | 'groq' | 'openai';
   groqApiKey: string;
   openaiApiKey: string;
-  articleStyle: 'recipe' | 'general';
+  articleStyle: 'recipe' | 'general' | 'listicle';
   articleLength: string;
   generateImages: boolean;
   imageCount: string;
@@ -466,7 +466,7 @@ const Settings = () => {
                 <Label>Article Style</Label>
                 <Select
                   value={settings.articleStyle}
-                  onValueChange={(value: 'recipe' | 'general') => setSettings({ ...settings, articleStyle: value })}
+                  onValueChange={(value: 'recipe' | 'general' | 'listicle') => setSettings({ ...settings, articleStyle: value })}
                 >
                   <SelectTrigger className="mt-1.5 bg-background">
                     <SelectValue />
@@ -474,11 +474,13 @@ const Settings = () => {
                   <SelectContent>
                     <SelectItem value="recipe">Recipe Style</SelectItem>
                     <SelectItem value="general">General Blog Style</SelectItem>
+                    <SelectItem value="listicle">Listicle Style</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground mt-1.5">
                   <strong>Recipe:</strong> Casual, fun tone with sections like "Why it works", "Ingredients", "Quick method", "FAQ", etc.<br />
-                  <strong>General:</strong> Conversational blog format with intro, main sections, FAQ, and conclusion.
+                  <strong>General:</strong> Conversational blog format with intro, main sections, FAQ, and conclusion.<br />
+                  <strong>Listicle:</strong> Numbered list format like "10 Best...", "15 Ways to...", perfect for ranking articles.
                 </p>
               </div>
               <div>
