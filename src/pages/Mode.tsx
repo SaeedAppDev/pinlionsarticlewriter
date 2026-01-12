@@ -23,11 +23,12 @@ const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => {
       onClick={onClick}
       className={cn(
         "relative flex flex-col items-center justify-center p-8 rounded-2xl transition-all duration-300 min-h-[220px] w-[320px]",
+        "hover:scale-[1.03] hover:shadow-2xl",
         isListicle && isActive
-          ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/30"
+          ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/40"
           : isActive && !isListicle
-            ? "bg-card border-2 border-primary shadow-lg"
-            : "bg-card border border-border hover:border-primary/50 hover:shadow-md"
+            ? "bg-card border-2 border-primary shadow-lg hover:shadow-primary/20"
+            : "bg-card border border-border hover:border-primary/50 hover:shadow-lg"
       )}
     >
       <div
