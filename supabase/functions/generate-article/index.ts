@@ -449,30 +449,25 @@ async function generateUniqueImage(
     console.log(`   Prompt: ${prompt.substring(0, 80)}...`);
 
     // Category-specific image prompts for ultra-realistic photography
+    // IMPORTANT: Do NOT mention camera equipment names as AI will generate images OF cameras!
     let realisticPrompt: string;
     
     if (articleCategory === 'home') {
-      realisticPrompt = `Professional interior design photography, DSLR camera shot, ${prompt}. 
-STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art, NOT 3D render.
-CAMERA: Shot on Canon EOS R5, 24mm f/2.8 wide-angle lens, natural daylight from large windows.
-COMPOSITION: Eye-level or slightly elevated angle, showing full room context, balanced symmetry.
-DETAILS: Visible textures on furniture and fabrics, realistic shadows, natural wood grain, authentic materials.
-QUALITY: 8K resolution, magazine-quality interior photography, like Architectural Digest or Elle Decor.`;
+      realisticPrompt = `${prompt}, professional interior design photograph, ultra-realistic, NOT illustration, NOT digital art, NOT 3D render. 
+Natural daylight from large windows, eye-level angle, balanced symmetry.
+Visible textures on furniture and fabrics, realistic shadows, natural wood grain, authentic materials.
+8K resolution, magazine-quality interior photography, Architectural Digest style.`;
     } else if (articleCategory === 'fashion') {
-      realisticPrompt = `Professional fashion photography, DSLR camera shot, ${prompt}. 
-STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art.
-CAMERA: Shot on Canon EOS R5, 85mm f/1.4 lens, studio lighting with soft diffusion.
-COMPOSITION: Full outfit or detail shot, clean minimal background, fashion editorial style.
-DETAILS: Visible fabric texture, natural skin tones, authentic clothing details, professional styling.
-QUALITY: 8K resolution, magazine-quality fashion photography, like Vogue or Harper's Bazaar.`;
+      realisticPrompt = `${prompt}, professional fashion photograph, ultra-realistic, NOT illustration, NOT digital art. 
+Studio lighting with soft diffusion, fashion editorial style.
+Visible fabric texture, natural skin tones, authentic clothing details, professional styling.
+8K resolution, magazine-quality fashion photography, Vogue style.`;
     } else {
       // Default: food photography
-      realisticPrompt = `Professional food photography, DSLR camera shot, ${prompt}. 
-STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art.
-CAMERA: Shot on Canon EOS R5, 50mm f/1.8 lens, natural lighting from window.
-COMPOSITION: Overhead or 45-degree angle, wooden cutting board or marble surface, rustic kitchen background.
-DETAILS: Visible texture, natural imperfections, authentic food styling, soft shadows.
-QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or Food Network.`;
+      realisticPrompt = `${prompt}, professional food photograph, ultra-realistic, NOT illustration, NOT digital art.
+Natural lighting, overhead or 45-degree angle, wooden cutting board or marble surface, rustic kitchen background.
+Visible texture, natural imperfections, authentic food styling, soft shadows.
+8K resolution, magazine-quality food photography, Bon Appetit style.`;
     }
 
     // Parse aspect ratio to get dimensions
