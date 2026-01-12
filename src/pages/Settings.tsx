@@ -94,6 +94,7 @@ interface SettingsData {
   generateImages: boolean;
   imageCount: string;
   imageAspectRatio: string;
+  imageModel: 'seedream' | 'zimage';
   articlePrompt: string;
   imagePrompt: string;
   wordpressSites: WordPressSite[];
@@ -103,7 +104,61 @@ interface SettingsData {
   // Pinterest settings
   pinterestStyleGuidelines: string;
   pinterestTitlePrompt: string;
+  // Listicle settings
+  listicleCategory: 'general' | 'food' | 'home' | 'fashion';
+  listiclePrompts: Record<string, string>;
 }
+
+const DEFAULT_LISTICLE_PROMPTS: Record<string, string> = {
+  general: `CRITICAL: Start your response with an <h1> title tag. Do NOT start with anything else.
+
+Write a conversational, friendly listicle article about: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Create EXACTLY {itemCount} numbered sections – no more, no less. The title specifies {itemCount} items, so deliver exactly that many.
+
+FIRST LINE MUST BE: An <h1> title that's MORE VIRAL than the original:
+  - Maximum 15 words
+  - MUST include the exact core phrase from the original title (e.g., if original is '5 Home Decor Ideas', the new title MUST contain '5 Home Decor Ideas')
+  - Add compelling words to make it click-worthy and engaging
+  - Use proper title case capitalization (First Letter Of Each Major Word Capitalized)`,
+  food: `CRITICAL: Start your response with an <h1> title tag. Do NOT start with anything else.
+
+Write a delicious, mouth-watering listicle article about: "{title}".
+Target length: approximately 1500 words.
+
+FOOD-SPECIFIC REQUIREMENTS:
+- Include cooking tips and chef secrets
+- Mention ingredients and flavor profiles
+- Add nutritional benefits where relevant
+- Use sensory language (crispy, savory, aromatic)
+
+CRITICAL: Create EXACTLY {itemCount} numbered sections.`,
+  home: `CRITICAL: Start your response with an <h1> title tag. Do NOT start with anything else.
+
+Write an inspiring home decor listicle article about: "{title}".
+Target length: approximately 1500 words.
+
+HOME DECOR REQUIREMENTS:
+- Include styling tips and design principles
+- Mention materials, colors, and textures
+- Add budget-friendly alternatives
+- Reference trending styles (minimalist, boho, modern)
+
+CRITICAL: Create EXACTLY {itemCount} numbered sections.`,
+  fashion: `CRITICAL: Start your response with an <h1> title tag. Do NOT start with anything else.
+
+Write a stylish, trendy listicle article about: "{title}".
+Target length: approximately 1500 words.
+
+FASHION REQUIREMENTS:
+- Include styling tips and outfit ideas
+- Mention fabrics, fits, and seasonal trends
+- Add mix-and-match suggestions
+- Reference current fashion trends
+
+CRITICAL: Create EXACTLY {itemCount} numbered sections.`,
+};
 
 const DEFAULT_PINTEREST_STYLE_GUIDELINES = `Viral Pinterest pin. Text overlay directly in the middle. Two images - one at the top, one at the bottom. Text with modern white bold font.
 
@@ -145,11 +200,12 @@ const DEFAULT_SETTINGS: SettingsData = {
   aiProvider: 'lovable',
   groqApiKey: '',
   openaiApiKey: '',
-  articleStyle: 'recipe',
+  articleStyle: 'general',
   articleLength: 'long',
   generateImages: true,
   imageCount: '3',
-  imageAspectRatio: '4:3',
+  imageAspectRatio: '9:16',
+  imageModel: 'zimage',
   articlePrompt: DEFAULT_ARTICLE_PROMPT,
   imagePrompt: DEFAULT_IMAGE_PROMPT,
   wordpressSites: [],
@@ -158,6 +214,8 @@ const DEFAULT_SETTINGS: SettingsData = {
   sitemapUrl: '',
   pinterestStyleGuidelines: '',
   pinterestTitlePrompt: '',
+  listicleCategory: 'general',
+  listiclePrompts: DEFAULT_LISTICLE_PROMPTS,
 };
 
 const Settings = () => {
@@ -513,6 +571,25 @@ const Settings = () => {
               <h2 className="font-semibold text-lg">Image Settings</h2>
             </div>
             <div className="space-y-4">
+              <div>
+                <Label>Image Generation Model</Label>
+                <Select
+                  value={settings.imageModel}
+                  onValueChange={(value: 'seedream' | 'zimage') => setSettings({ ...settings, imageModel: value })}
+                >
+                  <SelectTrigger className="mt-1.5 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="seedream">Seedream 4.5 (ByteDance) - $0.04 per image</SelectItem>
+                    <SelectItem value="zimage">Z-Image Turbo (Pruna AI) - $0.01 per image</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Choose the AI model for generating featured and in-text images (pricing shown per image)
+                </p>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="generate-images"
@@ -522,7 +599,7 @@ const Settings = () => {
                   }
                 />
                 <Label htmlFor="generate-images" className="cursor-pointer">
-                  Generate in-text images using Seedream-4
+                  Generate in-text images
                 </Label>
               </div>
               
@@ -538,11 +615,11 @@ const Settings = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="0">No In-Text Images</SelectItem>
                         <SelectItem value="1">1 Image</SelectItem>
                         <SelectItem value="2">2 Images</SelectItem>
                         <SelectItem value="3">3 Images</SelectItem>
                         <SelectItem value="4">4 Images</SelectItem>
-                        <SelectItem value="5">5 Images</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-muted-foreground mt-1.5">
@@ -551,7 +628,7 @@ const Settings = () => {
                   </div>
 
                   <div>
-                    <Label>Image Aspect Ratio</Label>
+                    <Label>In-Text Image Aspect Ratio</Label>
                     <Select
                       value={settings.imageAspectRatio}
                       onValueChange={(value) => setSettings({ ...settings, imageAspectRatio: value })}
@@ -560,16 +637,12 @@ const Settings = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                        <SelectItem value="4:3">4:3 (Standard)</SelectItem>
-                        <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
-                        <SelectItem value="9:16">9:16 (Portrait/Pinterest)</SelectItem>
-                        <SelectItem value="3:2">3:2 (Classic Photo)</SelectItem>
-                        <SelectItem value="2:3">2:3 (Portrait Photo)</SelectItem>
+                        <SelectItem value="9:16">9:16 - Vertical (Portrait)</SelectItem>
+                        <SelectItem value="16:9">16:9 - Horizontal (Landscape)</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-muted-foreground mt-1.5">
-                      Choose the aspect ratio for generated images
+                      Choose vertical (9:16) for portrait-style images or horizontal (16:9) for landscape-style images
                     </p>
                   </div>
                 </>
@@ -694,7 +767,10 @@ const Settings = () => {
                 <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
-                <h2 className="font-semibold text-lg">Article Generation Prompt</h2>
+                <div>
+                  <h2 className="font-semibold text-lg">Classic Article Prompt</h2>
+                  <p className="text-sm text-muted-foreground">Used for standard article generation</p>
+                </div>
               </div>
               <Button variant="ghost" size="sm" onClick={resetArticlePrompt}>
                 <RotateCcw className="w-4 h-4 mr-2" />
@@ -712,6 +788,82 @@ const Settings = () => {
                 <p>🎯 <strong>How to use:</strong> This prompt controls how AI generates article content for your articles.</p>
                 <p>💡 <strong>Placeholders:</strong> Use <code className="bg-muted px-1 py-0.5 rounded">{'{title}'}</code> for the article title.</p>
                 <p>✨ <strong>Examples:</strong> Change style (realistic, artistic, minimalist), modify format (short/long descriptions), adjust tone (professional, casual, creative).</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Listicle Prompts */}
+          <div className="card-modern p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-lg">Listicle Prompts</h2>
+                  <p className="text-sm text-muted-foreground">Select category and customize its prompt</p>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSettings({ 
+                    ...settings, 
+                    listiclePrompts: {
+                      ...settings.listiclePrompts,
+                      [settings.listicleCategory]: DEFAULT_LISTICLE_PROMPTS[settings.listicleCategory]
+                    }
+                  });
+                  toast.info('Listicle prompt reset to default');
+                }}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset to Default
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>Listicle Category</Label>
+                <Select
+                  value={settings.listicleCategory}
+                  onValueChange={(value: 'general' | 'food' | 'home' | 'fashion') => setSettings({ ...settings, listicleCategory: value })}
+                >
+                  <SelectTrigger className="mt-1.5 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">
+                      <span className="flex items-center gap-2">⭐ Default (General)</span>
+                    </SelectItem>
+                    <SelectItem value="food">
+                      <span className="flex items-center gap-2">🍳 Food & Recipes</span>
+                    </SelectItem>
+                    <SelectItem value="home">
+                      <span className="flex items-center gap-2">🏠 Home Decor</span>
+                    </SelectItem>
+                    <SelectItem value="fashion">
+                      <span className="flex items-center gap-2">👗 Fashion & Outfits</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Textarea
+                  value={settings.listiclePrompts?.[settings.listicleCategory] || DEFAULT_LISTICLE_PROMPTS[settings.listicleCategory]}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    listiclePrompts: {
+                      ...settings.listiclePrompts,
+                      [settings.listicleCategory]: e.target.value
+                    }
+                  })}
+                  className="min-h-[250px] font-mono text-sm bg-background"
+                />
+                <div className="text-sm text-muted-foreground space-y-1 mt-3">
+                  <p>📝 <strong>How to use:</strong> This prompt controls how classic articles are generated.</p>
+                  <p>💡 <strong>Placeholder:</strong> Use <code className="bg-muted px-1 py-0.5 rounded">{'{title}'}</code> where you want the article title inserted.</p>
+                </div>
               </div>
             </div>
           </div>
