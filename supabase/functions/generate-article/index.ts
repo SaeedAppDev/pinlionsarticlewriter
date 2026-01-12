@@ -1331,13 +1331,13 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     );
     console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts for ${articleCategory} category`);
 
-    // Step 5: Generate images (matching detected count from title)
-    console.log(`🖼️ Generating ${imageCount} AI images with ${imageModel} (${articleCategory} style)...`);
-    const imageUrls: string[] = [];
+    // Step 5: Generate images IN PARALLEL (matching detected count from title)
+    console.log(`🖼️ Generating ${imageCount} AI images with ${imageModel} (${articleCategory} style) - PARALLEL PROCESSING...`);
     
-    for (let i = 0; i < imageCount; i++) {
-      console.log(`Generating image ${i + 1}/${imageCount} with model ${imageModel}, aspect ratio ${aspectRatio}...`);
-      const imageUrl = await generateUniqueImage(
+    // Create all image generation promises at once for parallel execution
+    const imagePromises = Array.from({ length: imageCount }, (_, i) => {
+      console.log(`🚀 Starting image ${i + 1}/${imageCount} generation...`);
+      return generateUniqueImage(
         imagePrompts[i] || `${imageSubject} professional photo ${i + 1}`,
         i + 1,
         REPLICATE_API_KEY,
@@ -1346,15 +1346,17 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
         imageSubject,
         articleCategory,
         imageModel
-      );
-      imageUrls.push(imageUrl);
-      
-      if (i < imageCount - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2500));
-      }
-    }
+      ).catch(error => {
+        console.error(`❌ Image ${i + 1} failed:`, error.message);
+        return ''; // Return empty string on failure
+      });
+    });
     
-    console.log(`✅ Generated ${imageUrls.length}/${imageCount} images with aspect ratio: ${aspectRatio}`);
+    // Execute all image generations in parallel
+    const imageUrls = await Promise.all(imagePromises);
+    const successCount = imageUrls.filter(url => url !== '').length;
+    
+    console.log(`✅ Generated ${successCount}/${imageCount} images with aspect ratio: ${aspectRatio} (PARALLEL)`);
 
     // Step 6: Replace image placeholders (dynamic count)
     const getImageDimensions = (ar: string): { width: number; height: number } => {
