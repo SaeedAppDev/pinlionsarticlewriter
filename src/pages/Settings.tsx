@@ -530,9 +530,15 @@ const Settings = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="recipe">Recipe Style</SelectItem>
-                    <SelectItem value="general">General Blog Style</SelectItem>
-                    <SelectItem value="listicle">Listicle Style</SelectItem>
+                    <SelectItem value="recipe">
+                      <span className="flex items-center gap-2">🍳 Recipe Style</span>
+                    </SelectItem>
+                    <SelectItem value="general">
+                      <span className="flex items-center gap-2">⭐ General Blog Style</span>
+                    </SelectItem>
+                    <SelectItem value="listicle">
+                      <span className="flex items-center gap-2">📝 Listicle Style</span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground mt-1.5">
