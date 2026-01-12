@@ -118,6 +118,7 @@ const Queue = () => {
           aspectRatio: parsed.imageAspectRatio || parsed.aspectRatio || '4:3',
           aiProvider: parsed.aiProvider || 'lovable',
           articleStyle: parsed.articleStyle || 'recipe',
+          imageModel: parsed.imageModel || 'zimage',
         };
         
         // Pass the appropriate API key based on provider

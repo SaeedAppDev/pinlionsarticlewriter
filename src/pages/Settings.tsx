@@ -175,7 +175,7 @@ interface SettingsData {
   generateImages: boolean;
   imageCount: string;
   imageAspectRatio: string;
-  imageModel: 'seedream' | 'zimage';
+  imageModel: 'zimage' | 'flux-schnell' | 'seedream' | 'gpt-image';
   articlePrompt: string;
   imagePrompt: string;
   imagePrompts: Record<string, string>;
@@ -662,7 +662,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   generateImages: true,
   imageCount: '3',
   imageAspectRatio: '9:16',
-  imageModel: 'zimage',
+  imageModel: 'zimage' as 'zimage' | 'flux-schnell' | 'seedream' | 'gpt-image',
   articlePrompt: DEFAULT_ARTICLE_PROMPT,
   imagePrompt: DEFAULT_IMAGE_PROMPT,
   imagePrompts: DEFAULT_IMAGE_PROMPTS,
@@ -969,18 +969,40 @@ const Settings = () => {
                 <Label>Image Generation Model</Label>
                 <Select
                   value={settings.imageModel}
-                  onValueChange={(value: 'seedream' | 'zimage') => setSettings({ ...settings, imageModel: value })}
+                  onValueChange={(value: 'zimage' | 'flux-schnell' | 'seedream' | 'gpt-image') => setSettings({ ...settings, imageModel: value })}
                 >
                   <SelectTrigger className="mt-1.5 bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="seedream">Seedream 4.5 (ByteDance) - $0.04 per image</SelectItem>
-                    <SelectItem value="zimage">Z-Image Turbo (Pruna AI) - $0.01 per image</SelectItem>
+                    <SelectItem value="zimage">
+                      <div className="flex flex-col">
+                        <span>🚀 Z-Image Turbo (Pruna AI)</span>
+                        <span className="text-xs text-muted-foreground">Fast, ultra-realistic • $0.01/image</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="flux-schnell">
+                      <div className="flex flex-col">
+                        <span>⚡ FLUX Schnell (Black Forest Labs)</span>
+                        <span className="text-xs text-muted-foreground">High quality, fast • $0.003/image</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="seedream">
+                      <div className="flex flex-col">
+                        <span>🎨 Seedream 4.5 (ByteDance)</span>
+                        <span className="text-xs text-muted-foreground">Artistic, detailed • $0.04/image</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="gpt-image">
+                      <div className="flex flex-col">
+                        <span>🤖 GPT Image (OpenAI)</span>
+                        <span className="text-xs text-muted-foreground">Best quality, slowest • $0.08/image</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground mt-1.5">
-                  Choose the AI model for generating featured and in-text images (pricing shown per image)
+                  Choose the AI model for generating images. Z-Image Turbo is recommended for realistic photography.
                 </p>
               </div>
 
