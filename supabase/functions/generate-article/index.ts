@@ -270,12 +270,14 @@ async function analyzeArticleForImagePrompts(
   articleContent: string,
   dishName: string,
   AI_API_KEY: string,
-  aiProvider: string
+  aiProvider: string,
+  imageCount: number = 7,
+  articleCategory: string = "food"
 ): Promise<string[]> {
-  console.log('🔍 AI Analysis: Extracting key content from article for image generation...');
+  console.log(`🔍 AI Analysis: Extracting key content from article for ${imageCount} images (category: ${articleCategory})...`);
   
   const analysisText = articleContent
-    .replace(/\{\{IMAGE_\d\}\}/g, ' ')
+    .replace(/\{\{IMAGE_\d+\}\}/g, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
@@ -291,7 +293,34 @@ async function analyzeArticleForImagePrompts(
     ? `${analysisText.slice(0, 3000)} ... ${analysisText.slice(-3000)}`
     : analysisText;
 
-  const systemPrompt = `You are an expert at creating SHORT, SPECIFIC image prompts for professional food photography.
+  // Category-specific system prompts
+  let categoryExamples: string;
+  let categoryContext: string;
+  
+  if (articleCategory === 'home') {
+    categoryExamples = `Examples of GOOD prompts for home decor:
+- "modern minimalist living room with white sofa"
+- "scandinavian kitchen with wooden cabinets"
+- "cozy bedroom with neutral bedding"
+- "contemporary bathroom with marble tiles"`;
+    categoryContext = "professional interior design and home decor photography";
+  } else if (articleCategory === 'fashion') {
+    categoryExamples = `Examples of GOOD prompts for fashion:
+- "casual summer outfit with white linen pants"
+- "elegant evening dress on mannequin"
+- "street style layered look autumn"
+- "minimalist accessories gold jewelry"`;
+    categoryContext = "professional fashion and style photography";
+  } else {
+    categoryExamples = `Examples of GOOD prompts for food:
+- "chocolate chip cookies on white plate"
+- "fresh pasta with tomato sauce"
+- "colorful salad bowl overhead shot"
+- "grilled salmon with lemon wedges"`;
+    categoryContext = "professional food photography";
+  }
+
+  const systemPrompt = `You are an expert at creating SHORT, SPECIFIC image prompts for ${categoryContext}.
 
 CRITICAL RULES:
 - Each prompt must be SHORT (under 10 words)
@@ -299,18 +328,16 @@ CRITICAL RULES:
 - Simple subjects only - avoid complex scenes
 - Professional, high-quality photography style
 
-Examples of GOOD prompts:
-- "chocolate chip cookies on white plate"
-- "golden retriever puppy playing"
-- "modern kitchen with marble countertops"
+${categoryExamples}
 
 BAD prompts (too generic):
-- "a dog"
-- "cookies"
+- "a room"
+- "nice outfit"
+- "food"
 
-Output EXACTLY 7 prompts, one per line, numbered 1-7.`;
+Output EXACTLY ${imageCount} prompts, one per line, numbered 1-${imageCount}.`;
 
-  const userPrompt = `Based on this article about "${extractedTitle}", create 7 SPECIFIC image prompts for professional photography.
+  const userPrompt = `Based on this article about "${extractedTitle}", create ${imageCount} SPECIFIC image prompts for ${categoryContext}.
 
 Article excerpt:
 ${excerpt}
@@ -319,9 +346,9 @@ Requirements:
 - Each prompt should be SHORT (under 10 words)
 - Be SPECIFIC to this article topic
 - Simple subjects only - avoid complex scenes
-- Professional, high-quality photography style
+- Professional, high-quality ${articleCategory === 'home' ? 'interior design' : articleCategory === 'fashion' ? 'fashion' : 'food'} photography style
 
-Create 7 SPECIFIC prompts with details related to this article.
+Create ${imageCount} SPECIFIC prompts with details related to this article.
 
 Format as a numbered list:
 1. [specific detailed prompt]
@@ -345,24 +372,64 @@ etc.`;
       }
     }
     
-    while (prompts.length < 7) {
-      prompts.push(`${dishName} on white plate`);
+    // Generate fallback prompts based on category
+    const getFallbackPrompts = (category: string, subject: string): string[] => {
+      if (category === 'home') {
+        return [
+          `${subject} living room design`,
+          `${subject} bedroom styling`,
+          `${subject} kitchen layout`,
+          `${subject} bathroom decor`,
+          `${subject} entryway design`,
+          `${subject} dining room setup`,
+          `${subject} home office space`
+        ];
+      } else if (category === 'fashion') {
+        return [
+          `${subject} outfit styling`,
+          `${subject} accessory detail`,
+          `${subject} full look styling`,
+          `${subject} layered outfit`,
+          `${subject} footwear styling`,
+          `${subject} seasonal look`,
+          `${subject} casual ensemble`
+        ];
+      }
+      return [
+        `${subject} hero shot overhead`,
+        `${subject} close-up texture`,
+        `${subject} ingredients arranged`,
+        `${subject} being prepared`,
+        `${subject} plated elegantly`,
+        `${subject} multiple servings`,
+        `${subject} final presentation`
+      ];
+    };
+    
+    const fallbacks = getFallbackPrompts(articleCategory, dishName);
+    let fallbackIndex = 0;
+    
+    while (prompts.length < imageCount && fallbackIndex < fallbacks.length) {
+      prompts.push(fallbacks[fallbackIndex]);
+      fallbackIndex++;
     }
     
-    console.log('Generated short image prompts:', prompts.slice(0, 7));
-    return prompts.slice(0, 7);
+    // If still not enough, duplicate with variations
+    while (prompts.length < imageCount) {
+      prompts.push(`${dishName} detail shot ${prompts.length + 1}`);
+    }
+    
+    console.log(`Generated ${prompts.length} image prompts for category: ${articleCategory}`);
+    return prompts.slice(0, imageCount);
     
   } catch (error) {
     console.error('Error analyzing article for prompts:', error);
-    return [
-      `${dishName} hero shot overhead`,
-      `${dishName} close-up texture`,
-      `${dishName} ingredients arranged`,
-      `${dishName} being prepared`,
-      `${dishName} plated elegantly`,
-      `${dishName} multiple servings`,
-      `${dishName} final presentation`
-    ];
+    const fallbacks = articleCategory === 'home' 
+      ? Array.from({ length: imageCount }, (_, i) => `modern interior design ${dishName} ${i + 1}`)
+      : articleCategory === 'fashion'
+      ? Array.from({ length: imageCount }, (_, i) => `stylish outfit ${dishName} ${i + 1}`)
+      : Array.from({ length: imageCount }, (_, i) => `${dishName} food photography ${i + 1}`);
+    return fallbacks;
   }
 }
 
@@ -373,17 +440,38 @@ async function generateUniqueImage(
   REPLICATE_API_KEY: string,
   supabase: any,
   aspectRatio: string = "4:3",
-  dishName: string = ""
+  dishName: string = "",
+  articleCategory: string = "food"
 ): Promise<string> {
   try {
-    console.log(`Generating image ${imageNumber} with prompt: ${prompt.substring(0, 100)}...`);
+    console.log(`Generating image ${imageNumber} with prompt: ${prompt.substring(0, 100)}... (category: ${articleCategory})`);
 
-    const realisticPrompt = `Professional food photography, DSLR camera shot, ${prompt}. 
+    // Category-specific image prompts for ultra-realistic photography
+    let realisticPrompt: string;
+    
+    if (articleCategory === 'home') {
+      realisticPrompt = `Professional interior design photography, DSLR camera shot, ${prompt}. 
+STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art, NOT 3D render.
+CAMERA: Shot on Canon EOS R5, 24mm f/2.8 wide-angle lens, natural daylight from large windows.
+COMPOSITION: Eye-level or slightly elevated angle, showing full room context, balanced symmetry.
+DETAILS: Visible textures on furniture and fabrics, realistic shadows, natural wood grain, authentic materials.
+QUALITY: 8K resolution, magazine-quality interior photography, like Architectural Digest or Elle Decor.`;
+    } else if (articleCategory === 'fashion') {
+      realisticPrompt = `Professional fashion photography, DSLR camera shot, ${prompt}. 
+STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art.
+CAMERA: Shot on Canon EOS R5, 85mm f/1.4 lens, studio lighting with soft diffusion.
+COMPOSITION: Full outfit or detail shot, clean minimal background, fashion editorial style.
+DETAILS: Visible fabric texture, natural skin tones, authentic clothing details, professional styling.
+QUALITY: 8K resolution, magazine-quality fashion photography, like Vogue or Harper's Bazaar.`;
+    } else {
+      // Default: food photography
+      realisticPrompt = `Professional food photography, DSLR camera shot, ${prompt}. 
 STYLE: Ultra-realistic photograph, NOT AI-generated, NOT illustration, NOT digital art.
 CAMERA: Shot on Canon EOS R5, 50mm f/1.8 lens, natural lighting from window.
 COMPOSITION: Overhead or 45-degree angle, wooden cutting board or marble surface, rustic kitchen background.
 DETAILS: Visible texture, natural imperfections, authentic food styling, soft shadows.
 QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or Food Network.`;
+    }
 
     let prediction: any | null = null;
     const maxCreateAttempts = 8;
@@ -628,6 +716,31 @@ serve(async (req) => {
     
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${recipeId})`);
     console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}`);
+    
+    // Detect image count from title (e.g., "12 Easy Kitchen Ideas" → 12)
+    const numberMatch = focusKeyword.match(/\b(\d+)\b/);
+    let imageCount = 7; // Default
+    if (numberMatch) {
+      const detectedCount = parseInt(numberMatch[1], 10);
+      if (detectedCount >= 3 && detectedCount <= 25) {
+        imageCount = detectedCount;
+        console.log(`📊 Detected ${imageCount} items from title - will generate ${imageCount} images`);
+      }
+    }
+    
+    // Determine article category for image generation
+    // Map articleStyle to image category: recipe→food, listicle can be home/fashion/food based on keywords
+    let articleCategory = 'food';
+    const titleLower = focusKeyword.toLowerCase();
+    if (titleLower.includes('kitchen') || titleLower.includes('bedroom') || titleLower.includes('living') || 
+        titleLower.includes('bathroom') || titleLower.includes('decor') || titleLower.includes('interior') ||
+        titleLower.includes('room') || titleLower.includes('home') || titleLower.includes('furniture')) {
+      articleCategory = 'home';
+    } else if (titleLower.includes('outfit') || titleLower.includes('fashion') || titleLower.includes('style') ||
+               titleLower.includes('wear') || titleLower.includes('dress') || titleLower.includes('clothing')) {
+      articleCategory = 'fashion';
+    }
+    console.log(`🏷️ Article category detected: ${articleCategory}`);
 
     // Determine which API key to use
     let AI_API_KEY: string;
@@ -928,26 +1041,27 @@ CRITICAL FORMATTING RULES:
 - Keep paragraphs SHORT and scannable
 
 IMAGE PLACEHOLDERS:
-Place these placeholders naturally between list items:
-{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}
+Place these placeholders naturally between list items - one image per list item:
+${Array.from({ length: imageCount }, (_, i) => `{{IMAGE_${i + 1}}}`).join(', ')}
 
-Place them on their own lines between items or after key sections.`;
+Place them on their own lines between items or after key sections. Each list item should have its own image.`;
 
+      // Generate image placeholder list for prompt
+      const imagePlaceholderList = Array.from({ length: imageCount }, (_, i) => `{{IMAGE_${i + 1}}}`).join(', ');
+      
       articlePrompt = `LISTICLE TITLE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
+NUMBER OF LIST ITEMS: ${imageCount}
 
 Write a comprehensive listicle article (2,500+ words) following the structure in the system prompt.
 
-DETECT THE LIST COUNT from the title:
-- If title says "10 Best..." → write 10 items
-- If title says "15 Ways..." → write 15 items
-- If no number specified → write 10-12 items
-- Each numbered item should be an H2 heading
+IMPORTANT: Write EXACTLY ${imageCount} numbered list items as detected from the title.
+Each numbered item should be an H2 heading.
 
 SECTION ORDER:
 1. Hook Introduction (NO H1, start directly with engaging content)
 2. Quick Overview (optional, brief H2)
-3. The Numbered List (each item as H2 with number: "1. Item Name")
+3. The Numbered List - EXACTLY ${imageCount} items (each item as H2 with number: "1. Item Name")
 4. Comparison/Quick Reference Section (H2)
 5. FAQ (H2 with 4-6 H3 questions)
 6. Conclusion (H2)
@@ -957,7 +1071,8 @@ KEY REQUIREMENTS:
 - Each list item needs 2-3 paragraphs + bullet points
 - Conversational but authoritative tone
 - Active voice, short paragraphs
-- Use ALL 7 image placeholders distributed throughout
+- Use ALL ${imageCount} image placeholders: ${imagePlaceholderList}
+- Place ONE image after each list item
 - Make items specific and actionable
 - Include pro tips and insider knowledge
 - NO emojis, NO fluff
@@ -1101,39 +1216,42 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
 
     console.log('✅ Article content generated and cleaned successfully');
 
-    // Step 4: Analyze article and generate image prompts
+    // Step 4: Analyze article and generate image prompts based on detected count
     const imagePrompts = await analyzeArticleForImagePrompts(
       articleContent,
       imageSubject,
       AI_API_KEY,
-      aiProvider
+      aiProvider,
+      imageCount,
+      articleCategory
     );
-    console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts`);
+    console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts for ${articleCategory} category`);
 
-    // Step 5: Generate images
-    console.log('🖼️ Generating AI images with Replicate Flux...');
+    // Step 5: Generate images (matching detected count from title)
+    console.log(`🖼️ Generating ${imageCount} AI images with Replicate Flux (${articleCategory} style)...`);
     const imageUrls: string[] = [];
     
-    for (let i = 0; i < 7; i++) {
-      console.log(`Generating image ${i + 1}/7 with aspect ratio ${aspectRatio}...`);
+    for (let i = 0; i < imageCount; i++) {
+      console.log(`Generating image ${i + 1}/${imageCount} with aspect ratio ${aspectRatio}...`);
       const imageUrl = await generateUniqueImage(
-        imagePrompts[i],
+        imagePrompts[i] || `${imageSubject} professional photo ${i + 1}`,
         i + 1,
         REPLICATE_API_KEY,
         supabase,
         aspectRatio,
-        imageSubject
+        imageSubject,
+        articleCategory
       );
       imageUrls.push(imageUrl);
       
-      if (i < 6) {
+      if (i < imageCount - 1) {
         await new Promise(resolve => setTimeout(resolve, 2500));
       }
     }
     
-    console.log(`✅ Generated ${imageUrls.length} images with aspect ratio: ${aspectRatio}`);
+    console.log(`✅ Generated ${imageUrls.length}/${imageCount} images with aspect ratio: ${aspectRatio}`);
 
-    // Step 6: Replace image placeholders
+    // Step 6: Replace image placeholders (dynamic count)
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       const dimensions: Record<string, { width: number; height: number }> = {
         '1:1': { width: 1024, height: 1024 },
@@ -1152,7 +1270,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     console.log(`📐 Using image dimensions: ${imgDimensions.width}x${imgDimensions.height}`);
     
     let finalContent = articleContent;
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < imageCount; i++) {
       const placeholder = `{{IMAGE_${i + 1}}}`;
       if (imageUrls[i]) {
         finalContent = finalContent.replace(
@@ -1163,6 +1281,9 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
         finalContent = finalContent.replace(placeholder, '');
       }
     }
+    
+    // Also clean up any remaining placeholders that weren't generated
+    finalContent = finalContent.replace(/\{\{IMAGE_\d+\}\}/g, '');
 
     // Recipe card removed - simplified article structure
 
