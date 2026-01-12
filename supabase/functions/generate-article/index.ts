@@ -473,6 +473,22 @@ DETAILS: Visible texture, natural imperfections, authentic food styling, soft sh
 QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or Food Network.`;
     }
 
+    // Parse aspect ratio to get width/height for z-image-turbo model
+    const getImageDimensions = (ar: string): { width: number; height: number } => {
+      const ratioMap: { [key: string]: { width: number; height: number } } = {
+        '1:1': { width: 1024, height: 1024 },
+        '4:3': { width: 1024, height: 768 },
+        '3:4': { width: 768, height: 1024 },
+        '16:9': { width: 1280, height: 720 },
+        '9:16': { width: 720, height: 1280 },
+        '3:2': { width: 1024, height: 682 },
+        '2:3': { width: 682, height: 1024 },
+      };
+      return ratioMap[ar] || { width: 1024, height: 768 };
+    };
+
+    const dimensions = getImageDimensions(aspectRatio);
+    
     let prediction: any | null = null;
     const maxCreateAttempts = 8;
 
@@ -484,16 +500,15 @@ QUALITY: 8K resolution, magazine-quality food photography, like Bon Appetit or F
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          version: "black-forest-labs/flux-schnell",
+          version: "prunaai/z-image-turbo",
           input: {
             prompt: realisticPrompt,
-            go_fast: true,
-            megapixels: "1",
-            num_outputs: 1,
-            aspect_ratio: aspectRatio,
+            width: dimensions.width,
+            height: dimensions.height,
+            num_inference_steps: 8,
+            guidance_scale: 0,
             output_format: "webp",
             output_quality: 90,
-            num_inference_steps: 4,
           },
         }),
       });
