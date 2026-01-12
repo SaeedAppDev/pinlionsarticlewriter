@@ -14,45 +14,61 @@ interface ModeCardProps {
   onClick: () => void;
 }
 
-const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "relative flex flex-col items-center justify-center p-8 rounded-2xl transition-all duration-300 min-h-[200px] w-full max-w-[280px]",
-      isActive
-        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-[1.02]"
-        : "bg-card border border-border hover:border-primary/50 hover:shadow-md"
-    )}
-  >
-    <div
+const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => {
+  // Classic card: white bg, purple icon. Listicle card: green gradient when active
+  const isListicle = mode === 'listicle';
+  
+  return (
+    <button
+      onClick={onClick}
       className={cn(
-        "w-14 h-14 rounded-xl flex items-center justify-center mb-4",
-        isActive
-          ? "bg-primary-foreground/20"
-          : "bg-primary/10"
+        "relative flex flex-col items-center justify-center p-8 rounded-2xl transition-all duration-300 min-h-[220px] w-[320px]",
+        isListicle && isActive
+          ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/30"
+          : isActive && !isListicle
+            ? "bg-card border-2 border-primary shadow-lg"
+            : "bg-card border border-border hover:border-primary/50 hover:shadow-md"
       )}
     >
-      <span className={cn(
-        "w-7 h-7",
-        isActive ? "text-primary-foreground" : "text-primary"
-      )}>
-        {icon}
-      </span>
-    </div>
-    <h3 className={cn(
-      "text-lg font-semibold",
-      isActive ? "text-primary-foreground" : "text-foreground"
-    )}>
-      {title}
-    </h3>
-    {isActive && (
-      <div className="flex items-center gap-1 mt-2 text-sm text-primary-foreground/80">
-        <Check className="w-4 h-4" />
-        <span>Active</span>
+      <div
+        className={cn(
+          "w-16 h-16 rounded-xl flex items-center justify-center mb-5",
+          isListicle && isActive
+            ? "bg-white/20"
+            : isListicle
+              ? "bg-emerald-100"
+              : "bg-gradient-to-br from-indigo-400 to-purple-500"
+        )}
+      >
+        <span className={cn(
+          "w-8 h-8",
+          isListicle && isActive
+            ? "text-white"
+            : isListicle
+              ? "text-emerald-600"
+              : "text-white"
+        )}>
+          {icon}
+        </span>
       </div>
-    )}
-  </button>
-);
+      <h3 className={cn(
+        "text-xl font-semibold",
+        isListicle && isActive ? "text-white" : "text-foreground"
+      )}>
+        {title}
+      </h3>
+      {isActive && (
+        <div className={cn(
+          "flex items-center gap-1.5 mt-3 text-sm font-medium",
+          isListicle ? "text-white/90" : "text-emerald-500"
+        )}>
+          <Check className="w-4 h-4" />
+          <span>Active</span>
+        </div>
+      )}
+    </button>
+  );
+};
 
 const Mode = () => {
   const navigate = useNavigate();
@@ -105,7 +121,7 @@ const Mode = () => {
           Choose Your Content Type
         </h1>
         
-        <div className="flex flex-wrap gap-6 justify-center">
+        <div className="flex flex-row gap-8 justify-center items-start">
           <ModeCard
             mode="classic"
             title="Classic Article Writer"
