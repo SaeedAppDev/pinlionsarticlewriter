@@ -218,12 +218,117 @@ Target length: approximately 1500 words.
 CRITICAL: Present EXACTLY {itemCount} different fashion items or looks.
 
 Include engaging intro, numbered sections with <h2> headings, FAQ section, and conclusion.`,
-  'food': `Write an engaging food article about: "{title}".
+  'food': `Write a conversational, friendly food recipe article about: "{title}". 
+
 Target length: approximately 1500 words.
 
-CRITICAL: Present EXACTLY {itemCount} different recipes or food items.
+CRITICAL: Create EXACTLY {itemCount} numbered recipe sections - no more, no less. The title specifies {itemCount} recipes, so deliver exactly that many.
 
-Include appetizing descriptions, tips, and an FAQ section.`,
+STRUCTURE:
+
+1. Start with an engaging <h1> title that is more viral than the original:
+
+   - Maximum 15 words
+
+   - MUST include the exact core phrase from the original title (e.g., if original is "8 Italian Salads", the new title MUST contain "8 Italian salads")
+
+   - Use proper title case capitalization (First Letter Of Each Major Word Capitalized)
+
+   - Make it click-worthy and engaging while keeping the SEO keywords
+
+   - Example: Original "8 Italian Salads to Try" becomes "8 Italian Salads That Will Transport You to Tuscany"
+
+2. Follow with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast with why these recipes are amazing. No generic phrases like "In today is culinary world..." or "In modern times...". Jump straight into something that grabs attention.
+
+3. Create EXACTLY {itemCount} numbered recipe sections using <h2> headings with creative names (like "1. Tuscan Panzanella That Will Ruin Store-Bought Salads Forever" instead of boring titles).
+
+4. For EACH recipe section, include:
+
+   - A brief intro paragraph (2-3 sentences) explaining why this recipe is awesome (what makes it special, when to serve it, why people love it)
+
+   - <h3>Ingredients:</h3> section with a bulleted <ul> list of all ingredients with measurements
+
+   - <h3>Instructions:</h3> section with numbered <ol> steps that are clear and easy to follow
+
+   - A closing paragraph with serving suggestions, variations, or pro tips
+
+5. End with a brief, encouraging conclusion (2-3 sentences) that makes readers excited to try these recipes.
+
+TONE & STYLE:
+
+- Conversational and informal - write like you are chatting with a foodie friend who loves trying new recipes
+
+- Approachable, light-hearted, and occasionally sarcastic about food (but do not overdo the sarcasm)
+
+- Use active voice only - avoid passive constructions entirely
+
+- Keep paragraphs SHORT (2-3 sentences max) - make it scannable
+
+- Use rhetorical questions to engage readers and break up text
+
+- Sprinkle in internet slang sparingly: "FYI", "IMO", "trust me", "seriously" (2-3 times max per article)
+
+- Include occasional humor to keep things fun
+
+- Personal opinions and commentary when appropriate
+
+- Bold key cooking terms and ingredients with <strong> tags (but NOT in the introduction)
+
+FORMATTING:
+
+- Use proper HTML: <h1> for title, <h2> for numbered recipes, <h3> for Ingredients/Instructions subsections
+
+- Use <ul> with <li> for ingredients lists
+
+- Use <ol> with <li> for numbered instruction steps
+
+- Use <p> for paragraphs
+
+- Break down recipes into easy-to-read lists and steps
+
+- Avoid dense blocks of text
+
+- NO Markdown, code fences, or backticks (##, -, *, etc.)
+
+- No extraneous preamble before content starts
+
+The article should feel like a friendly conversation with your most food-savvy friend who does not take themselves too seriously.
+
+EXAMPLE FORMAT:
+
+<h1>8 Italian Salads That Will Transport You To Tuscany</h1>
+
+<p>Ready to make your taste buds do a happy dance? These Italian salads are about to become your new obsession.</p>
+
+<h2>1. Tuscan Panzanella That Will Ruin Store-Bought Salads Forever</h2>
+
+<p>This bread salad is summer in a bowl. Seriously, once you try this, you will never look at regular salad the same way.</p>
+
+<h3>Ingredients:</h3>
+
+<ul>
+
+<li>4 cups day-old bread, cubed</li>
+
+<li>6 ripe tomatoes, chopped</li>
+
+<li>1/2 cup olive oil</li>
+
+</ul>
+
+<h3>Instructions:</h3>
+
+<ol>
+
+<li>Toast bread cubes until golden.</li>
+
+<li>Toss with tomatoes and dressing.</li>
+
+<li>Let sit for 10 minutes so bread soaks up all that goodness.</li>
+
+</ol>
+
+<p>Serve this at your next summer BBQ and watch it disappear. Trust me.</p>`,
   'travel': `Write an inspiring travel article about: "{title}".
 Target length: approximately 1500 words.
 
