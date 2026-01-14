@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Send, Clock, CheckCircle, Settings, Sun, Moon, Layers, PlusCircle, LogOut } from 'lucide-react';
+import { Clock, CheckCircle, Settings, Sun, Moon, FileText, Plus, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -23,21 +23,26 @@ const NavItem = ({ icon, label, path, badge }: NavItemProps) => {
     <button
       onClick={() => navigate(path)}
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all",
+        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
         isActive
-          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium border border-sidebar-border"
+          ? "text-white font-medium"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
       )}
+      style={isActive ? {
+        background: 'linear-gradient(135deg, hsl(270, 70%, 65%) 0%, hsl(320, 60%, 70%) 100%)'
+      } : undefined}
     >
-      <span className={cn(
-        "flex-shrink-0",
-        isActive ? "text-primary" : "text-muted-foreground"
-      )}>
+      <span className="flex-shrink-0">
         {icon}
       </span>
       <span className="flex-1">{label}</span>
       {badge !== undefined && badge > 0 && (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
+        <span className={cn(
+          "px-2 py-0.5 text-xs font-medium rounded-full",
+          isActive 
+            ? "bg-white/20 text-white" 
+            : "bg-primary text-primary-foreground"
+        )}>
           {badge}
         </span>
       )}
@@ -84,10 +89,10 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-5 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Send className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+            PL
           </div>
           <div>
             <h1 className="font-bold text-sidebar-foreground">Pin Lions</h1>
@@ -100,7 +105,7 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
       <div className="px-4 pt-4">
         <Button
           variant="outline"
-          className="w-full justify-center gap-2"
+          className="w-full justify-start gap-2 bg-muted/50"
           onClick={toggleTheme}
         >
           {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -111,12 +116,12 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
         <NavItem
-          icon={<Layers className="w-5 h-5" />}
+          icon={<FileText className="w-5 h-5" />}
           label="Mode"
           path="/mode"
         />
         <NavItem
-          icon={<PlusCircle className="w-5 h-5" />}
+          icon={<Plus className="w-5 h-5" />}
           label="Add"
           path="/add"
         />
@@ -140,20 +145,18 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
 
       {/* Logout Button */}
       <div className="p-4 border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+        <button
           onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <LogOut className="w-4 h-4" />
-          Logout
-        </Button>
+          <LogOut className="w-5 h-5" />
+          <span>Sign Out</span>
+        </button>
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
-        <p className="text-xs text-muted-foreground text-center">Version 2.0.0</p>
-        <p className="text-xs text-muted-foreground text-center">© 2026 Pin Lions</p>
+      <div className="px-4 pb-4">
+        <p className="text-xs text-muted-foreground">Version 1.0.0 · © 2026 Pin Lions</p>
       </div>
     </aside>
   );

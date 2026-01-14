@@ -13,14 +13,16 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock } from 'lucide-react';
+import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock, AlertCircle } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { format } from 'date-fns';
 
-interface Recipe {
+interface Article {
   id: string;
   title: string;
   status: string;
+  type: string;
+  niche: string;
   error_message: string | null;
   created_at: string;
 }
@@ -28,7 +30,7 @@ interface Recipe {
 const GENERATION_TIME_SECONDS = 30;
 
 const Queue = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
@@ -49,10 +51,6 @@ const Queue = () => {
       
       setProgress(newProgress);
       setTimeRemaining(Math.ceil(remaining));
-      
-      if (elapsed >= GENERATION_TIME_SECONDS) {
-        // Keep at 95% until actually complete
-      }
     }, 100);
   };
 
@@ -69,19 +67,19 @@ const Queue = () => {
   };
 
   useEffect(() => {
-    fetchRecipes();
+    fetchArticles();
 
     const channel = supabase
-      .channel('recipes-changes')
+      .channel('articles-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'recipes',
+          table: 'articles',
         },
         () => {
-          fetchRecipes();
+          fetchArticles();
         }
       )
       .subscribe();
@@ -91,18 +89,23 @@ const Queue = () => {
     };
   }, []);
 
-  const fetchRecipes = async () => {
+  const fetchArticles = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
-        .from('recipes')
-        .select('id, title, status, error_message, created_at')
+        .from('articles')
+        .select('id, title, status, type, niche, error_message, created_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'processing', 'error'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRecipes(data || []);
+      setArticles(data || []);
     } catch (error) {
-      console.error('Error fetching recipes:', error);
-      toast.error('Failed to load recipes');
+      console.error('Error fetching articles:', error);
+      toast.error('Failed to load articles');
     } finally {
       setIsLoading(false);
     }
@@ -113,37 +116,12 @@ const Queue = () => {
       const savedSettings = localStorage.getItem('article_settings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        // Map settings to what the edge function expects
-        const result: Record<string, any> = {
-          aspectRatio: parsed.imageAspectRatio || parsed.aspectRatio || '4:3',
+        return {
+          aspectRatio: parsed.imageAspectRatio || '4:3',
           aiProvider: parsed.aiProvider || 'lovable',
           articleStyle: parsed.articleStyle || 'recipe',
           imageModel: parsed.imageModel || 'zimage',
         };
-        
-        // Pass the appropriate API key based on provider
-        if (parsed.aiProvider === 'groq' && parsed.groqApiKey) {
-          result.customApiKey = parsed.groqApiKey;
-        } else if (parsed.aiProvider === 'openai' && parsed.openaiApiKey) {
-          result.customApiKey = parsed.openaiApiKey;
-        }
-        
-        // Pass Replicate key if available
-        if (parsed.replicateApiKey) {
-          result.customReplicateKey = parsed.replicateApiKey;
-        }
-        
-        // Pass internal linking settings
-        if (parsed.enableInternalLinking) {
-          if (parsed.sitemapUrl) {
-            result.sitemapUrl = parsed.sitemapUrl;
-          }
-          if (parsed.internalLinks && parsed.internalLinks.length > 0) {
-            result.internalLinks = parsed.internalLinks;
-          }
-        }
-        
-        return result;
       }
     } catch (e) {
       console.error('Failed to parse settings:', e);
@@ -151,27 +129,29 @@ const Queue = () => {
     return {};
   };
 
-  const processAllRecipes = async () => {
-    const pendingRecipes = recipes.filter(r => r.status === 'pending');
-    if (pendingRecipes.length === 0) {
+  const processAllArticles = async () => {
+    const pendingArticles = articles.filter(a => a.status === 'pending');
+    if (pendingArticles.length === 0) {
       toast.info('No pending articles to process');
       return;
     }
 
     setIsProcessingAll(true);
-    toast.info(`Starting generation for ${pendingRecipes.length} articles...`);
+    toast.info(`Starting generation for ${pendingArticles.length} articles...`);
 
     const settings = getSettings();
 
-    for (const recipe of pendingRecipes) {
-      setProcessingId(recipe.id);
+    for (const article of pendingArticles) {
+      setProcessingId(article.id);
       startProgress();
       
       try {
         const { error } = await supabase.functions.invoke('generate-article', {
           body: { 
-            recipeId: recipe.id, 
-            title: recipe.title,
+            articleId: article.id, 
+            title: article.title,
+            type: article.type,
+            niche: article.niche,
             ...settings
           },
         });
@@ -183,71 +163,65 @@ const Queue = () => {
         stopProgress();
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error('Error processing recipe:', error);
+        console.error('Error processing article:', error);
         stopProgress();
       }
     }
     
     setProcessingId(null);
     setIsProcessingAll(false);
-    await fetchRecipes();
+    await fetchArticles();
     toast.success('All articles processed!');
   };
 
-  const deleteRecipe = async (id: string) => {
+  const deleteArticle = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('recipes')
+        .from('articles')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
       toast.success('Article deleted');
     } catch (error) {
-      console.error('Error deleting recipe:', error);
+      console.error('Error deleting article:', error);
       toast.error('Failed to delete article');
     }
   };
 
-  const clearCompleted = async () => {
-    try {
-      const { error } = await supabase
-        .from('recipes')
-        .delete()
-        .eq('status', 'completed');
-
-      if (error) throw error;
-      toast.success('Completed articles cleared');
-    } catch (error) {
-      console.error('Error clearing completed:', error);
-      toast.error('Failed to clear completed');
-    }
-  };
-
-  const pendingCount = recipes.filter(r => r.status === 'pending').length;
-  const completedCount = recipes.filter(r => r.status === 'completed').length;
-  const errorCount = recipes.filter(r => r.status === 'error').length;
+  const pendingCount = articles.filter(a => a.status === 'pending').length;
+  const completedCount = 0; // Will be fetched separately if needed
+  const errorCount = articles.filter(a => a.status === 'error').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
         return (
-          <Badge className="bg-emerald-100 text-emerald-600 border-0 gap-1.5 px-3 py-1 font-medium dark:bg-emerald-900/40 dark:text-emerald-400">
+          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-0 gap-1.5">
             <CheckCircle className="w-3.5 h-3.5" />
             Completed
           </Badge>
         );
       case 'processing':
         return (
-          <Badge className="status-processing border-0 gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" />
+          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border-0 gap-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
             Processing
           </Badge>
         );
       case 'error':
-        return <Badge className="status-error border-0">Error</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border-0 gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5" />
+            Error
+          </Badge>
+        );
       default:
-        return <Badge className="status-pending border-0">Pending</Badge>;
+        return (
+          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border-0">
+            Pending
+          </Badge>
+        );
     }
   };
 
@@ -256,7 +230,7 @@ const Queue = () => {
       <div className="p-8">
         {/* Page Header */}
         <div className="mb-6">
-          <h1 className="page-title mb-2">Article Queue</h1>
+          <h1 className="text-3xl font-bold mb-2 text-foreground">Article Queue</h1>
           <p className="text-muted-foreground">
             {pendingCount} pending • {completedCount} completed • {errorCount} errors
           </p>
@@ -265,9 +239,9 @@ const Queue = () => {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 mb-6">
           <Button
-            onClick={processAllRecipes}
+            onClick={processAllArticles}
             disabled={isProcessingAll || pendingCount === 0}
-            className="gradient-button border-0"
+            className="gradient-button text-white border-0"
           >
             {isProcessingAll ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -276,18 +250,9 @@ const Queue = () => {
             )}
             Generate All Articles ({pendingCount})
           </Button>
-          <Button variant="outline" onClick={fetchRecipes}>
+          <Button variant="outline" onClick={fetchArticles}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
-          </Button>
-          <Button
-            variant="outline"
-            onClick={clearCompleted}
-            disabled={completedCount === 0}
-            className="text-rose-500 border-rose-200 bg-rose-50/50 hover:bg-rose-100/50 dark:text-rose-400 dark:border-rose-800 dark:bg-rose-950/30 dark:hover:bg-rose-900/40"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear Completed
           </Button>
         </div>
 
@@ -311,45 +276,63 @@ const Queue = () => {
           </div>
         )}
 
-        {/* Table */}
+        {/* Content */}
         <div className="card-modern overflow-hidden">
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading...</div>
-          ) : recipes.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No articles in queue. Go to "Add Articles" to get started.
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin mb-4" />
+              <p>Loading...</p>
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Clock className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No articles in queue</h3>
+              <p className="text-center max-w-sm">
+                Add some article titles from the Add screen to start generating.
+              </p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold">Title</TableHead>
+                  <TableHead className="font-semibold">Type</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Created</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recipes.map((recipe) => (
+                {articles.map((article) => (
                   <TableRow 
-                    key={recipe.id}
-                    className={processingId === recipe.id ? 'bg-primary/5' : ''}
+                    key={article.id}
+                    className={processingId === article.id ? 'bg-primary/5' : ''}
                   >
                     <TableCell className="font-medium max-w-md">
-                      <div className="truncate">{recipe.title}</div>
-                      {processingId === recipe.id && progress > 0 && (
+                      <div className="truncate">{article.title}</div>
+                      {processingId === article.id && progress > 0 && (
                         <Progress value={progress} className="h-1 mt-2" />
                       )}
+                      {article.error_message && (
+                        <p className="text-xs text-red-500 mt-1 truncate">{article.error_message}</p>
+                      )}
                     </TableCell>
-                    <TableCell>{getStatusBadge(recipe.status)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {article.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(article.status)}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(recipe.created_at), 'MM/dd/yyyy')}
+                      {format(new Date(article.created_at), 'MM/dd/yyyy')}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteRecipe(recipe.id)}
+                        onClick={() => deleteArticle(article.id)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />

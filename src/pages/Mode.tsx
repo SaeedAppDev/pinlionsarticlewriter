@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileText, List, Sparkles } from "lucide-react";
+import { FileText, List, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AppLayout } from "@/components/AppLayout";
 
 export default function Mode() {
   const navigate = useNavigate();
@@ -13,75 +14,101 @@ export default function Mode() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-50">Choose Your Content Type</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-300">Select the type of article you want to create</p>
-      </div>
+    <AppLayout>
+      <div className="p-8 max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-foreground">Choose Your Content Type</h1>
+          <p className="text-muted-foreground">Select the type of article you want to create</p>
+        </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card
-          className={`p-8 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${
-            currentMode === "classic"
-              ? "border-primary border-2 shadow-md"
-              : "border-border hover:border-primary/50"
-          }`}
-          onClick={() => handleModeSelect("classic")}
-        >
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="p-4 rounded-full bg-gradient-to-br from-primary to-purple-600">
-              <FileText className="h-8 w-8 text-white" />
-            </div>
-            {currentMode === "classic" && (
-              <div className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
-                Active
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Classic Article Card */}
+          <Card
+            className={`p-8 cursor-pointer transition-all hover:shadow-lg ${
+              currentMode === "classic"
+                ? "border-2 border-primary shadow-md"
+                : "border-border hover:border-primary/50"
+            }`}
+            onClick={() => handleModeSelect("classic")}
+          >
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center">
+                <FileText className="h-10 w-10 text-white" />
               </div>
-            )}
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Information Article</h3>
-              <p className="text-sm text-muted-foreground">
-                Deep, comprehensive articles that explain topics in detail. Perfect for guides,
-                tutorials, and educational content.
-              </p>
+              {currentMode === "classic" && (
+                <span className="px-4 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
+                  Active
+                </span>
+              )}
+              <div>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">Classic Article Writer</h3>
+                <p className="text-sm text-muted-foreground">
+                  Create in-depth, comprehensive articles with detailed content and insights
+                </p>
+              </div>
+              <Button
+                className="w-full gradient-button text-white border-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleModeSelect("classic");
+                }}
+              >
+                Select Classic
+              </Button>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3" />
-              <span>AI-powered content generation</span>
+          </Card>
+
+          {/* Listicle Card */}
+          <Card
+            className={`p-8 cursor-pointer transition-all hover:shadow-lg ${
+              currentMode === "listicle"
+                ? "border-2 border-emerald-500 shadow-md"
+                : "border-border hover:border-emerald-500/50"
+            }`}
+            onClick={() => handleModeSelect("listicle")}
+          >
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center">
+                <List className="h-10 w-10 text-white" />
+              </div>
+              {currentMode === "listicle" && (
+                <span className="px-4 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm font-medium rounded-full">
+                  Active
+                </span>
+              )}
+              <div>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">Listicle Writer</h3>
+                <p className="text-sm text-muted-foreground">
+                  Generate engaging list-based articles with numbered or bulleted items
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleModeSelect("listicle");
+                }}
+              >
+                Select Listicle
+              </Button>
+            </div>
+          </Card>
+        </div>
+
+        {/* Quick Tip Card */}
+        <Card className="p-6 bg-card border-border">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-semibold mb-1 text-foreground">Quick Tip</h4>
+              <p className="text-sm text-muted-foreground">
+                You can switch between modes anytime. Your selection will be remembered for your next session.
+              </p>
             </div>
           </div>
         </Card>
-
-        <Card
-          className={`p-8 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${
-            currentMode === "listicle"
-              ? "border-emerald-500 border-2 shadow-md bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30"
-              : "border-border hover:border-emerald-500/50"
-          }`}
-          onClick={() => handleModeSelect("listicle")}
-        >
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="p-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500">
-              <List className="h-8 w-8 text-white" />
-            </div>
-            {currentMode === "listicle" && (
-              <div className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded-full">
-                Active
-              </div>
-            )}
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Round-Up / Listicle</h3>
-              <p className="text-sm text-muted-foreground">
-                Numbered collections of ideas, tips, or products. Great for "Top 10" lists,
-                curated recommendations, and roundups.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3 w-3" />
-              <span>Structured list generation</span>
-            </div>
-          </div>
-        </Card>
       </div>
-    </div>
+    </AppLayout>
   );
 }
