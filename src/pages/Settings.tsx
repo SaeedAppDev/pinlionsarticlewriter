@@ -104,6 +104,7 @@ FORMATTING:
 The article should feel like a friendly conversation with someone experienced who does not take themselves too seriously.`;
 
 const listicleCategories = [
+  { value: 'default', label: 'Default (General)', icon: '⭐' },
   { value: 'home-decor', label: 'Home Decor', icon: '🏠' },
   { value: 'fashion', label: 'Fashion', icon: '👗' },
   { value: 'food', label: 'Food & Recipes', icon: '🍳' },
@@ -113,7 +114,108 @@ const listicleCategories = [
 ];
 
 const defaultListiclePrompts: Record<string, string> = {
-  'home-decor': `Write a conversational, friendly home decor article showcasing: "{title}". 
+  'default': `CRITICAL: Start your response with an <h1> title tag. Do NOT start with anything else.
+
+Write a conversational, friendly listicle article about: "{title}". 
+
+Target length: approximately 1500 words.
+
+CRITICAL: Create EXACTLY {itemCount} numbered sections - no more, no less. The title specifies {itemCount} items, so deliver exactly that many.
+
+FIRST LINE MUST BE: An <h1> title that is MORE VIRAL than the original:
+
+   - Maximum 15 words
+
+   - MUST include the exact core phrase from the original title (e.g., if original is "5 Home Decor Ideas", the new title MUST contain "5 Home Decor Ideas")
+
+   - Add compelling words to make it click-worthy and engaging
+
+   - Use proper title case capitalization (First Letter Of Each Major Word Capitalized)
+
+   - CRITICAL: Do NOT just capitalize the original title - ADD engaging words!
+
+   - Example: Original "5 Home Decor Ideas" becomes "5 Home Decor Ideas That Will Make Your Friends Jealous"
+
+2. Follow with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast with why these items are amazing. No generic phrases like "In today is world..." or "In modern times...". Jump straight into something that grabs attention.
+
+3. Create EXACTLY {itemCount} numbered sections using <h2> headings with creative names (like "1. Layer Textures Like a Pro" instead of boring titles).
+
+4. For EACH section, include:
+
+   - A brief intro paragraph (2-3 sentences) explaining why this item is awesome
+
+   - Use <h3> subsections when helpful (like "Key Points", "Tips", "Materials") but only where it makes sense
+
+   - Include occasional <ul> lists for key elements when it helps with scannability
+
+   - Mix short paragraphs with practical information
+
+   - End with a brief note about benefits, applications, or when to use this
+
+5. End with a brief, encouraging conclusion (2-3 sentences) that makes readers excited to try these ideas.
+
+TONE & STYLE:
+
+- Conversational and informal - write like you are chatting with a friend who loves trying new things
+
+- Approachable, light-hearted, and occasionally sarcastic (but do not overdo the sarcasm)
+
+- Use active voice only - avoid passive constructions entirely
+
+- Keep paragraphs SHORT (2-3 sentences max) - make it scannable
+
+- Use rhetorical questions to engage readers and break up text
+
+- Sprinkle in internet slang sparingly: "FYI", "IMO", "trust me", "seriously" (2-3 times max per article)
+
+- Include occasional humor to keep things fun
+
+- Personal opinions and commentary when appropriate
+
+- Bold key terms and important phrases with <strong> tags (but NOT in the introduction)
+
+FORMATTING:
+
+- Use proper HTML: <h1> for title, <h2> for numbered items, <h3> for subsections when helpful
+
+- Use <ul> with <li> for lists of key elements
+
+- Use <p> for paragraphs
+
+- Break up content with vivid descriptions and specific details
+
+- Avoid dense blocks of text
+
+- NO Markdown, code fences, or backticks (##, -, *, etc.)
+
+- No extraneous preamble before content starts
+
+The article should feel like getting advice from your most knowledgeable friend who does not take themselves too seriously.
+
+EXAMPLE FORMAT:
+
+<h1>5 Home Decor Ideas That Will Make Your Friends Jealous</h1>
+
+<p>Ready to transform your space without breaking the bank? These ideas are about to become your new obsession.</p>
+
+<h2>1. Layer Textures Like a Pro</h2>
+
+<p>Want that cozy vibe everyone is obsessed with? It is all about layering different textures.</p>
+
+<h3>Key Materials:</h3>
+
+<ul>
+
+<li>Turkish towels with tassels</li>
+
+<li>Cotton rug (2x3 or runner)</li>
+
+<li>Linen throw pillows</li>
+
+</ul>
+
+<p>Mix and match different fabrics to create depth. Trust me, your space will instantly feel more expensive.</p>`,
+  'home-decor': `Write a conversational, friendly home decor article showcasing: "{title}".
 
 Target length: approximately 1500 words.
 
@@ -463,7 +565,7 @@ const Settings = () => {
   const [inTextImageCount, setInTextImageCount] = useState('4');
   const [inTextAspectRatio, setInTextAspectRatio] = useState('9:16');
   const [classicPrompt, setClassicPrompt] = useState(defaultClassicPrompt);
-  const [selectedListicleCategory, setSelectedListicleCategory] = useState('home-decor');
+  const [selectedListicleCategory, setSelectedListicleCategory] = useState('default');
   const [listiclePrompts, setListiclePrompts] = useState<Record<string, string>>(defaultListiclePrompts);
   const [customPrompts, setCustomPrompts] = useState<Array<{ id: string; name: string; prompt_text: string }>>([]);
   const [newPromptName, setNewPromptName] = useState('');
