@@ -16,7 +16,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Eye, Trash2, Grid, List, FileText, Calendar, Image as ImageIcon, Search } from 'lucide-react';
-import { AppLayout } from '@/components/AppLayout';
+
 import { format } from 'date-fns';
 
 interface Article {
@@ -137,8 +137,7 @@ const Completed = () => {
   const wpCount = 0; // WordPress integration placeholder
 
   return (
-    <AppLayout>
-      <div className="p-8">
+    <div className="p-8">
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Completed Articles</h1>
@@ -270,8 +269,7 @@ const Completed = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
-    </AppLayout>
+    </div>
   );
 };
 

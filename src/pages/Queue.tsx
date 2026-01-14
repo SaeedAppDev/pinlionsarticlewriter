@@ -14,7 +14,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock, AlertCircle } from 'lucide-react';
-import { AppLayout } from '@/components/AppLayout';
+
 import { format } from 'date-fns';
 
 interface Article {
@@ -226,8 +226,7 @@ const Queue = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="p-8">
+    <div className="p-8">
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Article Queue</h1>
@@ -344,8 +343,7 @@ const Queue = () => {
             </Table>
           )}
         </div>
-      </div>
-    </AppLayout>
+    </div>
   );
 };
 
