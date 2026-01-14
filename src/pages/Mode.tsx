@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileText, List, Lightbulb } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
 
 export default function Mode() {
   const navigate = useNavigate();
@@ -14,7 +13,7 @@ export default function Mode() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="p-8 max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Choose Your Content Type</h1>
@@ -109,6 +108,6 @@ export default function Mode() {
           </div>
         </Card>
       </div>
-    </AppLayout>
+    </>
   );
 }

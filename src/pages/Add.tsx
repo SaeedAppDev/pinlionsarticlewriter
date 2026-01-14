@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Info } from "lucide-react";
-import { AppLayout } from "@/components/AppLayout";
+
 
 export default function Add() {
   const { toast } = useToast();
@@ -89,8 +89,7 @@ export default function Add() {
   };
 
   return (
-    <AppLayout>
-      <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
@@ -209,7 +208,6 @@ export default function Add() {
             </div>
           </div>
         </Card>
-      </div>
-    </AppLayout>
+    </div>
   );
 }

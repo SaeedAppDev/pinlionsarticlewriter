@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Save, FileText, List, Code, Key } from 'lucide-react';
-import { AppLayout } from '@/components/AppLayout';
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface ApiSettings {
@@ -73,8 +73,7 @@ const Settings = () => {
   };
 
   return (
-    <AppLayout>
-      <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 text-foreground">Settings</h1>
@@ -186,8 +185,7 @@ const Settings = () => {
             </div>
           </div>
         </Card>
-      </div>
-    </AppLayout>
+    </div>
   );
 };
 
