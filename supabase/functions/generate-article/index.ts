@@ -450,24 +450,30 @@ async function generateUniqueImage(
 
     // Category-specific image prompts for ultra-realistic photography
     // IMPORTANT: Do NOT mention camera equipment names as AI will generate images OF cameras!
+    // CRITICAL: Explicitly tell AI to NOT add any text, watermarks, or overlays!
     let realisticPrompt: string;
     
+    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only, absolutely no text overlay.";
+    
     if (articleCategory === 'home') {
-      realisticPrompt = `${prompt}, professional interior design photograph, ultra-realistic, NOT illustration, NOT digital art, NOT 3D render. 
+      realisticPrompt = `${prompt}. ${noTextRule}
+Professional interior design photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT 3D render, NOT AI-generated look.
 Natural daylight from large windows, eye-level angle, balanced symmetry.
 Visible textures on furniture and fabrics, realistic shadows, natural wood grain, authentic materials.
-8K resolution, magazine-quality interior photography, Architectural Digest style.`;
+Ultra high resolution, premium quality, magazine-quality interior photography, Architectural Digest style.`;
     } else if (articleCategory === 'fashion') {
-      realisticPrompt = `${prompt}, professional fashion photograph, ultra-realistic, NOT illustration, NOT digital art. 
+      realisticPrompt = `${prompt}. ${noTextRule}
+Professional fashion photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT AI-generated look.
 Studio lighting with soft diffusion, fashion editorial style.
 Visible fabric texture, natural skin tones, authentic clothing details, professional styling.
-8K resolution, magazine-quality fashion photography, Vogue style.`;
+Ultra high resolution, premium quality, magazine-quality fashion photography, Vogue style.`;
     } else {
       // Default: food photography
-      realisticPrompt = `${prompt}, professional food photograph, ultra-realistic, NOT illustration, NOT digital art.
+      realisticPrompt = `${prompt}. ${noTextRule}
+Professional food photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT AI-generated look.
 Natural lighting, overhead or 45-degree angle, wooden cutting board or marble surface, rustic kitchen background.
 Visible texture, natural imperfections, authentic food styling, soft shadows.
-8K resolution, magazine-quality food photography, Bon Appetit style.`;
+Ultra high resolution, premium quality, magazine-quality food photography, Bon Appetit style.`;
     }
 
     // Parse aspect ratio to get dimensions

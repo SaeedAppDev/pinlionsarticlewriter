@@ -20,13 +20,16 @@ async function generateImage(
     console.log(`🖼️ Regenerating image ${imageNumber} with model: ${imageModel}`);
     
     // Category-specific prompts
+    // CRITICAL: Explicitly tell AI to NOT add any text, watermarks, or overlays!
+    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only, absolutely no text overlay.";
+    
     let realisticPrompt: string;
     if (articleCategory === 'home') {
-      realisticPrompt = `${prompt}, professional interior design photograph, ultra-realistic, NOT illustration, NOT digital art, NOT 3D render. Natural daylight, 8K resolution, magazine-quality.`;
+      realisticPrompt = `${prompt}. ${noTextRule} Professional interior design photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT 3D render, NOT AI-generated look. Natural daylight, ultra high resolution, premium quality, magazine-quality.`;
     } else if (articleCategory === 'fashion') {
-      realisticPrompt = `${prompt}, professional fashion photograph, ultra-realistic, studio lighting, 8K resolution, Vogue style.`;
+      realisticPrompt = `${prompt}. ${noTextRule} Professional fashion photograph, ultra-realistic, photorealistic, studio lighting, ultra high resolution, premium quality, Vogue style.`;
     } else {
-      realisticPrompt = `${prompt}, professional food photograph, ultra-realistic, natural lighting, 8K resolution, Bon Appetit style.`;
+      realisticPrompt = `${prompt}. ${noTextRule} Professional food photograph, ultra-realistic, photorealistic, natural lighting, ultra high resolution, premium quality, Bon Appetit style.`;
     }
 
     // Get dimensions

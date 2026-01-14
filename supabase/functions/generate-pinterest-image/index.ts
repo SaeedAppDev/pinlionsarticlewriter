@@ -23,7 +23,8 @@ async function generateWithLovableAI(prompt: string, apiKey: string, aspectRatio
                        aspectRatio === '2:3' ? 'vertical portrait 2:3' :
                        aspectRatio === '1:2' ? 'tall vertical 1:2' : 'vertical';
 
-    const enhancedPrompt = `${prompt}. ${aspectHint} aspect ratio. Ultra high resolution, professional food photography.`;
+    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only, absolutely no text overlay.";
+    const enhancedPrompt = `${prompt}. ${noTextRule} ${aspectHint} aspect ratio. Ultra high resolution, premium quality, photorealistic, professional food photography.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -67,7 +68,8 @@ async function generateWithReplicate(prompt: string, apiKey: string, aspectRatio
     const Replicate = (await import("https://esm.sh/replicate@0.25.2")).default;
     const replicate = new Replicate({ auth: apiKey });
 
-    const enhancedPrompt = `Professional Pinterest food photography: ${prompt}. Highly detailed, appetizing, magazine-quality, perfect lighting, shallow depth of field.`;
+    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only.";
+    const enhancedPrompt = `Professional Pinterest food photography: ${prompt}. ${noTextRule} Highly detailed, appetizing, magazine-quality, perfect lighting, shallow depth of field, ultra high resolution, photorealistic.`;
 
     const output = await replicate.run("black-forest-labs/flux-schnell", {
       input: {
