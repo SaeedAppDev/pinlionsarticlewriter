@@ -1,9 +1,10 @@
 import { ReactNode, useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AppLayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
@@ -14,13 +15,13 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
     // Subscribe to realtime updates
     const channel = supabase
-      .channel('recipes-count')
+      .channel('articles-count')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'recipes',
+          table: 'articles',
         },
         () => {
           fetchCompletedCount();
@@ -36,7 +37,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const fetchCompletedCount = async () => {
     try {
       const { count, error } = await supabase
-        .from('recipes')
+        .from('articles')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'completed');
 
@@ -52,7 +53,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     <div className="flex min-h-screen w-full gradient-page">
       <AppSidebar completedCount={completedCount} />
       <main className="flex-1 overflow-auto">
-        {children}
+        {children || <Outlet />}
       </main>
     </div>
   );

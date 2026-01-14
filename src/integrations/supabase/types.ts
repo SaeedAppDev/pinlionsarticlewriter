@@ -14,6 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
+      article_image_prompts: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          prompt_text: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          prompt_text: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          prompt_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_image_prompts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      articles: {
+        Row: {
+          content_html: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          item_count: number | null
+          niche: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_html?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          item_count?: number | null
+          niche?: string
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_html?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          item_count?: number | null
+          niche?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      image_prompt_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          prompt_text: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          prompt_text: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          prompt_text?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      prompts: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          niche: string
+          prompt_text: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          niche?: string
+          prompt_text: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          niche?: string
+          prompt_text?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
           article_content: string | null
@@ -41,6 +169,36 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_api_settings: {
+        Row: {
+          created_at: string
+          id: string
+          openai_api_key: string | null
+          replicate_api_token: string | null
+          replicate_model: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          openai_api_key?: string | null
+          replicate_api_token?: string | null
+          replicate_model?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          openai_api_key?: string | null
+          replicate_api_token?: string | null
+          replicate_model?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
