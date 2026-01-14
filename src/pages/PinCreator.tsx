@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Code, Upload, Loader2, Trash2 } from 'lucide-react';
+import { Code, Upload, Loader2, Trash2, Settings } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -11,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const pinStyles = [
   { value: 'basic-top', label: 'Basic - Text at Top' },
@@ -48,6 +57,12 @@ const PinCreator = () => {
   const [imageModel, setImageModel] = useState('ideogram');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedPins, setGeneratedPins] = useState<GeneratedPin[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Settings state
+  const [licenseKey, setLicenseKey] = useState('');
+  const [replicateApiToken, setReplicateApiToken] = useState('');
+  const [customStyleGuidelines, setCustomStyleGuidelines] = useState('');
 
   const handleClearAll = () => {
     setUrlInput('');
@@ -82,10 +97,98 @@ const PinCreator = () => {
     setIsLoading(false);
   };
 
+  const handleSaveSettings = () => {
+    toast.success('Settings saved successfully');
+    setSettingsOpen(false);
+  };
+
   return (
     <div className="flex h-full">
       {/* Left Sidebar */}
       <div className="w-80 border-r border-border bg-card p-6 flex flex-col gap-6 overflow-y-auto">
+        {/* Header with Settings */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Pin Creator</h2>
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Settings className="w-5 h-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Pin Creator Settings</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-6 py-4">
+                {/* License Key */}
+                <div className="space-y-2">
+                  <Label htmlFor="licenseKey">License Key</Label>
+                  <Input
+                    id="licenseKey"
+                    type="password"
+                    value={licenseKey}
+                    onChange={(e) => setLicenseKey(e.target.value)}
+                    placeholder="Enter your license key"
+                    className="bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your license key for accessing premium features
+                  </p>
+                </div>
+
+                {/* Replicate API Token */}
+                <div className="space-y-2">
+                  <Label htmlFor="replicateToken">Replicate API Token</Label>
+                  <Input
+                    id="replicateToken"
+                    type="password"
+                    value={replicateApiToken}
+                    onChange={(e) => setReplicateApiToken(e.target.value)}
+                    placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get your API token from{' '}
+                    <a
+                      href="https://replicate.com/account/api-tokens"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      replicate.com
+                    </a>
+                  </p>
+                </div>
+
+                {/* Custom Style Guidelines */}
+                <div className="space-y-2">
+                  <Label htmlFor="styleGuidelines">Custom Style Guidelines</Label>
+                  <Textarea
+                    id="styleGuidelines"
+                    value={customStyleGuidelines}
+                    onChange={(e) => setCustomStyleGuidelines(e.target.value)}
+                    placeholder="Enter your custom style guidelines for pin generation...
+
+Example:
+- Use vibrant, warm colors
+- Include food photography styling
+- Add text overlay with recipe title
+- Use modern, clean fonts"
+                    className="min-h-[150px] bg-background resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    These guidelines will be used when generating pins with the "Custom" style
+                  </p>
+                </div>
+
+                <Button onClick={handleSaveSettings} className="gradient-button text-white border-0">
+                  Save Settings
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
         {/* Input URLs Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -108,7 +211,7 @@ Example:
 https://example.com/vegan-recipe
 https://example.com/baking-tips
 https://example.com/chocolate-cake`}
-            className="min-h-[250px] font-mono text-sm bg-background resize-none"
+            className="min-h-[200px] font-mono text-sm bg-background resize-none"
           />
         </div>
 
