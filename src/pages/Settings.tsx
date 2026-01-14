@@ -103,6 +103,76 @@ FORMATTING:
 
 The article should feel like a friendly conversation with someone experienced who does not take themselves too seriously.`;
 
+const listicleCategories = [
+  { value: 'home-decor', label: 'Home Decor', icon: '🏠' },
+  { value: 'fashion', label: 'Fashion', icon: '👗' },
+  { value: 'food', label: 'Food & Recipes', icon: '🍳' },
+  { value: 'travel', label: 'Travel', icon: '✈️' },
+  { value: 'tech', label: 'Technology', icon: '💻' },
+  { value: 'health', label: 'Health & Wellness', icon: '💪' },
+];
+
+const defaultListiclePrompts: Record<string, string> = {
+  'home-decor': `Write a conversational, friendly home decor article showcasing: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Present EXACTLY {itemCount} completely different and distinct room designs - no more, no less. Each section must showcase a unique, complete design concept.
+
+STRUCTURE:
+
+1. Start with an engaging <h1> title that is more viral than the original:
+   - Maximum 15 words
+   - MUST include the exact core phrase from the original title
+   - Use proper title case capitalization
+   - Make it click-worthy and engaging while keeping the SEO keywords
+   - Example: Original "7 Bedroom Ideas" becomes "7 Stunning Bedroom Ideas That Will Transform Your Sleep Space"
+
+2. Follow with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast with why these designs are amazing. No generic phrases like "In today's world..." or "In modern times...". Jump straight into something that grabs attention.
+
+3. Create EXACTLY {itemCount} numbered design sections using <h2> headings, each representing a completely unique design concept.
+
+4. Include an FAQ section with 4-6 questions formatted as <h3> tags.
+
+5. End with a brief conclusion section using an <h2> tag.
+
+TONE & STYLE:
+- Conversational and informal - write like you are chatting with a friend
+- Use active voice only
+- Keep paragraphs SHORT (3-4 sentences max)
+- Include occasional humor
+- Bold key information with <strong> tags`,
+  'fashion': `Write a conversational fashion article showcasing: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Present EXACTLY {itemCount} different fashion items or looks.
+
+Include engaging intro, numbered sections with <h2> headings, FAQ section, and conclusion.`,
+  'food': `Write an engaging food article about: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Present EXACTLY {itemCount} different recipes or food items.
+
+Include appetizing descriptions, tips, and an FAQ section.`,
+  'travel': `Write an inspiring travel article about: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Present EXACTLY {itemCount} different destinations or travel tips.
+
+Include practical advice, local insights, and an FAQ section.`,
+  'tech': `Write an informative tech article about: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Present EXACTLY {itemCount} different products or solutions.
+
+Include specs, pros/cons, and an FAQ section.`,
+  'health': `Write a helpful health & wellness article about: "{title}".
+Target length: approximately 1500 words.
+
+CRITICAL: Present EXACTLY {itemCount} different tips or methods.
+
+Include science-backed information and an FAQ section.`,
+};
+
 const Settings = () => {
   const [openaiKey, setOpenaiKey] = useState('');
   const [replicateToken, setReplicateToken] = useState('');
@@ -112,6 +182,8 @@ const Settings = () => {
   const [inTextImageCount, setInTextImageCount] = useState('4');
   const [inTextAspectRatio, setInTextAspectRatio] = useState('9:16');
   const [classicPrompt, setClassicPrompt] = useState(defaultClassicPrompt);
+  const [selectedListicleCategory, setSelectedListicleCategory] = useState('home-decor');
+  const [listiclePrompts, setListiclePrompts] = useState<Record<string, string>>(defaultListiclePrompts);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -143,10 +215,25 @@ const Settings = () => {
         .select('prompt_text')
         .eq('user_id', user.id)
         .eq('type', 'classic')
-        .single();
+        .maybeSingle();
 
       if (promptData) {
         setClassicPrompt(promptData.prompt_text);
+      }
+
+      // Load listicle prompts
+      const { data: listicleData } = await supabase
+        .from('prompts')
+        .select('niche, prompt_text')
+        .eq('user_id', user.id)
+        .eq('type', 'listicle');
+
+      if (listicleData && listicleData.length > 0) {
+        const loadedPrompts = { ...defaultListiclePrompts };
+        listicleData.forEach(item => {
+          loadedPrompts[item.niche] = item.prompt_text;
+        });
+        setListiclePrompts(loadedPrompts);
       }
     } catch (error) {
       // No settings yet, that's fine
@@ -182,7 +269,7 @@ const Settings = () => {
         .select('id')
         .eq('user_id', user.id)
         .eq('type', 'classic')
-        .single();
+        .maybeSingle();
 
       if (existingPrompt) {
         // Update existing prompt
@@ -207,6 +294,36 @@ const Settings = () => {
           });
 
         if (promptError) throw promptError;
+      }
+
+      // Save listicle prompts
+      for (const [niche, promptText] of Object.entries(listiclePrompts)) {
+        const { data: existingListicle } = await supabase
+          .from('prompts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('type', 'listicle')
+          .eq('niche', niche)
+          .maybeSingle();
+
+        if (existingListicle) {
+          await supabase
+            .from('prompts')
+            .update({
+              prompt_text: promptText,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingListicle.id);
+        } else {
+          await supabase
+            .from('prompts')
+            .insert({
+              user_id: user.id,
+              type: 'listicle',
+              niche: niche,
+              prompt_text: promptText,
+            });
+        }
       }
 
       toast.success('Settings saved successfully!');
@@ -561,6 +678,91 @@ const Settings = () => {
             <p className="flex items-center gap-2">
               <span className="text-base">💡</span>
               <span><strong>Placeholder:</strong> Use <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{title}'}</code> where you want the article title inserted.</span>
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Listicle Prompts */}
+      <Card className="p-6 mt-6 bg-card border-border">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <List className="w-5 h-5 text-purple-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Listicle Prompts</h3>
+              <p className="text-sm text-muted-foreground">Select category and customize its prompt</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setListiclePrompts(prev => ({
+                ...prev,
+                [selectedListicleCategory]: defaultListiclePrompts[selectedListicleCategory]
+              }));
+            }}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset to Default
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Listicle Category
+            </label>
+            <Select value={selectedListicleCategory} onValueChange={setSelectedListicleCategory}>
+              <SelectTrigger className="bg-card">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {listicleCategories.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{cat.icon}</span>
+                      <span>{cat.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              This category will be used for all listicle article generation. Edit its prompt below.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Custom AI Prompt for {listicleCategories.find(c => c.value === selectedListicleCategory)?.label}
+            </label>
+            <Textarea
+              value={listiclePrompts[selectedListicleCategory] || ''}
+              onChange={(e) => setListiclePrompts(prev => ({
+                ...prev,
+                [selectedListicleCategory]: e.target.value
+              }))}
+              className="min-h-[300px] font-mono text-sm bg-card resize-y"
+              placeholder="Enter your custom listicle prompt..."
+            />
+          </div>
+
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+              <span className="text-base">📝</span>
+              <span><strong>How to use:</strong> This prompt controls how {listicleCategories.find(c => c.value === selectedListicleCategory)?.label.toLowerCase()} listicles are generated.</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-base">💡</span>
+              <span>
+                <strong>Placeholders:</strong> Use{' '}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{title}'}</code> and{' '}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{itemCount}'}</code>
+              </span>
             </p>
           </div>
         </div>
