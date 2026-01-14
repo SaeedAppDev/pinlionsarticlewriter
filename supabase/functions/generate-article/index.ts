@@ -549,8 +549,67 @@ Visible texture, natural imperfections, authentic food styling, soft shadows.
       }
     }
 
-    // ============ REPLICATE MODELS (z-image, flux-schnell, seedream) ============
-    if (!imageUrl && (imageModel === 'zimage' || imageModel === 'flux-schnell' || imageModel === 'seedream' || imageModel === 'gpt-image')) {
+    // ============ NANO BANANA (Lovable AI Gateway - Gemini) ============
+    if (!imageUrl && imageModel === 'nano-banana') {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (LOVABLE_API_KEY) {
+        try {
+          console.log(`🍌 Generating image ${imageNumber} with Nano Banana (Gemini)...`);
+          
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash-image-preview',
+              messages: [
+                {
+                  role: 'user',
+                  content: `Generate a professional photograph: ${realisticPrompt}`
+                }
+              ],
+              modalities: ['image', 'text']
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const b64Image = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+            
+            if (b64Image && b64Image.startsWith('data:image')) {
+              // Extract base64 data from data URL
+              const base64Data = b64Image.split(',')[1];
+              const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+              const fileName = `articles/article-${Date.now()}-${imageNumber}.webp`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('article-images')
+                .upload(fileName, bytes, { contentType: 'image/webp', upsert: true });
+
+              if (!uploadError) {
+                const { data: urlData } = supabase.storage.from('article-images').getPublicUrl(fileName);
+                imageUrl = urlData?.publicUrl;
+                console.log(`✅ Nano Banana generated and uploaded: image ${imageNumber}`);
+              } else {
+                console.error(`Nano Banana upload error:`, uploadError);
+              }
+            }
+          } else {
+            const errorText = await response.text();
+            console.error(`Nano Banana error for image ${imageNumber}:`, response.status, errorText);
+          }
+        } catch (e) {
+          console.error(`Nano Banana error:`, e);
+        }
+      } else {
+        console.log('⚠️ LOVABLE_API_KEY not set for Nano Banana, falling back to z-image');
+      }
+    }
+
+    // ============ REPLICATE MODELS (zimage, flux-schnell, seedream) ============
+    if (!imageUrl && (imageModel === 'zimage' || imageModel === 'flux-schnell' || imageModel === 'seedream' || imageModel === 'gpt-image' || imageModel === 'nano-banana')) {
       const modelVersions: { [key: string]: { version: string; input: any } } = {
         'zimage': {
           version: 'prunaai/z-image-turbo',
@@ -827,7 +886,18 @@ serve(async (req) => {
     const contentField = articleId ? 'content_html' : 'article_content';
     
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${entityId}, Table: ${tableName})`);
-    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}, Image Model: ${imageModel}`);
+    
+    // Normalize image model names (settings use z-image-turbo, code expects zimage)
+    let normalizedImageModel = imageModel;
+    if (imageModel === 'z-image-turbo') {
+      normalizedImageModel = 'zimage';
+    } else if (imageModel === 'seedream-4.5') {
+      normalizedImageModel = 'seedream';
+    } else if (imageModel === 'google-nano-banana-pro') {
+      normalizedImageModel = 'nano-banana';
+    }
+    
+    console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}, Image Model: ${imageModel} → ${normalizedImageModel}`);
     
     // Detect image count from title (e.g., "12 Easy Kitchen Ideas" → 12)
     const numberMatch = focusKeyword.match(/\b(\d+)\b/);
@@ -1348,7 +1418,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts for ${articleCategory} category`);
 
     // Step 5: Generate images IN PARALLEL (matching detected count from title)
-    console.log(`🖼️ Generating ${imageCount} AI images with ${imageModel} (${articleCategory} style) - PARALLEL PROCESSING...`);
+    console.log(`🖼️ Generating ${imageCount} AI images with ${normalizedImageModel} (${articleCategory} style) - PARALLEL PROCESSING...`);
     
     // Create all image generation promises at once for parallel execution
     const imagePromises = Array.from({ length: imageCount }, (_, i) => {
@@ -1361,7 +1431,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
         aspectRatio,
         imageSubject,
         articleCategory,
-        imageModel
+        normalizedImageModel
       ).catch(error => {
         console.error(`❌ Image ${i + 1} failed:`, error.message);
         return ''; // Return empty string on failure

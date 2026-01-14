@@ -41,7 +41,7 @@ interface PinterestPin {
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [article, setArticle] = useState<{ title: string; article_content: string; updated_at: string } | null>(null);
+  const [article, setArticle] = useState<{ title: string; content_html: string; updated_at: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
@@ -61,20 +61,32 @@ const ArticleView = () => {
     if (!id) return;
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/recipes?id=eq.${id}&select=title,article_content,updated_at`,
-        {
-          headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data?.[0]) {
-        setArticle(data[0]);
+      // Try articles table first (new system), then fall back to recipes
+      const { data: articlesData, error: articlesError } = await supabase
+        .from('articles')
+        .select('title, content_html, updated_at')
+        .eq('id', id)
+        .single();
+      
+      if (articlesData && !articlesError) {
+        setArticle(articlesData);
       } else {
-        toast.error('Article not found');
+        // Fallback to recipes table
+        const { data: recipesData, error: recipesError } = await supabase
+          .from('recipes')
+          .select('title, article_content, updated_at')
+          .eq('id', id)
+          .single();
+        
+        if (recipesData && !recipesError) {
+          setArticle({
+            title: recipesData.title,
+            content_html: recipesData.article_content || '',
+            updated_at: recipesData.updated_at
+          });
+        } else {
+          toast.error('Article not found');
+        }
       }
     } catch (err) {
       console.error('Error:', err);
@@ -103,15 +115,15 @@ const ArticleView = () => {
 
   // Process HTML - optimize images for lazy loading
   const processedContent = useMemo(() => {
-    if (!article?.article_content) return '';
+    if (!article?.content_html) return '';
     
     // Replace base64 images with lazy loading and add placeholder
-    return article.article_content
+    return article.content_html
       .replace(/<img([^>]*)(src="data:image[^"]*")([^>]*)>/gi, 
         '<img$1$2$3 loading="lazy" decoding="async" style="background:#f3f4f6;min-height:200px">')
       .replace(/<img([^>]*)(src="http[^"]*")([^>]*)>/gi,
         '<img$1$2$3 loading="lazy" decoding="async">');
-  }, [article?.article_content]);
+  }, [article?.content_html]);
 
   const getWordCount = (content: string | null) => {
     if (!content) return 0;
@@ -126,20 +138,20 @@ const ArticleView = () => {
   };
 
   const handleCopyWPBlocks = useCallback(async () => {
-    if (!article?.article_content) return;
+    if (!article?.content_html) return;
     
     try {
-      await navigator.clipboard.writeText(article.article_content);
+      await navigator.clipboard.writeText(article.content_html);
       setCopied(true);
       toast.success('Copied as WP Blocks!');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Failed to copy');
     }
-  }, [article?.article_content]);
+  }, [article?.content_html]);
 
   const handleSendToWordPress = useCallback(async () => {
-    if (!article?.article_content || !article?.title) return;
+    if (!article?.content_html || !article?.title) return;
     
     const selectedSite = wordpressSites.find(s => s.id === selectedSiteId);
     if (!selectedSite) {
@@ -157,7 +169,7 @@ const ArticleView = () => {
           username: selectedSite.username,
           apiKey: selectedSite.apiKey,
           title: article.title,
-          content: article.article_content,
+          content: article.content_html,
           status: 'draft',
         },
       });
@@ -179,9 +191,9 @@ const ArticleView = () => {
   }, [article, selectedSiteId, wordpressSites]);
 
   const handleExportHTML = useCallback(() => {
-    if (!article?.article_content || !article?.title) return;
+    if (!article?.content_html || !article?.title) return;
     
-    const blob = new Blob([article.article_content], { type: 'text/html' });
+    const blob = new Blob([article.content_html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -201,10 +213,20 @@ const ArticleView = () => {
     if (!id) return;
     
     try {
-      const { error } = await supabase
-        .from('recipes')
+      // Try articles table first, then fallback to recipes
+      let error;
+      const { error: articlesError } = await supabase
+        .from('articles')
         .delete()
         .eq('id', id);
+      
+      if (articlesError) {
+        const { error: recipesError } = await supabase
+          .from('recipes')
+          .delete()
+          .eq('id', id);
+        error = recipesError;
+      }
 
       if (error) throw error;
       toast.success('Article deleted');
@@ -218,7 +240,7 @@ const ArticleView = () => {
   };
 
   const handleFixArticle = useCallback(async () => {
-    if (!article?.article_content || !id) return;
+    if (!article?.content_html || !id) return;
 
     setIsFixing(true);
     toast.info('Rewriting article with optimized SEO prompt...');
@@ -226,7 +248,7 @@ const ArticleView = () => {
     try {
       const { data, error } = await supabase.functions.invoke('fix-article', {
         body: {
-          articleContent: article.article_content,
+          articleContent: article.content_html,
           focusKeyword: article.title,
         },
       });
@@ -234,16 +256,25 @@ const ArticleView = () => {
       if (error) throw error;
 
       if (data?.success && data?.rewrittenContent) {
-        // Update the article in the database
-        const { error: updateError } = await supabase
-          .from('recipes')
-          .update({ article_content: data.rewrittenContent })
+        // Update the article in the database (try articles first, then recipes)
+        let updateError;
+        const { error: articlesUpdateError } = await supabase
+          .from('articles')
+          .update({ content_html: data.rewrittenContent })
           .eq('id', id);
+        
+        if (articlesUpdateError) {
+          const { error: recipesUpdateError } = await supabase
+            .from('recipes')
+            .update({ article_content: data.rewrittenContent })
+            .eq('id', id);
+          updateError = recipesUpdateError;
+        }
 
         if (updateError) throw updateError;
 
         // Refresh the article
-        setArticle(prev => prev ? { ...prev, article_content: data.rewrittenContent } : null);
+        setArticle(prev => prev ? { ...prev, content_html: data.rewrittenContent } : null);
         toast.success('Article rewritten successfully!');
       } else {
         throw new Error(data?.error || 'Failed to rewrite article');
@@ -282,7 +313,7 @@ const ArticleView = () => {
           urls: [`article://${article.title}`],
           pinStyle: 'basic-bottom',
           customStyleGuidelines: settings.pinterestStyleGuidelines || '',
-          articleContent: article.article_content,
+          articleContent: article.content_html,
         },
       });
 
@@ -329,7 +360,7 @@ const ArticleView = () => {
           interests: [''],
           customPrompt: settings.pinterestTitlePrompt || '',
           articleTitle: article.title,
-          articleContent: article.article_content,
+          articleContent: article.content_html,
         },
       });
 
@@ -433,8 +464,8 @@ const ArticleView = () => {
     );
   }
 
-  const wordCount = getWordCount(article.article_content);
-  const imageCount = getImageCount(article.article_content);
+  const wordCount = getWordCount(article.content_html);
+  const imageCount = getImageCount(article.content_html);
 
   return (
     <AppLayout>
