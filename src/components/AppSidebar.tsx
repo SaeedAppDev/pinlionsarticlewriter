@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle, Settings, Sun, Moon, FileText, Plus, LogOut } from 'lucide-react';
+import { Clock, CheckCircle, Settings, Sun, Moon, FileText, Plus, LogOut, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -135,6 +135,11 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
           label="Completed"
           path="/completed"
           badge={completedCount}
+        />
+        <NavItem
+          icon={<Image className="w-5 h-5" />}
+          label="Pin Creator"
+          path="/pin-creator"
         />
         <NavItem
           icon={<Settings className="w-5 h-5" />}
