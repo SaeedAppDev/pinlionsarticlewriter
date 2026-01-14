@@ -45,6 +45,12 @@ const imageGenModels = [
   { value: 'seedream-4.5', label: 'Seedream 4.5 (ByteDance)', description: '$0.04 per image (high quality)' },
 ];
 
+const imageQualityLevels = [
+  { value: 'standard', label: 'Standard', description: 'Good quality, faster generation' },
+  { value: 'high', label: 'High Quality', description: 'Better details and realism' },
+  { value: 'ultra', label: 'Ultra HD Premium', description: 'Maximum quality, photorealistic' },
+];
+
 const inTextImageCounts = [
   { value: '2', label: '2 Images' },
   { value: '3', label: '3 Images' },
@@ -596,6 +602,7 @@ const Settings = () => {
   const [replicateToken, setReplicateToken] = useState('');
   const [replicateModel, setReplicateModel] = useState('google-nano-banana-pro');
   const [imageGenModel, setImageGenModel] = useState('z-image-turbo');
+  const [imageQuality, setImageQuality] = useState('ultra');
   const [generateInTextImages, setGenerateInTextImages] = useState(true);
   const [inTextImageCount, setInTextImageCount] = useState('4');
   const [inTextAspectRatio, setInTextAspectRatio] = useState('9:16');
@@ -626,6 +633,11 @@ const Settings = () => {
     if (savedCategory) {
       setSelectedListicleCategory(savedCategory);
       setSavedDefaultCategory(savedCategory);
+    }
+    // Load saved image quality from localStorage
+    const savedQuality = localStorage.getItem('image_quality');
+    if (savedQuality) {
+      setImageQuality(savedQuality);
     }
   }, []);
 
@@ -727,6 +739,9 @@ const Settings = () => {
         });
 
       if (apiError) throw apiError;
+      
+      // Save image quality to localStorage
+      localStorage.setItem('image_quality', imageQuality);
 
       // Check if classic prompt exists
       const { data: existingPrompt } = await supabase
@@ -1123,6 +1138,28 @@ const Settings = () => {
             </Select>
             <p className="text-xs text-muted-foreground">
               Choose the AI model for generating featured and in-text images (pricing shown per image)
+            </p>
+          </div>
+
+          {/* Image Quality Level */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Image Quality Level
+            </label>
+            <Select value={imageQuality} onValueChange={setImageQuality}>
+              <SelectTrigger className="bg-card">
+                <SelectValue placeholder="Select quality" />
+              </SelectTrigger>
+              <SelectContent>
+                {imageQualityLevels.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label} – {level.description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Higher quality = more realistic images with better details (Ultra HD Premium is recommended)
             </p>
           </div>
 
