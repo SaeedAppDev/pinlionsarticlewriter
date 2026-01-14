@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Save, FileText, List, Code, Image as ImageIcon, Check } from 'lucide-react';
+import { Save, FileText, List, Code, Image as ImageIcon, Check, RotateCcw, Wand2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -50,6 +51,20 @@ const aspectRatios = [
   { value: '4:3', label: '4:3 – Standard' },
 ];
 
+const defaultClassicPrompt = `Write an engaging, conversational article about "{title}".
+Target length: Around 1000 words.
+
+STRUCTURE:
+1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title – start directly with the introduction paragraph.
+
+3. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic – don't force a template. Choose headings that make sense for this specific article topic.
+
+4. After some sections, include H3 subsections where it makes sense for deeper dives into specific points.
+
+5. Include an FAQ section with 4-6 questions formatted as <h3> tags, with answers in paragraphs.
+
+6. End with a brief conclusion section using an <h2> tag.`;
+
 const Settings = () => {
   const [openaiKey, setOpenaiKey] = useState('');
   const [replicateToken, setReplicateToken] = useState('');
@@ -58,6 +73,7 @@ const Settings = () => {
   const [generateInTextImages, setGenerateInTextImages] = useState(true);
   const [inTextImageCount, setInTextImageCount] = useState('4');
   const [inTextAspectRatio, setInTextAspectRatio] = useState('9:16');
+  const [classicPrompt, setClassicPrompt] = useState(defaultClassicPrompt);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -414,6 +430,52 @@ const Settings = () => {
                 Choose vertical (9:16) for portrait-style images or horizontal (16:9) for landscape-style images
               </p>
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Classic Article Prompt */}
+      <Card className="p-6 mt-6 bg-card border-border">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Wand2 className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Classic Article Prompt</h3>
+              <p className="text-sm text-muted-foreground">Used for standard article generation</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setClassicPrompt(defaultClassicPrompt)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset to Default
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <label className="text-sm font-medium text-foreground">
+            Custom AI Prompt
+          </label>
+          <Textarea
+            value={classicPrompt}
+            onChange={(e) => setClassicPrompt(e.target.value)}
+            className="min-h-[300px] font-mono text-sm bg-card resize-y"
+            placeholder="Enter your custom prompt..."
+          />
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+              <span className="text-base">📝</span>
+              <span><strong>How to use:</strong> This prompt controls how classic articles are generated.</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-base">💡</span>
+              <span><strong>Placeholder:</strong> Use <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{title}'}</code> where you want the article title inserted.</span>
+            </p>
           </div>
         </div>
       </Card>
