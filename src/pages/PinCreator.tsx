@@ -63,6 +63,7 @@ const PinCreator = () => {
   const [licenseKey, setLicenseKey] = useState('');
   const [replicateApiToken, setReplicateApiToken] = useState('');
   const [customStyleGuidelines, setCustomStyleGuidelines] = useState('');
+  const [titleDescriptionPrompt, setTitleDescriptionPrompt] = useState('');
 
   const handleClearAll = () => {
     setUrlInput('');
@@ -115,7 +116,7 @@ const PinCreator = () => {
                 <Settings className="w-5 h-5" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Pin Creator Settings</DialogTitle>
               </DialogHeader>
@@ -174,15 +175,60 @@ Example:
 - Include food photography styling
 - Add text overlay with recipe title
 - Use modern, clean fonts"
-                    className="min-h-[150px] bg-background resize-none"
+                    className="min-h-[120px] bg-background resize-none"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    These guidelines will be used when generating pins with the "Custom" style
-                  </p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>Define your brand style guidelines that the AI will follow when generating pin descriptions.</p>
+                    <p><strong>Note:</strong> Your guidelines will be used as instructions to generate prompts that match your brand style.</p>
+                    <p>All prompts will automatically start with "This Pinterest pin is viral" and include the URL topic.</p>
+                    <p>This will be used when you select "Custom" as the pin style.</p>
+                  </div>
+                </div>
+
+                {/* Title & Description Generation Prompt */}
+                <div className="space-y-2">
+                  <Label htmlFor="titleDescPrompt">Title & Description Generation Prompt (Optional)</Label>
+                  <Textarea
+                    id="titleDescPrompt"
+                    value={titleDescriptionPrompt}
+                    onChange={(e) => setTitleDescriptionPrompt(e.target.value)}
+                    placeholder={`You're a Pinterest content writer optimizing blog posts for maximum search visibility and clicks.
+
+For this blog post URL, write:
+
+1. A Pinterest title (under 80 characters) that starts with an emoji and includes the main keyword
+
+2. A Pinterest description (EXACTLY 3 sentences, NO MORE) that clearly summarizes the post
+
+CRITICAL RULES FOR DESCRIPTION:
+- EXACTLY 3 sentences (not 4, not 5, just 3)
+- Main keyword must appear in the first sentence
+- Bold 3-4 searchable SEO keywords using **keyword** syntax
+- Be concise and punchy - every word must count
+- Focus on benefits and what readers will learn/get
+- Keywords should flow naturally, not feel forced
+
+Blog post URL: \${url}\${interestsNote}
+
+Format your response EXACTLY like this example:
+
+🥗 Vegan Buddha Bowl – Clean, Colorful, and Fully Customizable
+
+This **vegan Buddha bowl** is packed with **plant-based ingredients**, quinoa, and roasted vegetables. Perfect for **meal prep** or a quick **healthy lunch**. Customizable, colorful, and delicious!
+
+Generate the title and description now (remember: EXACTLY 3 sentences):`}
+                    className="min-h-[200px] bg-background resize-none font-mono text-xs"
+                  />
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>Customize the prompt sent to ChatGPT for generating Pinterest titles and descriptions.</p>
+                    <p><strong>Available variables:</strong> <code className="bg-muted px-1 rounded">${'{url}'}</code> - Blog post URL, <code className="bg-muted px-1 rounded">${'{interestsNote}'}</code> - Annotated interests</p>
+                    <p><strong>Tip:</strong> Adjust character limits, sentence count, keyword rules, or tone to match your brand.</p>
+                    <p>Leave empty to use the default prompt.</p>
+                  </div>
                 </div>
 
                 <Button onClick={handleSaveSettings} className="gradient-button text-white border-0">
-                  Save Settings
+                  Save & Close
                 </Button>
               </div>
             </DialogContent>
