@@ -602,6 +602,7 @@ const Settings = () => {
   const [classicPrompt, setClassicPrompt] = useState(defaultClassicPrompt);
   const [customImagePrompt, setCustomImagePrompt] = useState(defaultImagePrompt);
   const [selectedListicleCategory, setSelectedListicleCategory] = useState('default');
+  const [savedDefaultCategory, setSavedDefaultCategory] = useState('default');
   const [listiclePrompts, setListiclePrompts] = useState<Record<string, string>>(defaultListiclePrompts);
   const [customPrompts, setCustomPrompts] = useState<Array<{ id: string; name: string; prompt_text: string }>>([]);
   const [newPromptName, setNewPromptName] = useState('');
@@ -620,6 +621,12 @@ const Settings = () => {
 
   useEffect(() => {
     loadSettings();
+    // Load saved default listicle category from localStorage
+    const savedCategory = localStorage.getItem('default_listicle_category');
+    if (savedCategory) {
+      setSelectedListicleCategory(savedCategory);
+      setSavedDefaultCategory(savedCategory);
+    }
   }, []);
 
   const loadSettings = async () => {
@@ -1317,21 +1324,47 @@ const Settings = () => {
             <label className="text-sm font-medium text-foreground">
               Listicle Category
             </label>
-            <Select value={selectedListicleCategory} onValueChange={setSelectedListicleCategory}>
-              <SelectTrigger className="bg-card">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {listicleCategories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    <div className="flex items-center gap-2">
-                      <span>{cat.icon}</span>
-                      <span>{cat.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={selectedListicleCategory} onValueChange={setSelectedListicleCategory}>
+                <SelectTrigger className="bg-card flex-1">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {listicleCategories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      <div className="flex items-center gap-2">
+                        <span>{cat.icon}</span>
+                        <span>{cat.label}</span>
+                        {savedDefaultCategory === cat.value && (
+                          <Badge variant="secondary" className="ml-1 text-xs">Default</Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={() => {
+                  localStorage.setItem('default_listicle_category', selectedListicleCategory);
+                  setSavedDefaultCategory(selectedListicleCategory);
+                  toast.success(`"${listicleCategories.find(c => c.value === selectedListicleCategory)?.label}" set as default category`);
+                }}
+                disabled={savedDefaultCategory === selectedListicleCategory}
+                className="gradient-button text-white border-0"
+              >
+                {savedDefaultCategory === selectedListicleCategory ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Set Default
+                  </>
+                )}
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
               This category will be used for all listicle article generation. Edit its prompt below.
             </p>
