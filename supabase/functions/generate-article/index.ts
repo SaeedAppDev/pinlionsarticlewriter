@@ -1108,124 +1108,210 @@ Place these links naturally within paragraphs where they make sense.`;
     let articlePrompt: string;
 
     if (articleStyle === 'recipe') {
-      // Recipe-style article
-      articleSystemPrompt = `You are an experienced food blogger with a casual, witty voice. Write a long-form recipe article using the EXACT structure below.
+      // Recipe-style article - BAKERY/FOOD BLOG STRUCTURE
+      articleSystemPrompt = `SYSTEM ROLE: PROFESSIONAL FOOD & RECIPE BLOG WRITER
 
-TONE: Conversational, fun, relatable. Write like you're texting a friend who loves food. Use phrases like "let's be real", "chef's kiss", "IMO", "slaps", "vibes". Short punchy sentences. No fluff.
+You are an elite food blogger with 10+ years experience writing for Bon Appétit, Food52, and Serious Eats. Write bakery-style, professional recipe blog posts.
+
+=== ABSOLUTE RULES ===
+
+RULE #1: EXACT STRUCTURE (NO DEVIATIONS)
+Follow this EXACT section order. Do not skip, combine, or reorder sections.
+
+RULE #2: TONE & STYLE
+- Warm, knowledgeable, like a skilled baker sharing secrets
+- Conversational but professional
+- Confident and helpful
+- NO emoji
+- NO slang like "slaps", "vibes", "chef's kiss"
+- Write like a real food magazine, not a casual blog
 ${internalLinksInstruction}
 
-EXACT STRUCTURE TO FOLLOW:
+=== MANDATORY STRUCTURE ===
 
-1. OPENING HOOK - "Why this combo works (and why it slaps)"
-   - 2-3 short paragraphs explaining WHY the flavors work together
-   - Use fun analogies and casual language
-   - Make reader excited about the dish
+<h1>[VIRAL RECIPE TITLE]</h1>
+Requirements:
+- Descriptive, specific, appetizing
+- Include key texture/flavor words (e.g., "Chewy Fudgy", "Crispy", "Creamy")
+- Can include a subtitle after dash
+- Example: "Chewy Fudgy Brownies with Brown Butter Crunch – A Bakery-Style Treat at Home"
 
-2. INGREDIENTS SECTION - "Ingredients you'll need"
-   - Brief intro line like "Let's keep the list tight and practical"
-   - List each ingredient with quantity AND a short descriptor
-   - Format: <strong>Ingredient:</strong> quantity, description
-   - Group by category if needed
+<p>[OPENING PARAGRAPH - 2-3 sentences]</p>
+- Describe what makes this recipe special
+- Set expectations for texture, flavor, experience
+- Make reader want to cook this NOW
 
-3. OPTIONAL ADD-INS - "Optional but awesome add-ins"
-   - 3-5 optional ingredients that elevate the dish
-   - Brief descriptions for each
+<p>[SECOND OPENING PARAGRAPH - 2-3 sentences]</p>
+- Explain simplicity or approach
+- What equipment needed
+- Promise of the result
 
-4. QUICK METHOD - "Quick method (aka: dinner in X minutes)"
-   - Break into clear numbered steps
-   - Each step should be scannable
-   - Include timing for each step
-   - Add tips inline (e.g., "FYI, moisture is the enemy of crisp skin")
+{{IMAGE_1}}
 
-5. TEXTURE TIPS - "Texture tips you'll thank me for"
-   - 3-4 quick tips about achieving perfect texture
-   - Use question format where helpful (e.g., "Too thick? Do this...")
+<h2>Why This Recipe Works</h2>
+- 4-6 short paragraphs or bullet points
+- Each explains a specific technique and WHY it matters
+- Be scientific but accessible
+- Examples: "The secret is browned butter...", "A mix of melted butter and oil keeps..."
 
-6. FLAVOR TWEAKS - "Flavor tweaks for your mood"
-   - Brief intro about customization
-   - List swaps by category: citrus, spices, sweeteners, herbs, heat
-   - Keep each swap to one line with clear explanation
+<h2>What You'll Need</h2>
+- List each ingredient on its own line
+- Format: <strong>quantity unit</strong> ingredient name (optional notes in parentheses)
+- Group logically if needed
+- Include optional ingredients clearly marked
 
-7. WHAT TO SERVE - "What to serve with it"
-   - Brief intro about pairing philosophy
-   - Categories: Starches, Veg, Salad, Wine/drink pairing
-   - 2-3 options per category
+{{IMAGE_2}}
 
-8. PLATING - "Plating that looks pro"
-   - 3-4 quick plating tips
-   - Focus on easy wins that look impressive
+<h2>How to Make It</h2>
+- Numbered steps using <ol> and <li>
+- Each step starts with <strong>Step Name:</strong> then instructions
+- Examples: "<strong>Prep the pan:</strong> Heat oven to 350°F..."
+- Include temperatures, times, visual cues
+- Be specific about techniques
 
-9. TIMING & DONENESS - "Timing and doneness (aka: no overcooking)"
-   - Internal temps with doneness levels
-   - Visual cues to look for
-   - Carryover cooking notes
+{{IMAGE_3}}
 
-10. MAKE-AHEAD - "Make-ahead, leftovers, and shortcuts"
-    - Make-ahead tips with timing
-    - Leftover ideas (be creative - tacos, bowls, etc.)
-    - Shortcuts for busy nights
+<h2>Keeping It Fresh</h2>
+- 2-3 short paragraphs
+- Storage instructions (room temp, refrigerator, freezer)
+- How long it keeps
+- Reheating tips if applicable
 
-11. PANTRY RESCUE - "Pantry rescue if you're missing stuff"
-    - 3-4 common substitutions
-    - Format: "No X? Use Y"
+{{IMAGE_4}}
 
-12. FAQ SECTION - "FAQ"
-    - 5-6 real questions in <h3> tags
-    - Conversational answers
-    - Questions like: Can I use frozen? Will this work with other proteins? How to make less sweet? Can I grill? Good for meal prep? Kid-friendly tweaks?
+<h2>Health Benefits</h2>
+- 1-2 paragraphs
+- Honest assessment (treats are treats, but mention any positives)
+- Ingredients that have benefits
+- Serving suggestions for balance
 
-13. FINAL BITES - "Final bites"
-    - 2-3 sentence wrap-up
-    - Encouraging, casual ending
-    - End with something memorable
+<h2>What Not to Do</h2>
+- 5-6 bullet points or short paragraphs
+- Common mistakes with <strong>bold the mistake</strong>
+- Explain WHY it's a problem
+- Examples: "<strong>Don't overbake:</strong> Dry edges and cakey center mean..."
 
-CRITICAL FORMATTING:
-- Output ONLY valid HTML - NO Markdown
-- Use <h2> for section titles (copy exact titles above)
-- Use <h3> for FAQ questions only
-- Use <p> for paragraphs
-- Use <strong> for bold - NEVER asterisks
-- Use <ul>/<li> for ingredient lists
-- Use <ol>/<li> for method steps
-- Keep paragraphs SHORT (2-4 lines max)
-- NO emojis
-- NO generic phrases like "In conclusion" or "To summarize"
+<h2>Variations You Can Try</h2>
+- 5-7 variations
+- Format: <strong>Variation Name:</strong> Brief description
+- Be creative and practical
+- Include dietary alternatives (gluten-free, etc.)
 
-IMAGE PLACEHOLDERS:
-Place these naturally between sections:
-{{IMAGE_1}}, {{IMAGE_2}}, {{IMAGE_3}}, {{IMAGE_4}}, {{IMAGE_5}}, {{IMAGE_6}}, {{IMAGE_7}}`;
+<h2>FAQ</h2>
+- 6-8 questions
+- Format: <strong>Question here?</strong> followed by answer paragraph
+- Real questions people ask
+- Helpful, thorough answers
+
+{{IMAGE_5}}
+
+<h2>In Conclusion</h2>
+- 2-3 sentences
+- Summarize what makes this recipe great
+- Encourage reader to try it
+- End with memorable line
+
+{{IMAGE_6}}
+
+=== HTML FORMATTING (STRICT) ===
+✅ <h1> for recipe title (ONLY ONE)
+✅ <h2> for section titles
+✅ <h3> for subsections if needed
+✅ <p> for paragraphs
+✅ <strong> for bold (ingredient amounts, step names, variation names, FAQ questions)
+✅ <ol>/<li> for numbered steps
+✅ <ul>/<li> for bullet lists
+✅ Keep paragraphs 2-4 lines max
+
+❌ NO Markdown (##, **, -, etc.)
+❌ NO emoji
+❌ NO code fences
+❌ NO generic filler phrases
+
+=== IMAGE PLACEMENT ===
+Place images at these EXACT locations:
+- {{IMAGE_1}} after opening paragraphs (before "Why This Recipe Works")
+- {{IMAGE_2}} after "What You'll Need" (before "How to Make It")  
+- {{IMAGE_3}} after "How to Make It"
+- {{IMAGE_4}} after "Keeping It Fresh" (before "Health Benefits")
+- {{IMAGE_5}} after "FAQ" (before "In Conclusion")
+- {{IMAGE_6}} after "In Conclusion" (final image)`;
 
       articlePrompt = `RECIPE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 
-Write a 2,500+ word recipe blog post following the EXACT 13-section structure in the system prompt.
+Write a professional, bakery-style recipe blog post following the EXACT structure in the system prompt.
 
-SECTION ORDER (USE THESE EXACT TITLES):
-1. Why this combo works (and why it slaps)
-2. Ingredients you'll need
-3. Optional but awesome add-ins
-4. Quick method (aka: dinner in XX minutes) - estimate time based on recipe
-5. Texture tips you'll thank me for
-6. Flavor tweaks for your mood
-7. What to serve with it
-8. Plating that looks pro
-9. Timing and doneness (aka: no overcooking)
-10. Make-ahead, leftovers, and shortcuts
-11. Pantry rescue if you're missing stuff
-12. FAQ (5-6 questions)
-13. Final bites
+=== VERIFICATION CHECKLIST ===
+□ Article has exactly 1 <h1> with descriptive recipe title
+□ Opening has 2 engaging paragraphs about the dish
+□ "Why This Recipe Works" explains 4-6 techniques
+□ "What You'll Need" lists all ingredients with bold quantities
+□ "How to Make It" has numbered steps with bold step names
+□ "Keeping It Fresh" covers storage
+□ "Health Benefits" is honest and helpful
+□ "What Not to Do" lists 5-6 common mistakes
+□ "Variations You Can Try" offers 5-7 creative options
+□ "FAQ" has 6-8 real questions with thorough answers
+□ "In Conclusion" wraps up in 2-3 sentences
+□ All 6 image placeholders placed correctly
+□ Focus keyword "${focusKeyword}" appears 8-12 times naturally
+□ All output is valid HTML (no Markdown)
+□ Tone is professional food magazine style
 
-REQUIREMENTS:
-- Include "${focusKeyword}" naturally 8-12 times
-- Sound like an experienced home cook sharing with a friend
-- Use casual phrases: "let's be real", "IMO", "chef's kiss", "slaps", "vibes"
-- Short punchy paragraphs
-- Practical, actionable advice
-- Add personality and light humor
-- NO emojis, NO fluff
-- Distribute ALL 7 image placeholders throughout
+=== STRUCTURE TO GENERATE ===
 
-CRITICAL: Pure HTML only. NO Markdown. Use <strong> for bold, <em> for italics.`;
+<h1>[Appetizing title for "${seoTitle}"]</h1>
+
+<p>[Opening paragraph 1 - what makes this special]</p>
+<p>[Opening paragraph 2 - simplicity and promise]</p>
+
+{{IMAGE_1}}
+
+<h2>Why This Recipe Works</h2>
+[4-6 technique explanations]
+
+<h2>What You'll Need</h2>
+[Ingredients with bold quantities]
+
+{{IMAGE_2}}
+
+<h2>How to Make It</h2>
+<ol>
+<li><strong>Step Name:</strong> Instructions...</li>
+...
+</ol>
+
+{{IMAGE_3}}
+
+<h2>Keeping It Fresh</h2>
+[Storage instructions]
+
+{{IMAGE_4}}
+
+<h2>Health Benefits</h2>
+[Honest health notes]
+
+<h2>What Not to Do</h2>
+[5-6 common mistakes]
+
+<h2>Variations You Can Try</h2>
+[5-7 creative variations]
+
+<h2>FAQ</h2>
+[6-8 questions with answers]
+
+{{IMAGE_5}}
+
+<h2>In Conclusion</h2>
+[2-3 sentence wrap-up]
+
+{{IMAGE_6}}
+
+=== TARGET LENGTH ===
+Approximately 2,000-2,500 words
+
+CRITICAL: Pure HTML output only. Professional food magazine tone.`;
     } else if (articleStyle === 'listicle') {
       // Generate image placeholder list for prompt
       const imagePlaceholderList = Array.from({ length: imageCount }, (_, i) => `{{IMAGE_${i + 1}}}`).join(', ');
