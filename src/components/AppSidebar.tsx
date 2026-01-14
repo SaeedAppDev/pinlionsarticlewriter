@@ -1,8 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Send, Clock, CheckCircle, Settings, Sun, Moon, Image as ImageIcon, Layers, PlusCircle } from 'lucide-react';
+import { Send, Clock, CheckCircle, Settings, Sun, Moon, Layers, PlusCircle, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -15,8 +17,7 @@ const NavItem = ({ icon, label, path, badge }: NavItemProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = location.pathname === path || 
-    (path === '/' && location.pathname === '/recipes') ||
-    (path === '/add-articles' && location.pathname === '/add-recipes');
+    (path === '/mode' && location.pathname === '/');
 
   return (
     <button
@@ -46,6 +47,7 @@ const NavItem = ({ icon, label, path, badge }: NavItemProps) => {
 
 export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) => {
   const [isDark, setIsDark] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -66,6 +68,17 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
       localStorage.setItem('theme', 'dark');
     }
     setIsDark(!isDark);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success('Logged out successfully');
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast.error('Failed to log out');
+    }
   };
 
   return (
@@ -105,7 +118,7 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
         <NavItem
           icon={<PlusCircle className="w-5 h-5" />}
           label="Add"
-          path="/add-articles"
+          path="/add"
         />
         <NavItem
           icon={<Clock className="w-5 h-5" />}
@@ -125,9 +138,21 @@ export const AppSidebar = ({ completedCount = 0 }: { completedCount?: number }) 
         />
       </nav>
 
+      {/* Logout Button */}
+      <div className="p-4 border-t border-sidebar-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </Button>
+      </div>
+
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
-        <p className="text-xs text-muted-foreground text-center">Version 1.1.0</p>
+        <p className="text-xs text-muted-foreground text-center">Version 2.0.0</p>
         <p className="text-xs text-muted-foreground text-center">© 2026 Pin Lions</p>
       </div>
     </aside>

@@ -1,161 +1,87 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, List, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AppLayout } from '@/components/AppLayout';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { FileText, List, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-type ContentMode = 'classic' | 'listicle';
-
-interface ModeCardProps {
-  mode: ContentMode;
-  title: string;
-  icon: React.ReactNode;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-const ModeCard = ({ mode, title, icon, isActive, onClick }: ModeCardProps) => {
-  // Classic card: white bg, purple icon. Listicle card: green gradient when active
-  const isListicle = mode === 'listicle';
-  
-  return (
-    <motion.button
-      onClick={onClick}
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      className={cn(
-        "relative flex flex-col items-center justify-center p-8 rounded-2xl transition-colors duration-300 min-h-[220px] w-[320px]",
-        isListicle && isActive
-          ? "bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-xl shadow-emerald-500/30"
-          : isActive && !isListicle
-            ? "bg-card border-2 border-primary shadow-lg"
-            : "bg-card border border-border hover:border-primary/50 hover:shadow-lg"
-      )}
-    >
-      <motion.div
-        className={cn(
-          "w-16 h-16 rounded-xl flex items-center justify-center mb-5",
-          isListicle && isActive
-            ? "bg-white/20"
-            : isListicle
-              ? "bg-emerald-100"
-              : "bg-gradient-to-br from-indigo-400 to-purple-500"
-        )}
-        animate={{ 
-          scale: isActive ? [1, 1.1, 1] : 1,
-        }}
-        transition={{ duration: 0.4 }}
-      >
-        <span className={cn(
-          "w-8 h-8",
-          isListicle && isActive
-            ? "text-white"
-            : isListicle
-              ? "text-emerald-600"
-              : "text-white"
-        )}>
-          {icon}
-        </span>
-      </motion.div>
-      <h3 className={cn(
-        "text-xl font-semibold",
-        isListicle && isActive ? "text-white" : "text-foreground"
-      )}>
-        {title}
-      </h3>
-      <AnimatePresence>
-        {isActive && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              "flex items-center gap-1.5 mt-3 text-sm font-medium",
-              isListicle ? "text-white/90" : "text-emerald-500"
-            )}
-          >
-            <Check className="w-4 h-4" />
-            <span>Active</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.button>
-  );
-};
-
-const Mode = () => {
+export default function Mode() {
   const navigate = useNavigate();
-  const [activeMode, setActiveMode] = useState<ContentMode>('classic');
+  const currentMode = localStorage.getItem("articleMode") || "classic";
 
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('article_settings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        if (parsed.articleStyle === 'listicle') {
-          setActiveMode('listicle');
-        } else {
-          setActiveMode('classic');
-        }
-      } catch (e) {
-        console.error('Failed to parse settings:', e);
-      }
-    }
-  }, []);
-
-  const handleModeSelect = (mode: ContentMode) => {
-    setActiveMode(mode);
-    
-    // Update settings in localStorage
-    const savedSettings = localStorage.getItem('article_settings');
-    let settings = {};
-    if (savedSettings) {
-      try {
-        settings = JSON.parse(savedSettings);
-      } catch (e) {
-        console.error('Failed to parse settings:', e);
-      }
-    }
-    
-    // Map mode to articleStyle
-    const articleStyle = mode === 'listicle' ? 'listicle' : 'general';
-    localStorage.setItem('article_settings', JSON.stringify({ ...settings, articleStyle }));
-    
-    // Navigate to add articles page
-    setTimeout(() => {
-      navigate('/add-articles');
-    }, 300);
+  const handleModeSelect = (mode: "classic" | "listicle") => {
+    localStorage.setItem("articleMode", mode);
+    navigate("/add");
   };
 
   return (
-    <AppLayout>
-      <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[calc(100vh-200px)]">
-        <h1 className="text-3xl font-bold text-foreground mb-12">
-          Choose Your Content Type
-        </h1>
-        
-        <div className="flex flex-row gap-8 justify-center items-start">
-          <ModeCard
-            mode="classic"
-            title="Classic Article Writer"
-            icon={<FileText className="w-full h-full" />}
-            isActive={activeMode === 'classic'}
-            onClick={() => handleModeSelect('classic')}
-          />
-          <ModeCard
-            mode="listicle"
-            title="Listicle Writer"
-            icon={<List className="w-full h-full" />}
-            isActive={activeMode === 'listicle'}
-            onClick={() => handleModeSelect('listicle')}
-          />
-        </div>
+    <div className="max-w-4xl mx-auto p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-50">Choose Your Content Type</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-300">Select the type of article you want to create</p>
       </div>
-    </AppLayout>
-  );
-};
 
-export default Mode;
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card
+          className={`p-8 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${
+            currentMode === "classic"
+              ? "border-primary border-2 shadow-md"
+              : "border-border hover:border-primary/50"
+          }`}
+          onClick={() => handleModeSelect("classic")}
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-4 rounded-full bg-gradient-to-br from-primary to-purple-600">
+              <FileText className="h-8 w-8 text-white" />
+            </div>
+            {currentMode === "classic" && (
+              <div className="px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
+                Active
+              </div>
+            )}
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Information Article</h3>
+              <p className="text-sm text-muted-foreground">
+                Deep, comprehensive articles that explain topics in detail. Perfect for guides,
+                tutorials, and educational content.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Sparkles className="h-3 w-3" />
+              <span>AI-powered content generation</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className={`p-8 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] ${
+            currentMode === "listicle"
+              ? "border-emerald-500 border-2 shadow-md bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30"
+              : "border-border hover:border-emerald-500/50"
+          }`}
+          onClick={() => handleModeSelect("listicle")}
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500">
+              <List className="h-8 w-8 text-white" />
+            </div>
+            {currentMode === "listicle" && (
+              <div className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded-full">
+                Active
+              </div>
+            )}
+            <div>
+              <h3 className="text-xl font-semibold mb-2">Round-Up / Listicle</h3>
+              <p className="text-sm text-muted-foreground">
+                Numbered collections of ideas, tips, or products. Great for "Top 10" lists,
+                curated recommendations, and roundups.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Sparkles className="h-3 w-3" />
+              <span>Structured list generation</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
