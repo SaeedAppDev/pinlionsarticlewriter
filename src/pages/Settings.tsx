@@ -22,17 +22,12 @@ interface ApiSettings {
 }
 
 const replicateModels = [
-  { value: 'google-nano-banana-pro', label: 'Google Nano Banana Pro b7', description: 'Balanced quality & speed (est. $0.02a0/ image)' },
-  { value: 'z-image-turbo', label: 'Z-Image Turbo (Pruna AI) b7', description: 'Ultra fast drafts (est. $0.01a0/ image)' },
-  { value: 'seedream-4.5', label: 'Seedream 4.5 (ByteDance) b7', description: 'High detail (est. $0.04a0/ image)' },
-  { value: 'flux-schnell', label: 'FLUX Schnell b7', description: 'Fast general-purpose (similar to ~$0.02a0/ image)' },
-  { value: 'flux-dev', label: 'FLUX Dev b7', description: 'Higher quality, slower (est. mid-tier pricing)' },
-  { value: 'flux-pro', label: 'FLUX Pro b7', description: 'Premium quality (higher cost per image)' },
-  { value: 'stable-diffusion-xl', label: 'Stable Diffusion XL b7', description: 'Versatile, good quality (budget-friendly)' },
-  { value: 'stable-diffusion-3', label: 'Stable Diffusion 3 b7', description: 'Newer SD model (moderate cost)' },
-  { value: 'sdxl-lightning', label: 'SDXL Lightning b7', description: 'Ultra fast, lower cost per image' },
-  { value: 'playground-v2.5', label: 'Playground v2.5 b7', description: 'Stylized, aesthetic outputs' },
-  { value: 'realvisxl-v4', label: 'RealVisXL v4.0 b7', description: 'Photorealistic portraits & products' },
+  { value: 'google-nano-banana-pro', label: 'Nano Banana Pro', model_id: 'google/gemini-2.5-flash-image-preview', description: 'Balanced quality & speed (est. $0.02/ image)', gradient: 'from-amber-400 to-orange-500', bgGradient: 'from-amber-200 via-yellow-200 to-orange-200', icon: 'NB', link: 'https://replicate.com/google/nano-banana-pro' },
+  { value: 'z-image-turbo', label: 'Z-Image Turbo', model_id: 'prunaai/z-image-turbo', description: 'Ultra fast drafts (est. $0.01/ image)', gradient: 'from-teal-400 to-cyan-500', bgGradient: 'from-teal-200 via-cyan-200 to-emerald-200', icon: 'ZT', link: 'https://replicate.com/prunaai/z-image-turbo' },
+  { value: 'seedream-4.5', label: 'Seedream 4.5', model_id: 'bytedance/seedream-4.5', description: 'High detail (est. $0.04/ image)', gradient: 'from-pink-400 to-purple-500', bgGradient: 'from-pink-200 via-purple-200 to-violet-200', icon: 'SD', link: 'https://replicate.com/bytedance/seedream-4.5' },
+  { value: 'flux-schnell', label: 'FLUX Schnell', model_id: 'black-forest-labs/flux-schnell', description: 'Fast general-purpose (~$0.02/ image)', gradient: 'from-blue-400 to-indigo-500', bgGradient: 'from-blue-200 via-indigo-200 to-purple-200', icon: 'FS', link: 'https://replicate.com/black-forest-labs/flux-schnell' },
+  { value: 'flux-dev', label: 'FLUX Dev', model_id: 'black-forest-labs/flux-dev', description: 'Higher quality, slower (mid-tier)', gradient: 'from-violet-400 to-purple-500', bgGradient: 'from-violet-200 via-purple-200 to-fuchsia-200', icon: 'FD', link: 'https://replicate.com/black-forest-labs/flux-dev' },
+  { value: 'flux-pro', label: 'FLUX Pro', model_id: 'black-forest-labs/flux-pro', description: 'Premium quality (higher cost)', gradient: 'from-rose-400 to-red-500', bgGradient: 'from-rose-200 via-red-200 to-orange-200', icon: 'FP', link: 'https://replicate.com/black-forest-labs/flux-pro' },
 ];
 
 const imageGenModels = [
@@ -226,87 +221,90 @@ const Settings = () => {
             </p>
           </div>
 
-          {/* Replicate Image Model */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Replicate Image Model
-            </label>
-            <Select value={replicateModel} onValueChange={setReplicateModel}>
-              <SelectTrigger className="bg-card">
-                <SelectValue placeholder="Select a model">
-                  {getSelectedModelLabel()}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {replicateModels.map((model) => (
-                  <SelectItem key={model.value} value={model.value}>
-                    <div className="flex items-center gap-2">
-                      {replicateModel === model.value && <Check className="w-4 h-4" />}
-                      <span>{model.label}</span>
-                      <span className="text-muted-foreground">{model.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Pricing is approximate and based on public Replicate listings; always confirm in your Replicate dashboard.
-            </p>
-          </div>
-
-          {/* Model Preview Cards */}
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Nano Banana Pro */}
-            <Card 
-              className="p-4 border-border hover:border-primary/50 transition-colors cursor-pointer"
-              onClick={() => window.open('https://replicate.com/google/nano-banana-pro', '_blank')}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-center text-xs font-bold text-white">
-                  NB
-                </div>
-                <span className="font-medium text-foreground">Nano Banana Pro</span>
+          {/* Replicate Image Model - Only show when API token is entered */}
+          {replicateToken && (
+            <>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Replicate Image Model
+                </label>
+                <Select value={replicateModel} onValueChange={setReplicateModel}>
+                  <SelectTrigger className="bg-card">
+                    <SelectValue placeholder="Select a model">
+                      {getSelectedModelLabel()}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {replicateModels.map((model) => (
+                      <SelectItem key={model.value} value={model.value}>
+                        <div className="flex items-center gap-2">
+                          {replicateModel === model.value && <Check className="w-4 h-4" />}
+                          <span>{model.label}</span>
+                          <span className="text-muted-foreground">{model.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Pricing is approximate and based on public Replicate listings; always confirm in your Replicate dashboard.
+                </p>
               </div>
-              <div className="h-16 rounded-lg bg-gradient-to-r from-amber-200 via-yellow-200 to-orange-200 mb-3" />
-              <p className="text-xs text-muted-foreground">
-                Balanced general-purpose image model. Click to see real samples.
-              </p>
-            </Card>
 
-            {/* Z-Image Turbo */}
-            <Card 
-              className="p-4 border-border hover:border-primary/50 transition-colors cursor-pointer"
-              onClick={() => window.open('https://replicate.com/prunaai/z-image-turbo', '_blank')}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-400 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">
-                  ZT
-                </div>
-                <span className="font-medium text-foreground">Z-Image Turbo</span>
+              {/* Model Preview Cards */}
+              <div className="grid md:grid-cols-3 gap-4">
+                {replicateModels.slice(0, 6).map((model) => {
+                  const isActive = replicateModel === model.value;
+                  return (
+                    <Card 
+                      key={model.value}
+                      className={`p-4 cursor-pointer transition-all duration-300 relative overflow-hidden ${
+                        isActive 
+                          ? 'border-primary border-2 shadow-lg shadow-primary/20 scale-[1.02]' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setReplicateModel(model.value)}
+                    >
+                      {/* Active Badge */}
+                      {isActive && (
+                        <div className="absolute top-2 right-2 animate-fade-in">
+                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-purple-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
+                            <Check className="w-3 h-3" />
+                            <span className="tracking-wide uppercase">Activated</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${model.gradient} flex items-center justify-center text-xs font-bold text-white ${isActive ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                          {model.icon}
+                        </div>
+                        <span className={`font-medium ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                          {model.label}
+                        </span>
+                      </div>
+                      
+                      <div className={`h-16 rounded-lg bg-gradient-to-r ${model.bgGradient} mb-3 transition-all duration-300 ${isActive ? 'ring-2 ring-primary/30' : ''}`} />
+                      
+                      <p className="text-xs text-muted-foreground">
+                        {model.description}
+                      </p>
+                      
+                      <button
+                        className="mt-2 text-xs text-primary hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(model.link, '_blank');
+                        }}
+                      >
+                        View on Replicate →
+                      </button>
+                    </Card>
+                  );
+                })}
               </div>
-              <div className="h-16 rounded-lg bg-gradient-to-r from-teal-200 via-cyan-200 to-emerald-200 mb-3" />
-              <p className="text-xs text-muted-foreground">
-                Optimized for speed and low cost. Click to view examples on Replicate.
-              </p>
-            </Card>
-
-            {/* Seedream 4.5 */}
-            <Card 
-              className="p-4 border-border hover:border-primary/50 transition-colors cursor-pointer"
-              onClick={() => window.open('https://replicate.com/bytedance/seedream-4.5', '_blank')}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
-                  SD
-                </div>
-                <span className="font-medium text-foreground">Seedream 4.5</span>
-              </div>
-              <div className="h-16 rounded-lg bg-gradient-to-r from-pink-200 via-purple-200 to-violet-200 mb-3" />
-              <p className="text-xs text-muted-foreground">
-                High-detail, higher-cost model. Click to inspect quality samples.
-              </p>
-            </Card>
-          </div>
+            </>
+          )}
 
           {/* Save Button */}
           <div className="flex justify-end pt-4">
