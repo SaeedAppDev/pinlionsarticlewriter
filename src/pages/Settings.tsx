@@ -51,19 +51,57 @@ const aspectRatios = [
   { value: '4:3', label: '4:3 – Standard' },
 ];
 
-const defaultClassicPrompt = `Write an engaging, conversational article about "{title}".
+const defaultClassicPrompt = `Write an engaging, conversational article about "{title}". 
+
 Target length: Around 1000 words.
 
 STRUCTURE:
-1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title – start directly with the introduction paragraph.
 
-3. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic – don't force a template. Choose headings that make sense for this specific article topic.
+1. Start with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast. No generic phrases like "In today's world..." or "In modern times...". Do NOT include any H1 title - start directly with the introduction paragraph.
+
+3. Create 5-7 main content sections using <h2> headings. Let the headings flow naturally based on the topic - don't force a template. Choose headings that make sense for this specific article topic.
 
 4. After some sections, include H3 subsections where it makes sense for deeper dives into specific points.
 
 5. Include an FAQ section with 4-6 questions formatted as <h3> tags, with answers in paragraphs.
 
-6. End with a brief conclusion section using an <h2> tag.`;
+6. End with a brief conclusion section using an <h2> tag.
+
+TONE & STYLE:
+
+- Conversational and informal - write like you are chatting with a friend or fellow enthusiast
+
+- Approachable, light-hearted, and occasionally sarcastic (but do not overdo the sarcasm)
+
+- Use active voice only - avoid passive constructions entirely
+
+- Keep paragraphs SHORT (3-4 sentences max) - make it scannable
+
+- Use rhetorical questions to engage readers and break up text
+
+- Sprinkle in internet slang sparingly: "FYI", "IMO" (2-3 times max per article)
+
+- Include occasional humor to keep things fun
+
+- Personal opinions and commentary when appropriate
+
+- Bold key information with <strong> tags (but NOT in the introduction)
+
+FORMATTING:
+
+- Use proper HTML: <h2> for main sections, <h3> for subsections
+
+- Use lists when appropriate: <ul> with <li> for bullets, <ol> with <li> for numbered
+
+- Break down technical details into easy-to-read lists
+
+- Avoid dense blocks of text
+
+- NO Markdown, code fences, or backticks
+
+- No extraneous preamble before content starts
+
+The article should feel like a friendly conversation with someone experienced who does not take themselves too seriously.`;
 
 const Settings = () => {
   const [openaiKey, setOpenaiKey] = useState('');
@@ -86,16 +124,29 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      // Load API settings
+      const { data: apiData } = await supabase
         .from('user_api_settings')
         .select('openai_api_key, replicate_api_token, replicate_model')
         .eq('user_id', user.id)
         .single();
 
-      if (data) {
-        setOpenaiKey(data.openai_api_key || '');
-        setReplicateToken(data.replicate_api_token || '');
-        setReplicateModel(data.replicate_model || 'google-nano-banana-pro');
+      if (apiData) {
+        setOpenaiKey(apiData.openai_api_key || '');
+        setReplicateToken(apiData.replicate_api_token || '');
+        setReplicateModel(apiData.replicate_model || 'google-nano-banana-pro');
+      }
+
+      // Load classic prompt
+      const { data: promptData } = await supabase
+        .from('prompts')
+        .select('prompt_text')
+        .eq('user_id', user.id)
+        .eq('type', 'classic')
+        .single();
+
+      if (promptData) {
+        setClassicPrompt(promptData.prompt_text);
       }
     } catch (error) {
       // No settings yet, that's fine
@@ -110,7 +161,8 @@ const Settings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      // Save API settings
+      const { error: apiError } = await supabase
         .from('user_api_settings')
         .upsert({
           user_id: user.id,
@@ -122,7 +174,41 @@ const Settings = () => {
           onConflict: 'user_id'
         });
 
-      if (error) throw error;
+      if (apiError) throw apiError;
+
+      // Check if classic prompt exists
+      const { data: existingPrompt } = await supabase
+        .from('prompts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'classic')
+        .single();
+
+      if (existingPrompt) {
+        // Update existing prompt
+        const { error: promptError } = await supabase
+          .from('prompts')
+          .update({
+            prompt_text: classicPrompt,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingPrompt.id);
+
+        if (promptError) throw promptError;
+      } else {
+        // Insert new prompt
+        const { error: promptError } = await supabase
+          .from('prompts')
+          .insert({
+            user_id: user.id,
+            type: 'classic',
+            niche: 'general',
+            prompt_text: classicPrompt,
+          });
+
+        if (promptError) throw promptError;
+      }
+
       toast.success('Settings saved successfully!');
     } catch (error) {
       console.error('Error saving settings:', error);
