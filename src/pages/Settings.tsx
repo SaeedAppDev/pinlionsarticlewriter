@@ -212,12 +212,117 @@ EXAMPLE FORMAT:
 </ul>
 
 <p>This look is perfect if you want your bedroom to feel like a luxe hotel suite. Bold, dramatic, and unapologetically extra.</p>`,
-  'fashion': `Write a conversational fashion article showcasing: "{title}".
+  'fashion': `Write a conversational, friendly fashion outfit listicle article about: "{title}". 
+
 Target length: approximately 1500 words.
 
-CRITICAL: Present EXACTLY {itemCount} different fashion items or looks.
+CRITICAL: Create EXACTLY {itemCount} numbered outfit sections - no more, no less. The title specifies {itemCount} outfits, so deliver exactly that many.
 
-Include engaging intro, numbered sections with <h2> headings, FAQ section, and conclusion.`,
+STRUCTURE:
+
+1. Start with an engaging <h1> title that is more viral than the original:
+
+   - Maximum 15 words
+
+   - MUST include the exact core phrase from the original title (e.g., if original is "8 Fall Outfits for Women", the new title MUST contain "8 Fall Outfits for Women")
+
+   - Use proper title case capitalization (First Letter Of Each Major Word Capitalized)
+
+   - Make it click-worthy and engaging while keeping the SEO keywords
+
+   - Example: Original "8 Fall Outfits for Women" becomes "8 Fall Outfits for Women That Will Make You Love Sweater Weather"
+
+2. Follow with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast with why these outfits are amazing. No generic phrases like "In today is fashion world..." or "In modern times...". Jump straight into something that grabs attention.
+
+3. Create EXACTLY {itemCount} numbered outfit sections using <h2> headings with creative outfit names (like "1. Cozy Oversized Sweater Combo That Will Make You Ditch Your Entire Wardrobe" instead of boring titles).
+
+4. For EACH outfit section, include:
+
+   - A brief intro paragraph (2-3 sentences) explaining why this outfit is amazing (what makes it special, where to wear it, why people love it)
+
+   - <h3>Outfit Pieces:</h3> section with a bulleted <ul> list of all clothing items and accessories (e.g., oversized cream knit sweater, high-waisted black jeans, ankle boots, gold layered necklaces)
+
+   - <h3>Styling Tips:</h3> section with specific advice on how to wear and style the outfit, fit guidance, and how to accessorize
+
+   - A closing paragraph with occasion suggestions, variations, or pro styling tips
+
+5. End with a brief, encouraging conclusion (2-3 sentences) that makes readers excited to try these outfits.
+
+TONE & STYLE:
+
+- Conversational and informal - write like you are chatting with a fashion-forward friend who loves putting together great outfits
+
+- Approachable, light-hearted, and occasionally sarcastic about fashion trends (but do not overdo the sarcasm)
+
+- Use active voice only - avoid passive constructions entirely
+
+- Keep paragraphs SHORT (2-3 sentences max) - make it scannable
+
+- Use rhetorical questions to engage readers and break up text
+
+- Sprinkle in internet slang sparingly: "FYI", "IMO", "trust me", "seriously" (2-3 times max per article)
+
+- Include occasional humor to keep things fun
+
+- Personal opinions and commentary when appropriate
+
+- Bold key style terms and clothing items with <strong> tags (but NOT in the introduction)
+
+FORMATTING:
+
+- Use proper HTML: <h1> for title, <h2> for numbered outfits, <h3> for Outfit Pieces/Styling Tips subsections
+
+- Use <ul> with <li> for outfit pieces lists
+
+- Use <p> for paragraphs
+
+- Break down outfits into easy-to-read lists
+
+- Avoid dense blocks of text
+
+- NO Markdown, code fences, or backticks (##, -, *, etc.)
+
+- No extraneous preamble before content starts
+
+IMPORTANT CONTENT RESTRICTIONS:
+
+- NEVER use the word "nude" or "naked" in any context
+
+- For neutral/beige colors, use alternative terms like: "beige", "tan", "cream", "camel", "sand", "neutral", "skin-tone", "natural"
+
+- Keep all content family-friendly and appropriate
+
+The article should feel like getting fashion advice from your most stylish friend who does not take themselves too seriously.
+
+EXAMPLE FORMAT:
+
+<h1>8 Fall Outfits For Women That Will Make You Love Sweater Weather</h1>
+
+<p>Ready to turn sidewalk into your personal runway? These fall outfits are about to become your new wardrobe essentials.</p>
+
+<h2>1. Cozy Oversized Sweater Combo That Will Make You Ditch Your Entire Wardrobe</h2>
+
+<p>This outfit is pure comfort meets style gold. Seriously, you will want to wear this every single day.</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+
+<li>Oversized cream knit sweater</li>
+
+<li>High-waisted black jeans</li>
+
+<li>Tan ankle boots</li>
+
+<li>Gold layered necklaces</li>
+
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>Tuck just the front corner of your sweater for that effortlessly chic vibe. Roll up the sleeves halfway to show off those layered necklaces.</p>
+
+<p>Perfect for coffee runs, casual Fridays, or weekend brunches. Trust me on this one.</p>`,
   'food': `Write a conversational, friendly food recipe article about: "{title}". 
 
 Target length: approximately 1500 words.
