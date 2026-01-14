@@ -12,6 +12,7 @@ import Add from "./pages/Add";
 import Queue from "./pages/Queue";
 import Completed from "./pages/Completed";
 import Settings from "./pages/Settings";
+import PinCreator from "./pages/PinCreator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="add" element={<Add />} />
               <Route path="queue" element={<Queue />} />
               <Route path="completed" element={<Completed />} />
+              <Route path="pin-creator" element={<PinCreator />} />
               <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
