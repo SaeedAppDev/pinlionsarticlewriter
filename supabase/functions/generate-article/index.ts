@@ -929,9 +929,15 @@ serve(async (req) => {
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${entityId}, Table: ${tableName})`);
     console.log(`📋 Article type from DB: ${articleType}, Niche: ${niche}, Passed style: ${passedArticleStyle}`);
     
-    // CRITICAL: Use article type from database, fallback to passed style, then default to 'recipe'
-    // 'classic' = recipe-style, 'listicle' = listicle-style
-    const articleStyle = articleType || passedArticleStyle || 'recipe';
+    // CRITICAL: Map article type from database to style
+    // Database stores: 'classic' → use 'recipe' template, 'listicle' → use 'listicle' template
+    let articleStyle = articleType || passedArticleStyle || 'recipe';
+    
+    // IMPORTANT: 'classic' type in database means recipe-style article!
+    if (articleStyle === 'classic') {
+      articleStyle = 'recipe';
+      console.log(`📝 Mapped 'classic' type to 'recipe' style`);
+    }
     console.log(`📝 Final article style: ${articleStyle}`);
     
     // Normalize image model names (settings use z-image-turbo, code expects zimage)
