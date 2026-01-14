@@ -111,20 +111,49 @@ const Queue = () => {
     }
   };
 
-  const getSettings = () => {
+  interface GenerationSettings {
+    aspectRatio?: string;
+    aiProvider?: string;
+    articleStyle?: string;
+    imageModel?: string;
+    customApiKey?: string;
+    customReplicateKey?: string;
+  }
+
+  const getSettings = async (): Promise<GenerationSettings> => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return {};
+
+      // Fetch API settings from database
+      const { data: apiSettings } = await supabase
+        .from('user_api_settings')
+        .select('openai_api_key, replicate_api_token, replicate_model')
+        .eq('user_id', user.id)
+        .single();
+
       const savedSettings = localStorage.getItem('article_settings');
+      let localSettings: GenerationSettings = {};
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        return {
+        localSettings = {
           aspectRatio: parsed.imageAspectRatio || '4:3',
-          aiProvider: parsed.aiProvider || 'lovable',
           articleStyle: parsed.articleStyle || 'recipe',
-          imageModel: parsed.imageModel || 'zimage',
         };
       }
+
+      // Determine AI provider based on whether OpenAI key is set
+      const aiProvider = apiSettings?.openai_api_key ? 'openai' : 'lovable';
+
+      return {
+        ...localSettings,
+        aiProvider,
+        customApiKey: apiSettings?.openai_api_key || undefined,
+        customReplicateKey: apiSettings?.replicate_api_token || undefined,
+        imageModel: apiSettings?.replicate_model || 'z-image-turbo',
+      };
     } catch (e) {
-      console.error('Failed to parse settings:', e);
+      console.error('Failed to get settings:', e);
     }
     return {};
   };
@@ -139,7 +168,8 @@ const Queue = () => {
     setIsProcessingAll(true);
     toast.info(`Starting generation for ${pendingArticles.length} articles...`);
 
-    const settings = getSettings();
+    const settings = await getSettings();
+    console.log('Using settings:', { ...settings, customApiKey: settings.customApiKey ? '***' : undefined, customReplicateKey: settings.customReplicateKey ? '***' : undefined });
 
     for (const article of pendingArticles) {
       setProcessingId(article.id);
