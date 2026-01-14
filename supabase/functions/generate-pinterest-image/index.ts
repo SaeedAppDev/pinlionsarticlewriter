@@ -23,8 +23,17 @@ async function generateWithLovableAI(prompt: string, apiKey: string, aspectRatio
                        aspectRatio === '2:3' ? 'vertical portrait 2:3' :
                        aspectRatio === '1:2' ? 'tall vertical 1:2' : 'vertical';
 
-    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only, absolutely no text overlay.";
-    const enhancedPrompt = `${prompt}. ${noTextRule} ${aspectHint} aspect ratio. Ultra high resolution, premium quality, photorealistic, professional food photography.`;
+    // ULTRA-STRICT NO TEXT RULE
+    const noTextRulePrefix = "ABSOLUTE RULE: Generate ONLY a photograph with ZERO text. NO words, NO letters, NO numbers, NO titles, NO labels, NO captions, NO watermarks, NO logos, NO typography anywhere in the image.";
+    const noTextRuleSuffix = "REMINDER: ABSOLUTELY NO TEXT OR WORDS OF ANY KIND.";
+    
+    const enhancedPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style: ${aspectHint} aspect ratio. Professional food photography, REAL photograph, NOT illustration, NOT digital art. Ultra photorealistic, appetizing, magazine-quality, perfect natural lighting. 8K ultra high resolution.
+
+${noTextRuleSuffix}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -68,8 +77,13 @@ async function generateWithReplicate(prompt: string, apiKey: string, aspectRatio
     const Replicate = (await import("https://esm.sh/replicate@0.25.2")).default;
     const replicate = new Replicate({ auth: apiKey });
 
-    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only.";
-    const enhancedPrompt = `Professional Pinterest food photography: ${prompt}. ${noTextRule} Highly detailed, appetizing, magazine-quality, perfect lighting, shallow depth of field, ultra high resolution, photorealistic.`;
+    // ULTRA-STRICT NO TEXT RULE
+    const noTextRulePrefix = "ABSOLUTE RULE: Generate ONLY a photograph with ZERO text. NO words, NO letters, NO numbers, NO titles, NO labels, NO captions, NO watermarks, NO logos, NO typography anywhere in the image.";
+    const enhancedPrompt = `${noTextRulePrefix}
+
+Generate: Professional Pinterest food photography of ${prompt}
+
+Style: REAL photograph, NOT illustration, NOT digital art. Ultra photorealistic, appetizing, magazine-quality, perfect natural lighting, shallow depth of field. 8K ultra high resolution. ABSOLUTELY NO TEXT OR WORDS.`;
 
     const output = await replicate.run("black-forest-labs/flux-schnell", {
       input: {

@@ -19,17 +19,38 @@ async function generateImage(
   try {
     console.log(`🖼️ Regenerating image ${imageNumber} with model: ${imageModel}`);
     
-    // Category-specific prompts
-    // CRITICAL: Explicitly tell AI to NOT add any text, watermarks, or overlays!
-    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only, absolutely no text overlay.";
+    // ULTRA-STRICT NO TEXT RULE - This must be at the START of prompt for maximum effect
+    const noTextRulePrefix = "ABSOLUTE RULE: Generate ONLY a photograph with ZERO text. NO words, NO letters, NO numbers, NO titles, NO labels, NO captions, NO watermarks, NO logos, NO typography, NO overlays, NO writing of ANY kind anywhere in the image.";
+    const noTextRuleSuffix = "REMINDER: This image must contain ABSOLUTELY NO TEXT OR WORDS OF ANY KIND. Pure photography only.";
     
     let realisticPrompt: string;
     if (articleCategory === 'home') {
-      realisticPrompt = `${prompt}. ${noTextRule} Professional interior design photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT 3D render, NOT AI-generated look. Natural daylight, ultra high resolution, premium quality, magazine-quality.`;
+      realisticPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style: Professional interior design photograph, REAL photography, NOT illustration, NOT digital art, NOT 3D render, NOT cartoon.
+Ultra photorealistic with natural imperfections. Natural daylight. Rich visible textures. Magazine editorial quality. 8K ultra high resolution.
+
+${noTextRuleSuffix}`;
     } else if (articleCategory === 'fashion') {
-      realisticPrompt = `${prompt}. ${noTextRule} Professional fashion photograph, ultra-realistic, photorealistic, studio lighting, ultra high resolution, premium quality, Vogue style.`;
+      realisticPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style: Professional fashion photograph, REAL photography, NOT illustration, NOT digital art.
+Ultra photorealistic. Studio lighting with soft diffusion. Visible fabric texture. Magazine quality. 8K ultra high resolution.
+
+${noTextRuleSuffix}`;
     } else {
-      realisticPrompt = `${prompt}. ${noTextRule} Professional food photograph, ultra-realistic, photorealistic, natural lighting, ultra high resolution, premium quality, Bon Appetit style.`;
+      realisticPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style: Professional food photograph, REAL photography, NOT illustration, NOT digital art.
+Ultra photorealistic with visible texture. Natural window lighting. Rustic surface. Magazine quality. 8K ultra high resolution.
+
+${noTextRuleSuffix}`;
     }
 
     // Get dimensions

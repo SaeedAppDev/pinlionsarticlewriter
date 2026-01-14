@@ -453,27 +453,62 @@ async function generateUniqueImage(
     // CRITICAL: Explicitly tell AI to NOT add any text, watermarks, or overlays!
     let realisticPrompt: string;
     
-    const noTextRule = "CRITICAL: DO NOT add ANY text, words, letters, numbers, watermarks, logos, labels, captions, or typography on the image. Pure photography only, absolutely no text overlay.";
+    // ULTRA-STRICT NO TEXT RULE - This must be at the START of prompt for maximum effect
+    const noTextRulePrefix = "ABSOLUTE RULE: Generate ONLY a photograph with ZERO text. NO words, NO letters, NO numbers, NO titles, NO labels, NO captions, NO watermarks, NO logos, NO typography, NO overlays, NO writing of ANY kind anywhere in the image.";
+    
+    const noTextRuleSuffix = "REMINDER: This image must contain ABSOLUTELY NO TEXT OR WORDS OF ANY KIND. Pure photography only.";
     
     if (articleCategory === 'home') {
-      realisticPrompt = `${prompt}. ${noTextRule}
-Professional interior design photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT 3D render, NOT AI-generated look.
-Natural daylight from large windows, eye-level angle, balanced symmetry.
-Visible textures on furniture and fabrics, realistic shadows, natural wood grain, authentic materials.
-Ultra high resolution, premium quality, magazine-quality interior photography, Architectural Digest style.`;
+      realisticPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style requirements:
+- Professional interior design photograph, REAL photography, NOT illustration, NOT digital art, NOT 3D render, NOT cartoon, NOT painting
+- Ultra photorealistic with natural imperfections
+- Natural daylight streaming through large windows
+- Eye-level perspective with balanced composition
+- Rich visible textures: soft fabrics, polished wood grain, woven rugs, brushed metals
+- Authentic materials: real marble, genuine leather, natural linen, solid hardwood
+- Subtle realistic shadows and ambient lighting
+- Magazine editorial quality like Architectural Digest or Elle Decor
+- 8K ultra high resolution, crisp details throughout
+- Color grading: warm, inviting, sophisticated
+
+${noTextRuleSuffix}`;
     } else if (articleCategory === 'fashion') {
-      realisticPrompt = `${prompt}. ${noTextRule}
-Professional fashion photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT AI-generated look.
-Studio lighting with soft diffusion, fashion editorial style.
-Visible fabric texture, natural skin tones, authentic clothing details, professional styling.
-Ultra high resolution, premium quality, magazine-quality fashion photography, Vogue style.`;
+      realisticPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style requirements:
+- Professional fashion photograph, REAL photography, NOT illustration, NOT digital art, NOT 3D render
+- Ultra photorealistic with natural skin texture
+- Studio lighting with soft diffusion and gentle shadows
+- Fashion editorial composition
+- Visible fabric weave and texture details
+- Authentic clothing drape and fit
+- Magazine quality like Vogue or Harper's Bazaar
+- 8K ultra high resolution, crisp details
+
+${noTextRuleSuffix}`;
     } else {
       // Default: food photography
-      realisticPrompt = `${prompt}. ${noTextRule}
-Professional food photograph, ultra-realistic, photorealistic, NOT illustration, NOT digital art, NOT AI-generated look.
-Natural lighting, overhead or 45-degree angle, wooden cutting board or marble surface, rustic kitchen background.
-Visible texture, natural imperfections, authentic food styling, soft shadows.
-Ultra high resolution, premium quality, magazine-quality food photography, Bon Appetit style.`;
+      realisticPrompt = `${noTextRulePrefix}
+
+Generate: ${prompt}
+
+Style requirements:
+- Professional food photograph, REAL photography, NOT illustration, NOT digital art, NOT 3D render
+- Ultra photorealistic with visible texture and natural imperfections
+- Natural window lighting with soft shadows
+- Overhead or 45-degree angle
+- Rustic wooden surface or marble countertop
+- Authentic food styling with real ingredients
+- Magazine quality like Bon Appetit or Food & Wine
+- 8K ultra high resolution, appetizing details
+
+${noTextRuleSuffix}`;
     }
 
     // Parse aspect ratio to get dimensions
