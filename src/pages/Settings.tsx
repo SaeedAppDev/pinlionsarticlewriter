@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Save, FileText, List, Code, Image as ImageIcon, Check, RotateCcw, Wand2, Plus, Trash2, Edit2, Sparkles } from 'lucide-react';
+import { Save, FileText, List, Code, Image as ImageIcon, Check, RotateCcw, Wand2, Plus, Trash2, Edit2, Sparkles, Globe, CheckCircle, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -20,6 +21,14 @@ interface ApiSettings {
   openai_api_key: string;
   replicate_api_token: string;
   replicate_model: string;
+}
+
+interface WordPressSite {
+  id: string;
+  name: string;
+  url: string;
+  apiKey: string;
+  isConnected: boolean;
 }
 
 const replicateModels = [
@@ -601,6 +610,13 @@ const Settings = () => {
   const [showAddPrompt, setShowAddPrompt] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // WordPress Sites state
+  const [wordpressSites, setWordpressSites] = useState<WordPressSite[]>([]);
+  const [newSiteName, setNewSiteName] = useState('');
+  const [newSiteUrl, setNewSiteUrl] = useState('');
+  const [newSiteApiKey, setNewSiteApiKey] = useState('');
+  const [testingConnection, setTestingConnection] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -808,6 +824,63 @@ const Settings = () => {
     }
   };
 
+  const testWordPressConnection = async () => {
+    if (!newSiteUrl || !newSiteApiKey) {
+      toast.error('Please enter site URL and API key');
+      return;
+    }
+    
+    setTestingConnection(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-to-wordpress', {
+        body: {
+          siteUrl: newSiteUrl.replace(/\/$/, ''),
+          apiKey: newSiteApiKey,
+          testOnly: true,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`Connected to ${data.site?.name || newSiteUrl}!`);
+      } else {
+        toast.error(data.error || 'Connection failed');
+      }
+    } catch (error) {
+      console.error('Connection test error:', error);
+      toast.error('Failed to test connection');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const addWordPressSite = () => {
+    if (!newSiteName.trim() || !newSiteUrl.trim() || !newSiteApiKey.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    const newSite: WordPressSite = {
+      id: crypto.randomUUID(),
+      name: newSiteName.trim(),
+      url: newSiteUrl.replace(/\/$/, '').trim(),
+      apiKey: newSiteApiKey.trim(),
+      isConnected: true,
+    };
+
+    setWordpressSites(prev => [...prev, newSite]);
+    setNewSiteName('');
+    setNewSiteUrl('');
+    setNewSiteApiKey('');
+    toast.success('WordPress site added!');
+  };
+
+  const removeWordPressSite = (id: string) => {
+    setWordpressSites(prev => prev.filter(site => site.id !== id));
+    toast.success('Site removed');
+  };
+
   const getSelectedModelLabel = () => {
     const model = replicateModels.find(m => m.value === replicateModel);
     return model ? `${model.label} ${model.description}` : 'Select a model';
@@ -860,6 +933,135 @@ const Settings = () => {
             <p className="text-sm text-muted-foreground">Currently selected listicle category</p>
           </Card>
         </div>
+      </Card>
+
+      {/* WordPress Sites */}
+      <Card className="p-6 mb-6 bg-card border-border">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Globe className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">WordPress Sites</h3>
+              <p className="text-sm text-muted-foreground">Manage multiple WordPress sites</p>
+            </div>
+          </div>
+          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+            {wordpressSites.length} sites
+          </Badge>
+        </div>
+
+        {/* Add New Site Form */}
+        <Card className="p-4 mb-4 border-dashed border-2 border-border bg-muted/30">
+          <div className="flex items-center gap-2 mb-4">
+            <Plus className="w-4 h-4 text-muted-foreground" />
+            <h4 className="font-medium text-foreground">Add New Site</h4>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Site Name
+              </label>
+              <Input
+                value={newSiteName}
+                onChange={(e) => setNewSiteName(e.target.value)}
+                placeholder="My Food Blog"
+                className="bg-card"
+              />
+              <p className="text-xs text-muted-foreground">Friendly name to identify this site</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                WordPress Site URL
+              </label>
+              <Input
+                value={newSiteUrl}
+                onChange={(e) => setNewSiteUrl(e.target.value)}
+                placeholder="https://yoursite.com"
+                className="bg-card"
+              />
+              <p className="text-xs text-muted-foreground">Your WordPress site URL (without trailing slash)</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                API Key
+              </label>
+              <Input
+                type="password"
+                value={newSiteApiKey}
+                onChange={(e) => setNewSiteApiKey(e.target.value)}
+                placeholder="pl_xxxxxxxxxxxxxxxxx"
+                className="bg-card"
+              />
+              <p className="text-xs text-muted-foreground">
+                Get this from Settings → Pin Lions Receiver in your WordPress admin
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={testWordPressConnection}
+                disabled={testingConnection || !newSiteUrl || !newSiteApiKey}
+                className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+              >
+                {testingConnection ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Test Connection
+              </Button>
+              <Button
+                onClick={addWordPressSite}
+                disabled={!newSiteName || !newSiteUrl || !newSiteApiKey}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Site
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Existing Sites List */}
+        {wordpressSites.length > 0 && (
+          <div className="space-y-3">
+            {wordpressSites.map((site) => (
+              <Card key={site.id} className="p-4 border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-sm font-bold text-white">
+                      {site.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">{site.name}</h4>
+                      <p className="text-sm text-muted-foreground">{site.url}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Connected
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => removeWordPressSite(site.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* API Configuration */}
@@ -1545,6 +1747,19 @@ Use {title} for the article title and {itemCount} for listicles.`}
           </p>
         </div>
       </Card>
+
+      {/* Global Save Button */}
+      <div className="mt-8 pb-8">
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="gradient-button text-white border-0 w-full md:w-auto"
+          size="lg"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {isSaving ? 'Saving...' : 'Save Settings'}
+        </Button>
+      </div>
     </div>
   );
 };
