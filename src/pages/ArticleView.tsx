@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle, Sparkles, Download } from "lucide-react";
+import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle, Sparkles, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -56,6 +56,56 @@ const ArticleView = () => {
   const [pinterestPin, setPinterestPin] = useState<PinterestPin>({});
   const [isGeneratingPinImage, setIsGeneratingPinImage] = useState(false);
   const [isGeneratingPinTitle, setIsGeneratingPinTitle] = useState(false);
+  const [isRegeneratingImages, setIsRegeneratingImages] = useState(false);
+
+  const hasMissingImages = (content: string | null) => {
+    if (!content) return false;
+    return /\{\{IMAGE_\d+\}\}/.test(content);
+  };
+
+  const handleRegenerateImages = async () => {
+    if (!id) return;
+    setIsRegeneratingImages(true);
+    toast.info('Regenerating missing images...');
+    
+    try {
+      const settings = localStorage.getItem('article_settings');
+      const parsed = settings ? JSON.parse(settings) : {};
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      let customReplicateKey;
+      if (user) {
+        const { data: apiSettings } = await supabase
+          .from('user_api_settings')
+          .select('replicate_api_token, replicate_model')
+          .eq('user_id', user.id)
+          .single();
+        customReplicateKey = apiSettings?.replicate_api_token;
+      }
+
+      const { data, error } = await supabase.functions.invoke('regenerate-images', {
+        body: {
+          articleId: id,
+          aspectRatio: parsed.imageAspectRatio || '4:3',
+          imageModel: parsed.imageModel || 'z-image-turbo',
+          customReplicateKey,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(`Regenerated ${data.regeneratedCount} images!`);
+        fetchArticle();
+      } else {
+        throw new Error(data?.error || 'Failed to regenerate images');
+      }
+    } catch (err) {
+      console.error('Error regenerating images:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to regenerate images');
+    } finally {
+      setIsRegeneratingImages(false);
+    }
+  };
 
   const fetchArticle = useCallback(async () => {
     if (!id) return;

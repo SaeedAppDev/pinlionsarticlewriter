@@ -17,6 +17,15 @@ import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock, AlertCircle, Rota
 
 import { format } from 'date-fns';
 
+interface GenerationProgress {
+  step: string;
+  totalImages?: number;
+  completedImages?: number;
+  currentImage?: number;
+  completedImageIds?: number[];
+  status?: string;
+}
+
 interface Article {
   id: string;
   title: string;
@@ -25,6 +34,7 @@ interface Article {
   niche: string;
   error_message: string | null;
   created_at: string;
+  generation_progress?: GenerationProgress | null;
 }
 
 const GENERATION_TIME_SECONDS = 30;
@@ -119,13 +129,18 @@ const Queue = () => {
 
       const { data, error } = await supabase
         .from('articles')
-        .select('id, title, status, type, niche, error_message, created_at')
+        .select('id, title, status, type, niche, error_message, created_at, generation_progress')
         .eq('user_id', user.id)
         .in('status', ['pending', 'processing', 'error'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setArticles(data || []);
+      // Map data to properly type generation_progress
+      const mappedData: Article[] = (data || []).map(item => ({
+        ...item,
+        generation_progress: item.generation_progress as unknown as GenerationProgress | null
+      }));
+      setArticles(mappedData);
     } catch (error) {
       console.error('Error fetching articles:', error);
       toast.error('Failed to load articles');
@@ -408,6 +423,31 @@ const Queue = () => {
             </p>
           </div>
         )}
+
+        {/* Real-time Image Generation Progress */}
+        {articles.filter(a => a.status === 'processing' && a.generation_progress).map(article => (
+          <div key={`progress-${article.id}`} className="mb-4 card-modern p-4 border-l-4 border-primary">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-sm font-medium truncate max-w-md">{article.title}</span>
+              </div>
+              <Badge variant="outline" className="bg-primary/10 text-primary">
+                {article.generation_progress?.step === 'generating_title' && 'Generating Title...'}
+                {article.generation_progress?.step === 'generating_content' && 'Writing Content...'}
+                {article.generation_progress?.step === 'generating_images' && 
+                  `Images: ${article.generation_progress?.completedImages || 0}/${article.generation_progress?.totalImages || 0}`}
+                {article.generation_progress?.step === 'starting' && 'Starting...'}
+              </Badge>
+            </div>
+            {article.generation_progress?.step === 'generating_images' && article.generation_progress?.totalImages && (
+              <Progress 
+                value={(article.generation_progress.completedImages || 0) / article.generation_progress.totalImages * 100} 
+                className="h-2" 
+              />
+            )}
+          </div>
+        ))}
 
         {/* Content */}
         <div className="card-modern overflow-hidden">
