@@ -113,7 +113,8 @@ const listicleCategories = [
 ];
 
 const defaultListiclePrompts: Record<string, string> = {
-  'home-decor': `Write a conversational, friendly home decor article showcasing: "{title}".
+  'home-decor': `Write a conversational, friendly home decor article showcasing: "{title}". 
+
 Target length: approximately 1500 words.
 
 CRITICAL: Present EXACTLY {itemCount} completely different and distinct room designs - no more, no less. Each section must showcase a unique, complete design concept.
@@ -121,26 +122,96 @@ CRITICAL: Present EXACTLY {itemCount} completely different and distinct room des
 STRUCTURE:
 
 1. Start with an engaging <h1> title that is more viral than the original:
+
    - Maximum 15 words
+
    - MUST include the exact core phrase from the original title
+
    - Use proper title case capitalization
+
    - Make it click-worthy and engaging while keeping the SEO keywords
+
    - Example: Original "7 Bedroom Ideas" becomes "7 Stunning Bedroom Ideas That Will Transform Your Sleep Space"
 
-2. Follow with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast with why these designs are amazing. No generic phrases like "In today's world..." or "In modern times...". Jump straight into something that grabs attention.
+2. Follow with a short, punchy introduction (3-4 sentences) that immediately gets to the point. Hook the reader fast with why these designs are amazing. No generic phrases like "In today is world..." or "In modern times...". Jump straight into something that grabs attention.
 
-3. Create EXACTLY {itemCount} numbered design sections using <h2> headings, each representing a completely unique design concept.
+3. Create EXACTLY {itemCount} numbered design sections using <h2> headings, each naming a specific, complete design concept (like "1. Moody Maximalist Paradise With Jewel Tones" instead of boring titles).
 
-4. Include an FAQ section with 4-6 questions formatted as <h3> tags.
+4. For EACH design section, describe the complete room vision naturally:
 
-5. End with a brief conclusion section using an <h2> tag.
+   - Start with a brief intro paragraph (2-3 sentences) painting the overall picture and mood
+
+   - Describe specific details about colors, furniture, textiles, and decor that make this design unique
+
+   - Use <h3> subsections when helpful (like "Color Palette", "Key Pieces", "Styling Tips") but only where it makes sense
+
+   - Include occasional <ul> lists for key elements when it helps with scannability
+
+   - End with a brief note about the vibe, who would love this, or when to use this style
+
+5. End with a brief, encouraging conclusion (2-3 sentences) that inspires readers to try these designs.
 
 TONE & STYLE:
-- Conversational and informal - write like you are chatting with a friend
-- Use active voice only
-- Keep paragraphs SHORT (3-4 sentences max)
-- Include occasional humor
-- Bold key information with <strong> tags`,
+
+- Conversational and informal - write like you are showing off your favorite room designs to a friend who loves home decor
+
+- Approachable, light-hearted, and occasionally sarcastic about design trends (but do not overdo the sarcasm)
+
+- Use active voice only - avoid passive constructions entirely
+
+- Keep paragraphs SHORT (2-3 sentences max) - make it scannable
+
+- Use rhetorical questions to engage readers and break up text
+
+- Sprinkle in internet slang sparingly: "FYI", "IMO", "trust me", "seriously" (2-3 times max per article)
+
+- Include occasional humor to keep things fun
+
+- Personal opinions and commentary when appropriate
+
+- Bold key design terms, colors, and furniture pieces with <strong> tags (but NOT in the introduction)
+
+FORMATTING:
+
+- Use proper HTML: <h1> for title, <h2> for numbered designs, <h3> for subsections when helpful
+
+- Use <ul> with <li> for lists of key elements/materials
+
+- Use <p> for paragraphs
+
+- Break up content with vivid descriptions and specific details
+
+- Avoid dense blocks of text
+
+- NO Markdown, code fences, or backticks (##, -, *, etc.)
+
+- No extraneous preamble before content starts
+
+The article should feel like a friendly house tour with someone who has impeccable taste and does not take themselves too seriously.
+
+EXAMPLE FORMAT:
+
+<h1>7 Stunning Bedroom Ideas That Will Transform Your Sleep Space</h1>
+
+<p>Ready to fall in love with your bedroom all over again? These design concepts will make you want to spend all day in bed (and not just for sleep).</p>
+
+<h2>1. Moody Maximalist Paradise With Jewel Tones</h2>
+
+<p>Deep emerald walls meet gold accents in this dramatic sanctuary. Think velvet, brass, and layers upon layers of texture.</p>
+
+<h3>Key Pieces:</h3>
+
+<ul>
+
+<li>Velvet tufted headboard in jewel tones (emerald or sapphire)</li>
+
+<li>Layered Persian and Moroccan rugs</li>
+
+<li>Brass pendant lights and table lamps</li>
+
+</ul>
+
+<p>This look is perfect if you want your bedroom to feel like a luxe hotel suite. Bold, dramatic, and unapologetically extra.</p>`,
   'fashion': `Write a conversational fashion article showcasing: "{title}".
 Target length: approximately 1500 words.
 
