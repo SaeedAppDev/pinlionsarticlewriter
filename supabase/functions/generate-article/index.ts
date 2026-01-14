@@ -1180,8 +1180,99 @@ REQUIREMENTS:
 
 CRITICAL: Pure HTML only. NO Markdown. Use <strong> for bold, <em> for italics.`;
     } else if (articleStyle === 'listicle') {
-      // Listicle-style article
-      articleSystemPrompt = `You are an expert content writer specializing in engaging, SEO-optimized listicle articles. Write a comprehensive numbered list article using the EXACT structure below.
+      // Generate image placeholder list for prompt
+      const imagePlaceholderList = Array.from({ length: imageCount }, (_, i) => `{{IMAGE_${i + 1}}}`).join(', ');
+      
+      // Check if this is a Home Decor listicle
+      if (articleCategory === 'home') {
+        // HOME DECOR LISTICLE - Specialized structure
+        articleSystemPrompt = `You are an expert home decor content writer. Write a conversational, friendly home decor article showcasing room designs.
+
+CRITICAL COUNT RULE (NON-NEGOTIABLE):
+- Generate EXACTLY ${imageCount} room designs.
+- Generate EXACTLY ${imageCount} <h2> sections (numbered 1 through ${imageCount}).
+- NO more, NO less.
+- If count is incorrect, regenerate internally before responding.
+
+ABSOLUTELY FORBIDDEN - DO NOT INCLUDE:
+- Extra tips sections
+- FAQs
+- "Things to consider" sections
+- Bonus ideas
+- Summary blocks between designs
+- Comparison sections
+- Conclusion sections
+- Any section not explicitly defined below
+${internalLinksInstruction}
+
+MANDATORY STRUCTURE (FOLLOW STRICTLY):
+
+1. INTRODUCTION (3-4 sentences)
+   - Jump straight into value
+   - NO generic openers like "In today's world" or "Looking to transform"
+   - Address the reader directly and set expectations
+
+2. ROOM DESIGNS (EXACTLY ${imageCount} designs, numbered 1-${imageCount})
+   - Each design gets an <h2> with number and creative design name
+   - Format: "<h2>1. Creative Design Name</h2>"
+   
+   FOR EACH DESIGN SECTION:
+   - Start with 2-3 sentence mood-setting paragraph
+   - Describe colors, furniture, textures, layout in detail
+   - Use <h3> subsections ONLY if helpful (Color Palette, Key Pieces, Styling Notes)
+   - <ul> lists allowed only when useful
+   - End with 1 short vibe sentence (who this design is for)
+   
+   STRICT RULE: Each design must be COMPLETELY DIFFERENT.
+   No repeated layouts, color palettes, or concepts.
+
+3. ARTICLE ENDS IMMEDIATELY AFTER THE LAST DESIGN
+   - NO conclusion
+   - NO FAQ
+   - NO additional sections
+
+IMAGE PLACEHOLDERS:
+Place one image after each design section:
+${imagePlaceholderList}
+
+CRITICAL FORMATTING:
+- Output ONLY valid HTML - NO Markdown
+- Use <h2> for design section titles (numbered)
+- Use <h3> for optional subsections only
+- Use <p> for paragraphs
+- Use <strong> for bold - NEVER asterisks
+- Use <ul>/<li> for lists when helpful
+- Keep paragraphs SHORT (2-4 lines max)
+- NO emojis
+- NO generic phrases`;
+
+        articlePrompt = `HOME DECOR ARTICLE: "${seoTitle}"
+FOCUS KEYWORD: "${focusKeyword}"
+NUMBER OF DESIGNS: EXACTLY ${imageCount}
+
+Write a home decor article (approximately 1500 words) following the EXACT structure in the system prompt.
+
+CRITICAL REQUIREMENTS:
+1. Write EXACTLY ${imageCount} numbered room design sections as <h2> headings
+2. Each design section must be unique and completely different
+3. NO FAQ section - this is forbidden
+4. NO conclusion section - article ends after design #${imageCount}
+5. NO tips/advice sections - ONLY the designs
+6. Include focus keyword "${focusKeyword}" naturally 8-12 times
+7. Use ALL ${imageCount} image placeholders: ${imagePlaceholderList}
+8. Place ONE image after each design section
+
+STRUCTURE (EXACTLY):
+- Introduction paragraph (3-4 sentences, no heading)
+- <h2>1. First Design Name</h2> + description + {{IMAGE_1}}
+- <h2>2. Second Design Name</h2> + description + {{IMAGE_2}}
+... continue until design #${imageCount}
+- STOP. No more content after design #${imageCount}
+
+CRITICAL: Output pure HTML only. Each numbered design MUST be an H2 tag like "<h2>1. Design Name</h2>".`;
+      } else {
+        // GENERAL LISTICLE - Original structure
+        articleSystemPrompt = `You are an expert content writer specializing in engaging, SEO-optimized listicle articles. Write a comprehensive numbered list article using the EXACT structure below.
 
 Do NOT skip any section.
 Maintain a conversational, friendly, authoritative tone.
@@ -1203,7 +1294,7 @@ STRUCTURE TO FOLLOW:
    - What makes these items special
    - How items were selected/ranked
 
-3. THE MAIN LIST (This is the core - 7-15 numbered items)
+3. THE MAIN LIST (This is the core - ${imageCount} numbered items)
    - Each item gets an <h2> with number and item name (e.g., "1. Item Name" or "1. Best Item for X")
    - Under each H2:
      * 2-3 paragraphs explaining the item
@@ -1243,14 +1334,11 @@ CRITICAL FORMATTING RULES:
 
 IMAGE PLACEHOLDERS:
 Place these placeholders naturally between list items - one image per list item:
-${Array.from({ length: imageCount }, (_, i) => `{{IMAGE_${i + 1}}}`).join(', ')}
+${imagePlaceholderList}
 
 Place them on their own lines between items or after key sections. Each list item should have its own image.`;
 
-      // Generate image placeholder list for prompt
-      const imagePlaceholderList = Array.from({ length: imageCount }, (_, i) => `{{IMAGE_${i + 1}}}`).join(', ');
-      
-      articlePrompt = `LISTICLE TITLE: "${seoTitle}"
+        articlePrompt = `LISTICLE TITLE: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
 NUMBER OF LIST ITEMS: ${imageCount}
 
@@ -1279,6 +1367,7 @@ KEY REQUIREMENTS:
 - NO emojis, NO fluff
 
 CRITICAL: Output pure HTML only. Use <strong> for bold, <em> for italics. Each numbered item MUST be an H2 tag like "<h2>1. First Item Name</h2>".`;
+      }
     } else {
       // General blog-style article
       articleSystemPrompt = `Write a long-form, engaging blog article using the EXACT structure below.
