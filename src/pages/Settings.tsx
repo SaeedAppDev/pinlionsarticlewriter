@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Save, FileText, List, Code, Image as ImageIcon, Check, RotateCcw, Wand2 } from 'lucide-react';
+import { Save, FileText, List, Code, Image as ImageIcon, Check, RotateCcw, Wand2, Plus, Trash2, Edit2, Sparkles } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -465,6 +465,11 @@ const Settings = () => {
   const [classicPrompt, setClassicPrompt] = useState(defaultClassicPrompt);
   const [selectedListicleCategory, setSelectedListicleCategory] = useState('home-decor');
   const [listiclePrompts, setListiclePrompts] = useState<Record<string, string>>(defaultListiclePrompts);
+  const [customPrompts, setCustomPrompts] = useState<Array<{ id: string; name: string; prompt_text: string }>>([]);
+  const [newPromptName, setNewPromptName] = useState('');
+  const [newPromptText, setNewPromptText] = useState('');
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [showAddPrompt, setShowAddPrompt] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -515,6 +520,21 @@ const Settings = () => {
           loadedPrompts[item.niche] = item.prompt_text;
         });
         setListiclePrompts(loadedPrompts);
+      }
+
+      // Load custom prompts
+      const { data: customData } = await supabase
+        .from('prompts')
+        .select('id, niche, prompt_text')
+        .eq('user_id', user.id)
+        .eq('type', 'custom');
+
+      if (customData && customData.length > 0) {
+        setCustomPrompts(customData.map(item => ({
+          id: item.id,
+          name: item.niche,
+          prompt_text: item.prompt_text
+        })));
       }
     } catch (error) {
       // No settings yet, that's fine
@@ -1046,6 +1066,256 @@ const Settings = () => {
               </span>
             </p>
           </div>
+        </div>
+      </Card>
+
+      {/* Custom Prompts */}
+      <Card className="p-6 mt-6 bg-card border-border">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Custom Prompts</h3>
+              <p className="text-sm text-muted-foreground">Create your own prompt templates for specific article types</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowAddPrompt(!showAddPrompt)}
+            className="gradient-button text-white border-0"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Custom Prompt
+          </Button>
+        </div>
+
+        {/* Add New Prompt Form */}
+        {showAddPrompt && (
+          <Card className="p-4 mb-6 border-primary/20 bg-primary/5">
+            <h4 className="font-medium text-foreground mb-4">Create New Custom Prompt</h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Prompt Name
+                </label>
+                <Input
+                  value={newPromptName}
+                  onChange={(e) => setNewPromptName(e.target.value)}
+                  placeholder="e.g., Beauty Tips, DIY Projects, Pet Care..."
+                  className="bg-card"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Prompt Template
+                </label>
+                <Textarea
+                  value={newPromptText}
+                  onChange={(e) => setNewPromptText(e.target.value)}
+                  className="min-h-[200px] font-mono text-sm bg-card resize-y"
+                  placeholder={`Write a conversational article about: "{title}".
+
+Target length: approximately 1500 words.
+
+STRUCTURE:
+1. Start with an engaging introduction...
+2. Create numbered sections...
+3. End with a conclusion...
+
+Use {title} for the article title and {itemCount} for listicles.`}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddPrompt(false);
+                    setNewPromptName('');
+                    setNewPromptText('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!newPromptName.trim() || !newPromptText.trim()) {
+                      toast.error('Please enter both name and prompt');
+                      return;
+                    }
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) throw new Error('Not authenticated');
+
+                      const { data, error } = await supabase
+                        .from('prompts')
+                        .insert({
+                          user_id: user.id,
+                          type: 'custom',
+                          niche: newPromptName.trim(),
+                          prompt_text: newPromptText.trim(),
+                        })
+                        .select()
+                        .single();
+
+                      if (error) throw error;
+
+                      setCustomPrompts(prev => [...prev, {
+                        id: data.id,
+                        name: data.niche,
+                        prompt_text: data.prompt_text
+                      }]);
+                      setNewPromptName('');
+                      setNewPromptText('');
+                      setShowAddPrompt(false);
+                      toast.success('Custom prompt created!');
+                    } catch (error) {
+                      console.error('Error creating prompt:', error);
+                      toast.error('Failed to create prompt');
+                    }
+                  }}
+                  className="gradient-button text-white border-0"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Prompt
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Custom Prompts List */}
+        {customPrompts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>No custom prompts yet</p>
+            <p className="text-sm">Click "Add Custom Prompt" to create your first one</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {customPrompts.map((prompt) => (
+              <Card key={prompt.id} className="p-4 border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-center text-xs font-bold text-white">
+                      {prompt.name.charAt(0).toUpperCase()}
+                    </div>
+                    <h4 className="font-medium text-foreground">{prompt.name}</h4>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingPromptId(editingPromptId === prompt.id ? null : prompt.id)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase
+                            .from('prompts')
+                            .delete()
+                            .eq('id', prompt.id);
+
+                          if (error) throw error;
+
+                          setCustomPrompts(prev => prev.filter(p => p.id !== prompt.id));
+                          toast.success('Prompt deleted');
+                        } catch (error) {
+                          console.error('Error deleting prompt:', error);
+                          toast.error('Failed to delete prompt');
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {editingPromptId === prompt.id ? (
+                  <div className="space-y-3">
+                    <Input
+                      value={prompt.name}
+                      onChange={(e) => {
+                        setCustomPrompts(prev => prev.map(p => 
+                          p.id === prompt.id ? { ...p, name: e.target.value } : p
+                        ));
+                      }}
+                      className="bg-card"
+                      placeholder="Prompt name"
+                    />
+                    <Textarea
+                      value={prompt.prompt_text}
+                      onChange={(e) => {
+                        setCustomPrompts(prev => prev.map(p => 
+                          p.id === prompt.id ? { ...p, prompt_text: e.target.value } : p
+                        ));
+                      }}
+                      className="min-h-[200px] font-mono text-sm bg-card resize-y"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingPromptId(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const { error } = await supabase
+                              .from('prompts')
+                              .update({
+                                niche: prompt.name,
+                                prompt_text: prompt.prompt_text,
+                                updated_at: new Date().toISOString(),
+                              })
+                              .eq('id', prompt.id);
+
+                            if (error) throw error;
+
+                            setEditingPromptId(null);
+                            toast.success('Prompt updated!');
+                          } catch (error) {
+                            console.error('Error updating prompt:', error);
+                            toast.error('Failed to update prompt');
+                          }
+                        }}
+                        className="gradient-button text-white border-0"
+                      >
+                        Save Changes
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground line-clamp-3 font-mono">
+                    {prompt.prompt_text}
+                  </p>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2">
+            <span className="text-base">📝</span>
+            <span><strong>How to use:</strong> Custom prompts can be selected when adding articles for specialized content types.</span>
+          </p>
+          <p className="flex items-center gap-2">
+            <span className="text-base">💡</span>
+            <span>
+              <strong>Placeholders:</strong> Use{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{title}'}</code> and{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{itemCount}'}</code>
+            </span>
+          </p>
         </div>
       </Card>
     </div>
