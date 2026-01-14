@@ -20,7 +20,7 @@ import {
 import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle, Sparkles, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/AppLayout";
+
 import { format } from "date-fns";
 
 interface WordPressSite {
@@ -487,30 +487,26 @@ const ArticleView = () => {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-full min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading article...</p>
-          </div>
+      <div className="flex items-center justify-center h-full min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading article...</p>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   if (!article) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-full min-h-[60vh]">
-          <div className="text-center">
-            <p className="text-muted-foreground mb-4">Article not found</p>
-            <Button onClick={() => navigate('/completed')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Articles
-            </Button>
-          </div>
+      <div className="flex items-center justify-center h-full min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Article not found</p>
+          <Button onClick={() => navigate('/completed')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Articles
+          </Button>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
@@ -518,7 +514,7 @@ const ArticleView = () => {
   const imageCount = getImageCount(article.content_html);
 
   return (
-    <AppLayout>
+    <>
       <div className="p-8 max-w-5xl mx-auto">
         {/* Header with Back and Actions */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -1029,7 +1025,7 @@ const ArticleView = () => {
           color: #fef3c7;
         }
       `}</style>
-    </AppLayout>
+    </>
   );
 };
 
