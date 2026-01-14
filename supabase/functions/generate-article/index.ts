@@ -955,14 +955,21 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Update status to processing
+    // Update status to processing with initial progress
     await supabase
       .from(tableName)
-      .update({ status: 'processing' })
+      .update({ 
+        status: 'processing',
+        generation_progress: { step: 'starting', status: 'processing' }
+      })
       .eq('id', entityId);
 
     // Step 1: Generate SEO-optimized title
     console.log('📝 Generating SEO title from focus keyword...');
+    await supabase
+      .from(tableName)
+      .update({ generation_progress: { step: 'generating_title', status: 'processing' } })
+      .eq('id', entityId);
     
     const titleSystemPrompt = `You are an SEO expert. Generate a beautiful, click-worthy title that:
 1. MUST include the exact focus keyword naturally
@@ -1045,6 +1052,10 @@ Place these links naturally within paragraphs where they make sense.`;
 
     // Step 2: Generate article content
     console.log(`📄 Generating article content (${articleStyle} style)...`);
+    await supabase
+      .from(tableName)
+      .update({ generation_progress: { step: 'generating_content', status: 'processing' } })
+      .eq('id', entityId);
 
     let articleSystemPrompt: string;
     let articlePrompt: string;
@@ -1417,25 +1428,67 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     );
     console.log(`🎨 Generated ${imagePrompts.length} contextual image prompts for ${articleCategory} category`);
 
-    // Step 5: Generate images IN PARALLEL (matching detected count from title)
+    // Step 5: Generate images IN PARALLEL with progress tracking
     console.log(`🖼️ Generating ${imageCount} AI images with ${normalizedImageModel} (${articleCategory} style) - PARALLEL PROCESSING...`);
     
-    // Create all image generation promises at once for parallel execution
-    const imagePromises = Array.from({ length: imageCount }, (_, i) => {
+    // Update initial progress
+    await supabase
+      .from(tableName)
+      .update({ 
+        generation_progress: { 
+          step: 'generating_images', 
+          totalImages: imageCount,
+          completedImages: 0,
+          currentImage: 0,
+          status: 'processing'
+        } 
+      })
+      .eq('id', entityId);
+    
+    // Track completed images
+    let completedCount = 0;
+    const completedImageIds: number[] = [];
+    
+    // Create all image generation promises with progress tracking
+    const imagePromises = Array.from({ length: imageCount }, async (_, i) => {
       console.log(`🚀 Starting image ${i + 1}/${imageCount} generation...`);
-      return generateUniqueImage(
-        imagePrompts[i] || `${imageSubject} professional photo ${i + 1}`,
-        i + 1,
-        REPLICATE_API_KEY,
-        supabase,
-        aspectRatio,
-        imageSubject,
-        articleCategory,
-        normalizedImageModel
-      ).catch(error => {
+      
+      try {
+        const result = await generateUniqueImage(
+          imagePrompts[i] || `${imageSubject} professional photo ${i + 1}`,
+          i + 1,
+          REPLICATE_API_KEY,
+          supabase,
+          aspectRatio,
+          imageSubject,
+          articleCategory,
+          normalizedImageModel
+        );
+        
+        // Update progress after each image completes
+        completedCount++;
+        completedImageIds.push(i + 1);
+        
+        await supabase
+          .from(tableName)
+          .update({ 
+            generation_progress: { 
+              step: 'generating_images', 
+              totalImages: imageCount,
+              completedImages: completedCount,
+              completedImageIds,
+              currentImage: i + 1,
+              status: 'processing'
+            } 
+          })
+          .eq('id', entityId);
+        
+        return result;
+      } catch (error: any) {
         console.error(`❌ Image ${i + 1} failed:`, error.message);
+        completedCount++;
         return ''; // Return empty string on failure
-      });
+      }
     });
     
     // Execute all image generations in parallel
@@ -1502,10 +1555,11 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
 
     console.log(`🎉 Article generated successfully for: ${seoTitle}`);
 
-    // Update article/recipe with generated content
+    // Update article/recipe with generated content and clear progress
     const updateData: Record<string, any> = { 
       status: 'completed', 
-      error_message: null 
+      error_message: null,
+      generation_progress: null  // Clear progress on completion
     };
     updateData[contentField] = finalContent;
     
@@ -1543,7 +1597,8 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
           .from(tableName)
           .update({ 
             status: 'error', 
-            error_message: error instanceof Error ? error.message : 'Unknown error' 
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+            generation_progress: null  // Clear progress on error
           })
           .eq('id', entityId);
       }
