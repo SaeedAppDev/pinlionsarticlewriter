@@ -935,135 +935,6 @@ const Settings = () => {
         </div>
       </Card>
 
-      {/* WordPress Sites */}
-      <Card className="p-6 mb-6 bg-card border-border">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <Globe className="w-5 h-5 text-emerald-500" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">WordPress Sites</h3>
-              <p className="text-sm text-muted-foreground">Manage multiple WordPress sites</p>
-            </div>
-          </div>
-          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-            {wordpressSites.length} sites
-          </Badge>
-        </div>
-
-        {/* Add New Site Form */}
-        <Card className="p-4 mb-4 border-dashed border-2 border-border bg-muted/30">
-          <div className="flex items-center gap-2 mb-4">
-            <Plus className="w-4 h-4 text-muted-foreground" />
-            <h4 className="font-medium text-foreground">Add New Site</h4>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Site Name
-              </label>
-              <Input
-                value={newSiteName}
-                onChange={(e) => setNewSiteName(e.target.value)}
-                placeholder="My Food Blog"
-                className="bg-card"
-              />
-              <p className="text-xs text-muted-foreground">Friendly name to identify this site</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                WordPress Site URL
-              </label>
-              <Input
-                value={newSiteUrl}
-                onChange={(e) => setNewSiteUrl(e.target.value)}
-                placeholder="https://yoursite.com"
-                className="bg-card"
-              />
-              <p className="text-xs text-muted-foreground">Your WordPress site URL (without trailing slash)</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                API Key
-              </label>
-              <Input
-                type="password"
-                value={newSiteApiKey}
-                onChange={(e) => setNewSiteApiKey(e.target.value)}
-                placeholder="pl_xxxxxxxxxxxxxxxxx"
-                className="bg-card"
-              />
-              <p className="text-xs text-muted-foreground">
-                Get this from Settings → Pin Lions Receiver in your WordPress admin
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={testWordPressConnection}
-                disabled={testingConnection || !newSiteUrl || !newSiteApiKey}
-                className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-              >
-                {testingConnection ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                )}
-                Test Connection
-              </Button>
-              <Button
-                onClick={addWordPressSite}
-                disabled={!newSiteName || !newSiteUrl || !newSiteApiKey}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Site
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* Existing Sites List */}
-        {wordpressSites.length > 0 && (
-          <div className="space-y-3">
-            {wordpressSites.map((site) => (
-              <Card key={site.id} className="p-4 border-border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-sm font-bold text-white">
-                      {site.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground">{site.name}</h4>
-                      <p className="text-sm text-muted-foreground">{site.url}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Connected
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => removeWordPressSite(site.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </Card>
-
       {/* API Configuration */}
       <Card className="p-6 mb-6 bg-card border-border">
         <div className="flex items-center gap-3 mb-6">
@@ -1746,6 +1617,135 @@ Use {title} for the article title and {itemCount} for listicles.`}
             </span>
           </p>
         </div>
+      </Card>
+
+      {/* WordPress Sites */}
+      <Card className="p-6 mt-6 bg-card border-border">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Globe className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">WordPress Sites</h3>
+              <p className="text-sm text-muted-foreground">Manage multiple WordPress sites</p>
+            </div>
+          </div>
+          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+            {wordpressSites.length} sites
+          </Badge>
+        </div>
+
+        {/* Add New Site Form */}
+        <Card className="p-4 mb-4 border-dashed border-2 border-border bg-muted/30">
+          <div className="flex items-center gap-2 mb-4">
+            <Plus className="w-4 h-4 text-muted-foreground" />
+            <h4 className="font-medium text-foreground">Add New Site</h4>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Site Name
+              </label>
+              <Input
+                value={newSiteName}
+                onChange={(e) => setNewSiteName(e.target.value)}
+                placeholder="My Food Blog"
+                className="bg-card"
+              />
+              <p className="text-xs text-muted-foreground">Friendly name to identify this site</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                WordPress Site URL
+              </label>
+              <Input
+                value={newSiteUrl}
+                onChange={(e) => setNewSiteUrl(e.target.value)}
+                placeholder="https://yoursite.com"
+                className="bg-card"
+              />
+              <p className="text-xs text-muted-foreground">Your WordPress site URL (without trailing slash)</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                API Key
+              </label>
+              <Input
+                type="password"
+                value={newSiteApiKey}
+                onChange={(e) => setNewSiteApiKey(e.target.value)}
+                placeholder="pl_xxxxxxxxxxxxxxxxx"
+                className="bg-card"
+              />
+              <p className="text-xs text-muted-foreground">
+                Get this from Settings → Pin Lions Receiver in your WordPress admin
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={testWordPressConnection}
+                disabled={testingConnection || !newSiteUrl || !newSiteApiKey}
+                className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+              >
+                {testingConnection ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Test Connection
+              </Button>
+              <Button
+                onClick={addWordPressSite}
+                disabled={!newSiteName || !newSiteUrl || !newSiteApiKey}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Site
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Existing Sites List */}
+        {wordpressSites.length > 0 && (
+          <div className="space-y-3">
+            {wordpressSites.map((site) => (
+              <Card key={site.id} className="p-4 border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-sm font-bold text-white">
+                      {site.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">{site.name}</h4>
+                      <p className="text-sm text-muted-foreground">{site.url}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Connected
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => removeWordPressSite(site.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Global Save Button */}
