@@ -806,6 +806,7 @@ serve(async (req) => {
     requestBody = await req.json();
     const { 
       recipeId, 
+      articleId,
       title: focusKeyword, 
       sitemapUrl, 
       sitemapType = 'auto', 
@@ -815,10 +816,17 @@ serve(async (req) => {
       imageModel = 'zimage',
       customApiKey,
       customReplicateKey,
-      internalLinks = []
+      internalLinks = [],
+      type: articleType,
+      niche
     } = requestBody;
     
-    console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${recipeId})`);
+    // Support both articles and recipes tables
+    const entityId = articleId || recipeId;
+    const tableName = articleId ? 'articles' : 'recipes';
+    const contentField = articleId ? 'content_html' : 'article_content';
+    
+    console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${entityId}, Table: ${tableName})`);
     console.log(`⚙️ Settings - Aspect Ratio: ${aspectRatio}, AI Provider: ${aiProvider}, Style: ${articleStyle}, Image Model: ${imageModel}`);
     
     // Detect image count from title (e.g., "12 Easy Kitchen Ideas" → 12)
@@ -844,6 +852,12 @@ serve(async (req) => {
                titleLower.includes('wear') || titleLower.includes('dress') || titleLower.includes('clothing')) {
       articleCategory = 'fashion';
     }
+    // Also use niche if provided
+    if (niche) {
+      if (niche === 'decor') articleCategory = 'home';
+      else if (niche === 'fashion') articleCategory = 'fashion';
+      else if (niche === 'food') articleCategory = 'food';
+    }
     console.log(`🏷️ Article category detected: ${articleCategory}`);
 
     // Determine which API key to use
@@ -855,6 +869,7 @@ serve(async (req) => {
       }
     } else if (customApiKey) {
       AI_API_KEY = customApiKey;
+      console.log(`🔑 Using custom ${aiProvider} API key`);
     } else {
       throw new Error(`Custom API key required for ${aiProvider} provider. Please add your API key in Settings.`);
     }
@@ -863,6 +878,7 @@ serve(async (req) => {
     if (!REPLICATE_API_KEY) {
       throw new Error("REPLICATE_API_KEY is not configured");
     }
+    console.log(`🖼️ Using Replicate API for image generation`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -871,9 +887,9 @@ serve(async (req) => {
 
     // Update status to processing
     await supabase
-      .from('recipes')
+      .from(tableName)
       .update({ status: 'processing' })
-      .eq('id', recipeId);
+      .eq('id', entityId);
 
     // Step 1: Generate SEO-optimized title
     console.log('📝 Generating SEO title from focus keyword...');
@@ -897,9 +913,9 @@ Return ONLY the title, nothing else.`;
         console.log(`✅ Generated SEO title: ${seoTitle}`);
         
         await supabase
-          .from('recipes')
+          .from(tableName)
           .update({ title: seoTitle })
-          .eq('id', recipeId);
+          .eq('id', entityId);
       }
     } catch (e) {
       console.log('Using focus keyword as title:', focusKeyword);
@@ -1416,15 +1432,17 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
 
     console.log(`🎉 Article generated successfully for: ${seoTitle}`);
 
-    // Update recipe with generated content
+    // Update article/recipe with generated content
+    const updateData: Record<string, any> = { 
+      status: 'completed', 
+      error_message: null 
+    };
+    updateData[contentField] = finalContent;
+    
     const { error: updateError } = await supabase
-      .from('recipes')
-      .update({ 
-        status: 'completed', 
-        article_content: finalContent,
-        error_message: null 
-      })
-      .eq('id', recipeId);
+      .from(tableName)
+      .update(updateData)
+      .eq('id', entityId);
 
     if (updateError) {
       throw updateError;
@@ -1444,19 +1462,20 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     console.error('❌ Error in generate-article:', error);
     
     try {
-      const recipeId = requestBody?.recipeId;
-      if (recipeId) {
+      const entityId = requestBody?.articleId || requestBody?.recipeId;
+      const tableName = requestBody?.articleId ? 'articles' : 'recipes';
+      if (entityId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         await supabase
-          .from('recipes')
+          .from(tableName)
           .update({ 
             status: 'error', 
             error_message: error instanceof Error ? error.message : 'Unknown error' 
           })
-          .eq('id', recipeId);
+          .eq('id', entityId);
       }
     } catch (e) {
       console.error('Failed to update error status:', e);
