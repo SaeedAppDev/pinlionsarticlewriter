@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock, AlertCircle } from 'lucide-react';
+import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock, AlertCircle, RotateCcw, Zap } from 'lucide-react';
 
 import { format } from 'date-fns';
 
@@ -34,8 +34,10 @@ const Queue = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [isRetryingFailed, setIsRetryingFailed] = useState(false);
   const [progress, setProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [currentProvider, setCurrentProvider] = useState<string>('loading');
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
 
@@ -68,6 +70,7 @@ const Queue = () => {
 
   useEffect(() => {
     fetchArticles();
+    fetchCurrentProvider();
 
     const channel = supabase
       .channel('articles-changes')
@@ -88,6 +91,26 @@ const Queue = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const fetchCurrentProvider = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCurrentProvider('lovable');
+        return;
+      }
+
+      const { data: apiSettings } = await supabase
+        .from('user_api_settings')
+        .select('openai_api_key')
+        .eq('user_id', user.id)
+        .single();
+
+      setCurrentProvider(apiSettings?.openai_api_key ? 'openai' : 'lovable');
+    } catch (e) {
+      setCurrentProvider('lovable');
+    }
+  };
 
   const fetchArticles = async () => {
     try {
@@ -204,6 +227,59 @@ const Queue = () => {
     toast.success('All articles processed!');
   };
 
+  const retryFailedArticles = async () => {
+    const failedArticles = articles.filter(a => a.status === 'error');
+    if (failedArticles.length === 0) {
+      toast.info('No failed articles to retry');
+      return;
+    }
+
+    // First, reset their status to pending
+    for (const article of failedArticles) {
+      await supabase
+        .from('articles')
+        .update({ status: 'pending', error_message: null })
+        .eq('id', article.id);
+    }
+
+    setIsRetryingFailed(true);
+    toast.info(`Retrying ${failedArticles.length} failed articles...`);
+
+    const settings = await getSettings();
+
+    for (const article of failedArticles) {
+      setProcessingId(article.id);
+      startProgress();
+      
+      try {
+        const { error } = await supabase.functions.invoke('generate-article', {
+          body: { 
+            articleId: article.id, 
+            title: article.title,
+            type: article.type,
+            niche: article.niche,
+            ...settings
+          },
+        });
+        
+        if (error) {
+          console.error('Error retrying article:', error);
+        }
+        
+        stopProgress();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('Error retrying article:', error);
+        stopProgress();
+      }
+    }
+    
+    setProcessingId(null);
+    setIsRetryingFailed(false);
+    await fetchArticles();
+    toast.success('Retry completed!');
+  };
+
   const deleteArticle = async (id: string) => {
     try {
       const { error } = await supabase
@@ -258,18 +334,31 @@ const Queue = () => {
   return (
     <div className="p-8">
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2 text-foreground">Article Queue</h1>
-          <p className="text-muted-foreground">
-            {pendingCount} pending • {completedCount} completed • {errorCount} errors
-          </p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2 text-foreground">Article Queue</h1>
+            <p className="text-muted-foreground">
+              {pendingCount} pending • {completedCount} completed • {errorCount} errors
+            </p>
+          </div>
+          <Badge 
+            variant="outline" 
+            className={`flex items-center gap-1.5 px-3 py-1.5 ${
+              currentProvider === 'openai' 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' 
+                : 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            {currentProvider === 'loading' ? 'Loading...' : currentProvider === 'openai' ? 'OpenAI API' : 'Lovable AI'}
+          </Badge>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3 mb-6">
           <Button
             onClick={processAllArticles}
-            disabled={isProcessingAll || pendingCount === 0}
+            disabled={isProcessingAll || isRetryingFailed || pendingCount === 0}
             className="gradient-button text-white border-0"
           >
             {isProcessingAll ? (
@@ -279,6 +368,21 @@ const Queue = () => {
             )}
             Generate All Articles ({pendingCount})
           </Button>
+          {errorCount > 0 && (
+            <Button
+              onClick={retryFailedArticles}
+              disabled={isProcessingAll || isRetryingFailed}
+              variant="outline"
+              className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              {isRetryingFailed ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4 mr-2" />
+              )}
+              Retry Failed ({errorCount})
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchArticles}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
