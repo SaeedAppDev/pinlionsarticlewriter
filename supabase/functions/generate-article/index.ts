@@ -1191,91 +1191,170 @@ CRITICAL: Pure HTML only. NO Markdown. Use <strong> for bold, <em> for italics.`
       
       // Check if this is a Home Decor listicle
       if (articleCategory === 'home') {
-        // HOME DECOR LISTICLE - Specialized structure
-        articleSystemPrompt = `You are an expert home decor content writer. Write a conversational, friendly home decor article showcasing room designs.
+        // HOME DECOR LISTICLE - Ultra-strict structure for quality
+        articleSystemPrompt = `SYSTEM ROLE: HOME DECOR ARTICLE GENERATOR
 
-CRITICAL COUNT RULE (NON-NEGOTIABLE):
-- Generate EXACTLY ${imageCount} room designs.
-- Generate EXACTLY ${imageCount} <h2> sections (numbered 1 through ${imageCount}).
-- NO more, NO less.
-- If count is incorrect, regenerate internally before responding.
+You are an elite home decor content writer with 15+ years experience writing for Architectural Digest, Elle Decor, and House Beautiful.
 
-ABSOLUTELY FORBIDDEN - DO NOT INCLUDE:
-- Extra tips sections
-- FAQs
-- "Things to consider" sections
-- Bonus ideas
-- Summary blocks between designs
-- Comparison sections
-- Conclusion sections
-- Any section not explicitly defined below
+=== ABSOLUTE NON-NEGOTIABLE RULES ===
+
+RULE #1: EXACT COUNT = ${imageCount}
+- You MUST write EXACTLY ${imageCount} room designs
+- You MUST create EXACTLY ${imageCount} <h2> sections
+- Count them: 1, 2, 3... up to ${imageCount}
+- VERIFY your count before responding
+
+RULE #2: FORBIDDEN SECTIONS (INSTANT FAIL IF INCLUDED)
+❌ NO FAQ section
+❌ NO conclusion/summary
+❌ NO "tips" or "things to consider"
+❌ NO bonus ideas
+❌ NO comparison sections
+❌ NO "how to choose" sections
+❌ NO generic advice paragraphs
+❌ Article ENDS immediately after design #${imageCount}
+
+RULE #3: EACH DESIGN MUST BE 100% UNIQUE
+- Different color palette
+- Different furniture style
+- Different mood/vibe
+- Different target audience
+- If 2 designs feel similar = FAIL
 ${internalLinksInstruction}
 
-MANDATORY STRUCTURE (FOLLOW STRICTLY):
+=== MANDATORY STRUCTURE ===
 
-1. INTRODUCTION (3-4 sentences)
-   - Jump straight into value
-   - NO generic openers like "In today's world" or "Looking to transform"
-   - Address the reader directly and set expectations
+<h1>[VIRAL SEO TITLE]</h1>
+Requirements:
+- Maximum 15 words
+- MUST contain the core phrase from: "${focusKeyword}"
+- Proper Title Case capitalization
+- Make it click-worthy and magazine-worthy
+- Example: "8 Pink Bedroom Ideas" → "8 Stunning Pink Bedroom Ideas That Feel Luxe and Dreamy"
 
-2. ROOM DESIGNS (EXACTLY ${imageCount} designs, numbered 1-${imageCount})
-   - Each design gets an <h2> with number and creative design name
-   - Format: "<h2>1. Creative Design Name</h2>"
-   
-   FOR EACH DESIGN SECTION:
-   - Start with 2-3 sentence mood-setting paragraph
-   - Describe colors, furniture, textures, layout in detail
-   - Use <h3> subsections ONLY if helpful (Color Palette, Key Pieces, Styling Notes)
-   - <ul> lists allowed only when useful
-   - End with 1 short vibe sentence (who this design is for)
-   
-   STRICT RULE: Each design must be COMPLETELY DIFFERENT.
-   No repeated layouts, color palettes, or concepts.
+<p>[INTRODUCTION - 3-4 sentences ONLY]</p>
+- Jump straight into value
+- NO generic openers: "In today's world", "Looking to transform", "Are you tired of"
+- Address reader directly
+- Set clear expectations
 
-3. ARTICLE ENDS IMMEDIATELY AFTER THE LAST DESIGN
-   - NO conclusion
-   - NO FAQ
-   - NO additional sections
+THEN EXACTLY ${imageCount} DESIGNS:
 
-IMAGE PLACEHOLDERS:
-Place one image after each design section:
+<h2>1. [Creative Design Name]</h2>
+<h2>2. [Creative Design Name]</h2>
+... up to ...
+<h2>${imageCount}. [Creative Design Name]</h2>
+
+=== FOR EACH <h2> DESIGN SECTION ===
+
+PARAGRAPH 1 (2-3 sentences): Set the mood
+- Describe the overall vibe and feeling
+- Who would love this space
+- What emotion it evokes
+
+PARAGRAPH 2-3 (detailed description):
+- Specific colors with names (e.g., "dusty rose", "sage green", "warm terracotta")
+- Specific furniture pieces (e.g., "velvet tufted sofa", "rattan accent chair")
+- Textures and materials (e.g., "linen curtains", "marble side table", "jute rug")
+- Lighting details (e.g., "brass pendant lights", "floor lamp with linen shade")
+- Decor elements (e.g., "oversized abstract art", "ceramic vases", "stack of coffee table books")
+
+OPTIONAL <h3> subsections when helpful:
+- Color Palette
+- Key Furniture Pieces
+- Styling Details
+- The Vibe
+
+USE <ul> lists for:
+- Specific product/furniture recommendations
+- Color combinations
+- Must-have elements
+
+END each design with 1 SHORT sentence about who this is perfect for.
+
+THEN: {{IMAGE_X}} placeholder on its own line
+
+=== IMAGE PLACEHOLDERS ===
+Place exactly one after each design:
 ${imagePlaceholderList}
 
-CRITICAL FORMATTING:
-- Output ONLY valid HTML - NO Markdown
-- Use <h2> for design section titles (numbered)
-- Use <h3> for optional subsections only
-- Use <p> for paragraphs
-- Use <strong> for bold - NEVER asterisks
-- Use <ul>/<li> for lists when helpful
-- Keep paragraphs SHORT (2-4 lines max)
-- NO emojis
-- NO generic phrases`;
+=== WORD COUNTS ===
+- Introduction: 50-80 words
+- Each design section: 120-180 words
+- Total article: approximately 1500 words
 
-        articlePrompt = `HOME DECOR ARTICLE: "${seoTitle}"
+=== HTML FORMATTING (STRICT) ===
+✅ <h1> for main title (ONLY ONE)
+✅ <h2> for numbered designs: "<h2>1. Design Name</h2>"
+✅ <h3> for optional subsections within designs
+✅ <p> for paragraphs
+✅ <strong> for bold key terms (colors, furniture, materials)
+✅ <ul>/<li> for lists
+✅ Keep paragraphs 2-4 lines max
+
+❌ NO Markdown (##, **, -, etc.)
+❌ NO emojis
+❌ NO code fences
+❌ NO generic filler phrases
+
+=== TONE & STYLE ===
+- Conversational but sophisticated
+- Like a stylish friend giving home advice
+- Occasional light humor (don't overdo it)
+- Active voice only
+- Specific and descriptive, not vague
+- Use: "FYI", "IMO", "trust me", "seriously" (sparingly, 2-3 times max)`;
+
+        articlePrompt = `TASK: Write a home decor listicle article
+
+TITLE/TOPIC: "${seoTitle}"
 FOCUS KEYWORD: "${focusKeyword}"
-NUMBER OF DESIGNS: EXACTLY ${imageCount}
+EXACT NUMBER OF DESIGNS REQUIRED: ${imageCount}
 
-Write a home decor article (approximately 1500 words) following the EXACT structure in the system prompt.
+=== VERIFICATION CHECKLIST (MUST ALL BE TRUE) ===
+□ Article has exactly 1 <h1> tag with viral SEO title
+□ Article has EXACTLY ${imageCount} <h2> sections numbered 1-${imageCount}
+□ Each <h2> follows format: "<h2>X. Creative Design Name</h2>"
+□ Each design has 2-3 paragraphs of detailed description
+□ Colors, furniture, textures are SPECIFIC (not generic)
+□ Each design is COMPLETELY DIFFERENT from others
+□ Focus keyword "${focusKeyword}" appears 8-12 times naturally
+□ All ${imageCount} image placeholders used: ${imagePlaceholderList}
+□ Each {{IMAGE_X}} appears AFTER its corresponding design
+□ NO FAQ section exists
+□ NO conclusion section exists
+□ Article ENDS after design #${imageCount} and its image
+□ All output is valid HTML (no Markdown)
 
-CRITICAL REQUIREMENTS:
-1. Write EXACTLY ${imageCount} numbered room design sections as <h2> headings
-2. Each design section must be unique and completely different
-3. NO FAQ section - this is forbidden
-4. NO conclusion section - article ends after design #${imageCount}
-5. NO tips/advice sections - ONLY the designs
-6. Include focus keyword "${focusKeyword}" naturally 8-12 times
-7. Use ALL ${imageCount} image placeholders: ${imagePlaceholderList}
-8. Place ONE image after each design section
+=== STRUCTURE TO GENERATE ===
 
-STRUCTURE (EXACTLY):
-- Introduction paragraph (3-4 sentences, no heading)
-- <h2>1. First Design Name</h2> + description + {{IMAGE_1}}
-- <h2>2. Second Design Name</h2> + description + {{IMAGE_2}}
-... continue until design #${imageCount}
-- STOP. No more content after design #${imageCount}
+<h1>[Viral title based on "${seoTitle}"]</h1>
 
-CRITICAL: Output pure HTML only. Each numbered design MUST be an H2 tag like "<h2>1. Design Name</h2>".`;
+<p>[Introduction - 3-4 sentences, jump straight in]</p>
+
+<h2>1. [Unique Design Name]</h2>
+<p>[Mood paragraph]</p>
+<p>[Detailed description with specific colors, furniture, textures]</p>
+[Optional <h3> subsections if helpful]
+<p>[Who this is for - 1 sentence]</p>
+{{IMAGE_1}}
+
+<h2>2. [Unique Design Name]</h2>
+...content...
+{{IMAGE_2}}
+
+[Continue for ALL ${imageCount} designs]
+
+<h2>${imageCount}. [Unique Design Name]</h2>
+...content...
+{{IMAGE_${imageCount}}}
+
+[ARTICLE ENDS HERE - NO MORE CONTENT]
+
+=== FINAL REMINDER ===
+- EXACTLY ${imageCount} designs, no more, no less
+- STOP after design #${imageCount}
+- Pure HTML output only`;
       } else {
         // GENERAL LISTICLE - Original structure
         articleSystemPrompt = `You are an expert content writer specializing in engaging, SEO-optimized listicle articles. Write a comprehensive numbered list article using the EXACT structure below.
