@@ -60,14 +60,37 @@ const AddArticles = () => {
     setIsAdding(true);
 
     try {
-      const recipesToInsert = titleList.map(title => ({
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please log in to add articles');
+        setIsAdding(false);
+        return;
+      }
+
+      // Map type for database: 'classic' -> 'classic', 'listicle' -> 'listicle'
+      const articleType = currentMode;
+      
+      // Map niche for database based on listicle category
+      let articleNiche = 'general';
+      if (currentMode === 'listicle') {
+        if (listicleCategory === 'home') articleNiche = 'decor';
+        else if (listicleCategory === 'food') articleNiche = 'food';
+        else if (listicleCategory === 'fashion') articleNiche = 'fashion';
+        else articleNiche = 'general';
+      }
+
+      const articlesToInsert = titleList.map(title => ({
+        user_id: user.id,
         title: title,
+        type: articleType,
+        niche: articleNiche,
         status: 'pending' as const,
       }));
 
       const { error } = await supabase
-        .from('recipes')
-        .insert(recipesToInsert);
+        .from('articles')
+        .insert(articlesToInsert);
 
       if (error) throw error;
 

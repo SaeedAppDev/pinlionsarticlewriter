@@ -871,7 +871,7 @@ serve(async (req) => {
       sitemapType = 'auto', 
       aspectRatio = '4:3',
       aiProvider = 'lovable',
-      articleStyle = 'recipe',
+      articleStyle: passedArticleStyle,
       imageModel = 'zimage',
       customApiKey,
       customReplicateKey,
@@ -886,6 +886,12 @@ serve(async (req) => {
     const contentField = articleId ? 'content_html' : 'article_content';
     
     console.log(`🚀 Starting article generation for: ${focusKeyword} (ID: ${entityId}, Table: ${tableName})`);
+    console.log(`📋 Article type from DB: ${articleType}, Niche: ${niche}, Passed style: ${passedArticleStyle}`);
+    
+    // CRITICAL: Use article type from database, fallback to passed style, then default to 'recipe'
+    // 'classic' = recipe-style, 'listicle' = listicle-style
+    const articleStyle = articleType || passedArticleStyle || 'recipe';
+    console.log(`📝 Final article style: ${articleStyle}`);
     
     // Normalize image model names (settings use z-image-turbo, code expects zimage)
     let normalizedImageModel = imageModel;
