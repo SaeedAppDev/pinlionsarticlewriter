@@ -51,7 +51,33 @@ const aspectRatios = [
   { value: '4:3', label: '4:3 – Standard' },
 ];
 
-const defaultClassicPrompt = `Write an engaging, conversational article about "{title}". 
+const defaultImagePrompt = `Based on this article about "{title}", create {count} SPECIFIC image prompts for professional photography.
+
+Article excerpt:
+{content}
+
+Requirements:
+- Each prompt should be SHORT (under 10 words)
+- Be SPECIFIC to this article topic
+- Simple subjects only - avoid complex scenes
+- Professional, high-quality photography style
+- Examples of GOOD prompts:
+  - "chocolate chip cookies on white plate"
+  - "golden retriever puppy playing"
+  - "modern kitchen with marble countertops"
+
+BAD prompts (too generic):
+- "a dog"
+- "cookies"
+
+Create {count} SPECIFIC prompts with details related to this article.
+
+Format as a numbered list:
+1. [specific detailed prompt]
+2. [specific detailed prompt]
+etc.`;
+
+const defaultClassicPrompt = `Write an engaging, conversational article about "{title}".
 
 Target length: Around 1000 words.
 
@@ -565,6 +591,7 @@ const Settings = () => {
   const [inTextImageCount, setInTextImageCount] = useState('4');
   const [inTextAspectRatio, setInTextAspectRatio] = useState('9:16');
   const [classicPrompt, setClassicPrompt] = useState(defaultClassicPrompt);
+  const [customImagePrompt, setCustomImagePrompt] = useState(defaultImagePrompt);
   const [selectedListicleCategory, setSelectedListicleCategory] = useState('default');
   const [listiclePrompts, setListiclePrompts] = useState<Record<string, string>>(defaultListiclePrompts);
   const [customPrompts, setCustomPrompts] = useState<Array<{ id: string; name: string; prompt_text: string }>>([]);
@@ -607,6 +634,18 @@ const Settings = () => {
 
       if (promptData) {
         setClassicPrompt(promptData.prompt_text);
+      }
+
+      // Load image prompt
+      const { data: imagePromptData } = await supabase
+        .from('prompts')
+        .select('prompt_text')
+        .eq('user_id', user.id)
+        .eq('type', 'image')
+        .maybeSingle();
+
+      if (imagePromptData) {
+        setCustomImagePrompt(imagePromptData.prompt_text);
       }
 
       // Load listicle prompts
@@ -697,6 +736,37 @@ const Settings = () => {
           });
 
         if (promptError) throw promptError;
+      }
+
+      // Save image prompt
+      const { data: existingImagePrompt } = await supabase
+        .from('prompts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'image')
+        .maybeSingle();
+
+      if (existingImagePrompt) {
+        const { error: imagePromptError } = await supabase
+          .from('prompts')
+          .update({
+            prompt_text: customImagePrompt,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingImagePrompt.id);
+
+        if (imagePromptError) throw imagePromptError;
+      } else {
+        const { error: imagePromptError } = await supabase
+          .from('prompts')
+          .insert({
+            user_id: user.id,
+            type: 'image',
+            niche: 'general',
+            prompt_text: customImagePrompt,
+          });
+
+        if (imagePromptError) throw imagePromptError;
       }
 
       // Save listicle prompts
@@ -1036,6 +1106,61 @@ const Settings = () => {
                 Choose vertical (9:16) for portrait-style images or horizontal (16:9) for landscape-style images
               </p>
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Image Generation Prompt */}
+      <Card className="p-6 mt-6 bg-card border-border">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-pink-500/10 to-purple-500/10 flex items-center justify-center">
+              <ImageIcon className="w-5 h-5 text-pink-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Image Generation Prompt</h3>
+              <p className="text-sm text-muted-foreground">Controls how AI generates image descriptions for your articles</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCustomImagePrompt(defaultImagePrompt)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset to Default
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <label className="text-sm font-medium text-foreground">
+            Custom Image Prompt
+          </label>
+          <Textarea
+            value={customImagePrompt}
+            onChange={(e) => setCustomImagePrompt(e.target.value)}
+            className="min-h-[300px] font-mono text-sm bg-card resize-y"
+            placeholder="Enter your custom image generation prompt..."
+          />
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+              <span className="text-base">🎨</span>
+              <span><strong>How to use:</strong> This prompt controls how AI generates image descriptions for your articles.</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-base">💡</span>
+              <span>
+                <strong>Placeholders:</strong> Use{' '}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{title}'}</code>,{' '}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{count}'}</code>, and{' '}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{'{content}'}</code>
+              </span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-base">✨</span>
+              <span><strong>Examples:</strong> Change style (realistic, artistic, minimalist), modify format (short/long descriptions), adjust tone (professional, casual, creative).</span>
+            </p>
           </div>
         </div>
       </Card>
