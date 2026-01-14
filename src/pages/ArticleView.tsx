@@ -588,9 +588,28 @@ const ArticleView = () => {
               onClick={handleExportHTML}
               className="gap-2 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white border-0"
             >
-              <ExternalLink className="w-4 h-4" />
+              <Download className="w-4 h-4" />
               Export HTML
             </Button>
+            {hasMissingImages(article.content_html) && (
+              <Button 
+                onClick={handleRegenerateImages}
+                disabled={isRegeneratingImages}
+                className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0"
+              >
+                {isRegeneratingImages ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Regenerate Images
+                  </>
+                )}
+              </Button>
+            )}
             <Button 
               variant="outline"
               onClick={handleDeleteClick}
