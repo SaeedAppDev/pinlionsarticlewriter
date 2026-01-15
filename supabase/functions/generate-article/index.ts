@@ -293,66 +293,71 @@ async function analyzeArticleForImagePrompts(
     ? `${analysisText.slice(0, 3000)} ... ${analysisText.slice(-3000)}`
     : analysisText;
 
-  // Category-specific system prompts
+  // Category-specific system prompts - DETAILED PROMPTS (50-100 words each)
   let categoryExamples: string;
   let categoryContext: string;
   
   if (articleCategory === 'home') {
-    categoryExamples = `Examples of GOOD prompts for home decor:
-- "modern minimalist living room with white sofa"
-- "scandinavian kitchen with wooden cabinets"
-- "cozy bedroom with neutral bedding"
-- "contemporary bathroom with marble tiles"`;
+    categoryExamples = `Examples of EXCELLENT DETAILED prompts for home decor:
+- "A Scandinavian minimalist living room with a cream boucle sofa, natural oak coffee table, woven jute rug, tall fiddle leaf fig plant in terracotta pot, floor-to-ceiling windows with sheer linen curtains, soft afternoon sunlight creating warm shadows, editorial interior design photography, Architectural Digest style, 8K resolution"
+- "Modern farmhouse kitchen with white shaker cabinets, black iron handles, butcher block island countertop, open wooden shelving displaying ceramic dishes, copper pendant lights, subway tile backsplash, natural window light, professional real estate photography quality"`;
     categoryContext = "professional interior design and home decor photography";
   } else if (articleCategory === 'fashion') {
-    categoryExamples = `Examples of GOOD prompts for fashion:
-- "casual summer outfit with white linen pants"
-- "elegant evening dress on mannequin"
-- "street style layered look autumn"
-- "minimalist accessories gold jewelry"`;
+    categoryExamples = `Examples of EXCELLENT DETAILED prompts for fashion:
+- "Elegant autumn layered outfit on model, camel wool coat over cream turtleneck sweater, high-waisted dark denim jeans, brown leather ankle boots, gold minimalist jewelry, standing in urban setting with brick wall background, soft overcast lighting, Vogue editorial style, natural skin texture visible, 8K fashion photography"
+- "Summer beach casual outfit flat lay on white linen backdrop, flowing white cotton maxi dress, woven straw tote bag, gold sandals, shell necklace, sunglasses, fresh flowers accent, overhead shot, soft diffused natural light, Harper's Bazaar style product photography"`;
     categoryContext = "professional fashion and style photography";
   } else {
-    categoryExamples = `Examples of GOOD prompts for food:
-- "chocolate chip cookies on white plate"
-- "fresh pasta with tomato sauce"
-- "colorful salad bowl overhead shot"
-- "grilled salmon with lemon wedges"`;
-    categoryContext = "professional food photography";
+    categoryExamples = `Examples of EXCELLENT DETAILED prompts for food (TastyWithTina.com quality):
+- "Freshly baked chocolate chip cookies cooling on wire rack, perfectly golden brown edges with soft chewy centers, visible gooey chocolate chunks, small cracks on surface showing dense texture, light dusting of sea salt flakes, warm natural window light from left side, shallow depth of field, clean white marble countertop, professional food blog photography, 8K editorial cookbook quality"
+- "Homemade carrot cake slice on white ceramic plate, visible orange carrot shreds in moist dense crumb, thick cream cheese frosting with rustic swirls, chopped walnut garnish, soft natural daylight, light oak wooden table, single fork beside plate, TastyWithTina style clean bright appetizing food photography, room temperature completely still"
+- "Stack of fluffy buttermilk pancakes on round white plate, golden brown surface with small bubbles visible, pat of melting butter on top, maple syrup drizzling down sides, fresh blueberries scattered, clean bright natural light, minimal background, professional food magazine quality photograph"`;
+    categoryContext = "professional food photography matching TastyWithTina.com quality";
   }
 
-  const systemPrompt = `You are an expert at creating SHORT, SPECIFIC image prompts for ${categoryContext}.
+  const systemPrompt = `You are an expert at creating DETAILED, SPECIFIC image prompts for ${categoryContext}.
 
 CRITICAL RULES:
-- Each prompt must be SHORT (under 10 words)
-- Be SPECIFIC to the article topic
-- Simple subjects only - avoid complex scenes
-- Professional, high-quality photography style
+- Each prompt must be DETAILED and DESCRIPTIVE (50-100 words)
+- Include SPECIFIC textures: crumb structure, golden edges, gooey centers, visible ingredients
+- Include EXACT lighting: natural window light from left, soft diffused daylight, gentle shadows
+- Include CAMERA details: shallow depth of field, 45-degree angle, sharp focus on main subject
+- Include STYLING: clean white plate, wooden table, minimal props, professional food blog aesthetic
+- For food: Describe the food as COLD, ROOM TEMPERATURE, COMPLETELY STILL - never mention hot/warm/steam
+- Reference TastyWithTina.com style: clean, bright, natural, appetizing, editorial cookbook quality
 
 ${categoryExamples}
 
-BAD prompts (too generic):
-- "a room"
-- "nice outfit"
-- "food"
+BAD prompts (too short/generic):
+- "chocolate chip cookies" ❌
+- "nice cake" ❌  
+- "food on plate" ❌
 
-Output EXACTLY ${imageCount} prompts, one per line, numbered 1-${imageCount}.`;
+GOOD prompts describe: subject + textures + colors + lighting + camera angle + styling + quality reference
 
-  const userPrompt = `Based on this article about "${extractedTitle}", create ${imageCount} SPECIFIC image prompts for ${categoryContext}.
+Output EXACTLY ${imageCount} DETAILED prompts, one per line, numbered 1-${imageCount}.`;
+
+  const userPrompt = `Based on this article about "${extractedTitle}", create ${imageCount} ULTRA-DETAILED image prompts for ${categoryContext}.
 
 Article excerpt:
 ${excerpt}
 
-Requirements:
-- Each prompt should be SHORT (under 10 words)
-- Be SPECIFIC to this article topic
-- Simple subjects only - avoid complex scenes
-- Professional, high-quality ${articleCategory === 'home' ? 'interior design' : articleCategory === 'fashion' ? 'fashion' : 'food'} photography style
+Requirements for EACH prompt (50-100 words):
+1. SUBJECT: Exactly what food/item is shown, with specific details
+2. TEXTURES: Describe visible textures (crumbs, golden edges, gooey centers, frosting swirls)
+3. COLORS: Specific colors and tones visible
+4. PLATING: Type of plate/surface, arrangement, garnishes
+5. LIGHTING: Natural window light, soft shadows, bright and clean
+6. CAMERA: Shallow depth of field, shooting angle, focus point
+7. STYLING: Minimal props, clean background, professional food blog aesthetic
+8. QUALITY: Reference TastyWithTina.com or editorial cookbook style
+9. For food: Describe as COLD and STILL (room temperature, no steam, motionless)
 
-Create ${imageCount} SPECIFIC prompts with details related to this article.
+Create ${imageCount} DETAILED prompts that would generate images matching TastyWithTina.com quality.
 
-Format as a numbered list:
-1. [specific detailed prompt]
-2. [specific detailed prompt]
+Format as numbered list:
+1. [detailed 50-100 word prompt with all elements above]
+2. [detailed 50-100 word prompt with all elements above]
 etc.`;
 
   try {
@@ -367,42 +372,44 @@ etc.`;
     
     for (const line of lines) {
       const cleanedPrompt = line.replace(/^\d+[\.\)\:]\s*/, '').trim();
-      if (cleanedPrompt.length > 5 && cleanedPrompt.length < 100) {
+      // Accept LONGER prompts now (50-300 words / up to 1500 chars)
+      if (cleanedPrompt.length > 30 && cleanedPrompt.length < 1500) {
         prompts.push(cleanedPrompt);
       }
     }
     
-    // Generate fallback prompts based on category
+    // Generate DETAILED fallback prompts based on category (matching TastyWithTina quality)
     const getFallbackPrompts = (category: string, subject: string): string[] => {
       if (category === 'home') {
         return [
-          `${subject} living room design`,
-          `${subject} bedroom styling`,
-          `${subject} kitchen layout`,
-          `${subject} bathroom decor`,
-          `${subject} entryway design`,
-          `${subject} dining room setup`,
-          `${subject} home office space`
+          `${subject} in a bright modern living room with natural daylight streaming through large windows, neutral color palette, comfortable seating, decorative accents, professional interior design photography, Architectural Digest quality, 8K resolution`,
+          `${subject} bedroom styling with soft neutral bedding, natural wood furniture, ambient morning light, clean minimalist aesthetic, editorial home decor photography`,
+          `${subject} modern kitchen with clean countertops, natural wood accents, pendant lighting, bright window light, professional real estate photography quality`,
+          `${subject} bathroom design with spa-like aesthetic, natural materials, soft lighting, clean lines, magazine quality interior photography`,
+          `${subject} entryway with welcoming decor, natural light, organized storage, inviting atmosphere, professional home staging photography`,
+          `${subject} dining room with elegant table setting, natural centerpiece, ambient lighting, sophisticated style, editorial interior photography`,
+          `${subject} home office with organized workspace, natural light, comfortable seating, productive atmosphere, professional interior design photo`
         ];
       } else if (category === 'fashion') {
         return [
-          `${subject} outfit styling`,
-          `${subject} accessory detail`,
-          `${subject} full look styling`,
-          `${subject} layered outfit`,
-          `${subject} footwear styling`,
-          `${subject} seasonal look`,
-          `${subject} casual ensemble`
+          `${subject} outfit styled on model with natural skin texture, soft studio lighting, fashion editorial composition, Vogue magazine quality, 8K resolution professional photography`,
+          `${subject} accessory detail shot on neutral background, soft diffused lighting, sharp focus on textures, luxury product photography style`,
+          `${subject} full look styling in urban setting, natural daylight, editorial fashion photography, magazine quality`,
+          `${subject} layered outfit with visible fabric textures, professional fashion photography, Harper's Bazaar style`,
+          `${subject} footwear styling with clean background, product photography lighting, sharp detail focus`,
+          `${subject} seasonal look with appropriate styling, natural outdoor lighting, editorial fashion aesthetic`,
+          `${subject} casual ensemble in lifestyle setting, soft natural light, approachable fashion photography`
         ];
       }
+      // DETAILED food prompts matching TastyWithTina.com quality
       return [
-        `${subject} hero shot overhead`,
-        `${subject} close-up texture`,
-        `${subject} ingredients arranged`,
-        `${subject} being prepared`,
-        `${subject} plated elegantly`,
-        `${subject} multiple servings`,
-        `${subject} final presentation`
+        `${subject} hero shot from 45-degree angle on clean white ceramic plate, visible textures and colors, perfectly styled with minimal garnish, natural window light from left side creating soft shadows, light oak wooden table, shallow depth of field with creamy bokeh background, professional food blog photography matching TastyWithTina.com, room temperature completely still, 8K editorial cookbook quality`,
+        `${subject} close-up texture shot showing detailed surface, visible crumbs or layers or ingredients, natural matte appearance, sharp focus on main subject, soft diffused daylight, clean minimal background, professional food photography, cold and motionless, appetizing editorial style`,
+        `${subject} ingredients beautifully arranged on marble countertop, overhead flat lay shot, natural daylight, organized composition, fresh and appetizing appearance, professional food blog styling, clean bright aesthetic`,
+        `${subject} being plated on white dish, action frozen in time, natural kitchen setting, bright window light, professional food photography, TastyWithTina style clean and inviting`,
+        `${subject} elegantly plated on restaurant-quality white plate, artistic garnish placement, 45-degree angle shot, shallow depth of field, natural light from window, professional editorial food photography, completely still room temperature`,
+        `${subject} multiple servings arranged on wooden cutting board, family-style presentation, natural rustic styling, soft window light, professional food blog photography, warm inviting atmosphere`,
+        `${subject} final presentation beauty shot, perfect styling with fresh garnish, natural daylight, clean white background, professional editorial cookbook photography matching TastyWithTina.com quality, 8K resolution`
       ];
     };
     
@@ -414,9 +421,9 @@ etc.`;
       fallbackIndex++;
     }
     
-    // If still not enough, duplicate with variations
+    // If still not enough, create detailed variations
     while (prompts.length < imageCount) {
-      prompts.push(`${dishName} detail shot ${prompts.length + 1}`);
+      prompts.push(`${dishName} professionally styled on clean white plate, natural window light from left, visible textures and colors, shallow depth of field, 45-degree shooting angle, TastyWithTina.com style food photography, room temperature completely still, 8K editorial cookbook quality, variation ${prompts.length + 1}`);
     }
     
     console.log(`Generated ${prompts.length} image prompts for category: ${articleCategory}`);
@@ -424,11 +431,12 @@ etc.`;
     
   } catch (error) {
     console.error('Error analyzing article for prompts:', error);
+    // DETAILED error fallbacks matching TastyWithTina quality
     const fallbacks = articleCategory === 'home' 
-      ? Array.from({ length: imageCount }, (_, i) => `modern interior design ${dishName} ${i + 1}`)
+      ? Array.from({ length: imageCount }, (_, i) => `${dishName} in modern interior setting with natural daylight, clean aesthetic, professional interior design photography, Architectural Digest quality, variation ${i + 1}`)
       : articleCategory === 'fashion'
-      ? Array.from({ length: imageCount }, (_, i) => `stylish outfit ${dishName} ${i + 1}`)
-      : Array.from({ length: imageCount }, (_, i) => `${dishName} food photography ${i + 1}`);
+      ? Array.from({ length: imageCount }, (_, i) => `${dishName} fashion styling with natural lighting, visible fabric textures, professional editorial photography, Vogue style, variation ${i + 1}`)
+      : Array.from({ length: imageCount }, (_, i) => `${dishName} on clean white ceramic plate, natural window light from left, visible textures, shallow depth of field, TastyWithTina.com style professional food photography, room temperature completely still, 8K cookbook quality, variation ${i + 1}`);
     return fallbacks;
   }
 }
