@@ -43,27 +43,29 @@ Ultra photorealistic. Studio lighting with soft diffusion. Visible fabric textur
 
 ${noTextRuleSuffix}`;
     } else {
-      // FIXED: TastyWithTina.com EXACT style - SIMPLE, CLEAN, REAL
-      realisticPrompt = `NEGATIVE (DO NOT INCLUDE): steam, smoke, vapor, mist, fog, hot air, floating elements, 3D render, CGI, illustration, cartoon, painting, artificial glow, lens flare, dramatic lighting, plastic-looking food, fake fruit, unrealistic colors, oversaturated, HDR look, text, words, labels, watermarks.
+      // SOLUTION: 100% POSITIVE PROMPT ONLY - Never mention what NOT to include
+      // Describe COLD, STILL, ROOM TEMPERATURE food with no movement
+      realisticPrompt = `Professional food photography of ${prompt}.
 
-GENERATE THIS EXACT STYLE: ${prompt}
+EXACT SCENE: Food photographed at room temperature after cooling completely for 30 minutes. The food is perfectly still and motionless on a clean white ceramic plate. The plate sits on a light oak wooden table near a bright window.
 
-STYLE: Professional food blog photograph like TastyWithTina.com
+LIGHTING: Soft diffused natural daylight from a large window on the left side. Gentle shadows. No harsh highlights. The light is calm and even.
 
-THE IMAGE MUST LOOK EXACTLY LIKE THIS:
-- Real DSLR camera photo (not AI-generated looking)
-- Food at ROOM TEMPERATURE (completely cold, no heat visible)
-- Simple white plate or marble cake stand on wooden surface or white marble counter
-- Soft natural window light from left side
-- Shallow depth of field with creamy bokeh background
-- 45-degree shooting angle
-- Clean minimal styling with maybe 1-2 small props maximum
-- Natural food textures: you can see crumb structure, real chocolate chips, actual fruit texture
-- Colors are natural and warm but NOT oversaturated
-- Food looks MOIST and FRESH but NOT wet or steaming
-- Slight imperfections that make it look REAL (uneven frosting, natural fruit placement)
+CAMERA: 35mm lens, f/2.8 aperture, slight bokeh in background. Shot from 45-degree angle above. Sharp focus on the food surface.
 
-CRITICAL: The food must look like it's been sitting on the counter for 5 minutes - completely still, no movement, no steam, no vapor. Think: beautiful cookbook photo, not restaurant advertisement.`;
+FOOD APPEARANCE: 
+- Completely still and static, like a painting
+- Natural matte textures (not shiny or wet-looking)
+- Real crumb structure visible on cake/bread items
+- Authentic colors as seen in natural daylight
+- Small natural imperfections that make it look homemade
+- Dense and solid appearance (nothing floating or moving)
+
+BACKGROUND: Simple, clean, minimal. Maybe a white linen napkin or single fresh herb sprig. Creamy out-of-focus bokeh.
+
+STYLE: Matches professional food blogs like TastyWithTina.com - clean, bright, natural, inviting, editorial cookbook quality.
+
+This is a still life photograph. The food is cold and motionless. Pure clean photography with no effects.`;
     }
 
     // Get dimensions
