@@ -43,12 +43,24 @@ Ultra photorealistic. Studio lighting with soft diffusion. Visible fabric textur
 
 ${noTextRuleSuffix}`;
     } else {
+      // PROFESSIONAL FOOD PHOTOGRAPHY (like TastyWithTina.com)
       realisticPrompt = `${noTextRulePrefix}
 
 Generate: ${prompt}
 
-Style: Professional food photograph, REAL photography, NOT illustration, NOT digital art.
-Ultra photorealistic with visible texture. Natural window lighting. Rustic surface. Magazine quality. 8K ultra high resolution.
+CRITICAL STYLE - Match professional food blog photography (like TastyWithTina.com):
+- REAL photograph taken with professional camera, NOT AI art, NOT illustration, NOT 3D render
+- SHALLOW DEPTH OF FIELD with beautifully blurred background (bokeh effect)
+- Natural soft window light from the side, creating gentle shadows and highlights
+- 45-DEGREE ANGLE or eye-level perspective (NOT flat overhead)
+- GLISTENING, MOIST textures - visible sauce drips, caramel glaze, melted butter, juice pooling
+- Clean minimal background: white marble countertop, light wood, or simple white plate/cake stand
+- Food looks FRESH, appetizing, ready-to-eat with steam or condensation where appropriate
+- Visible realistic textures: crispy edges, moist crumb, caramelized surfaces, fresh fruit shine
+- Magazine editorial quality like Bon Appetit or professional food blogs
+- Warm, inviting color palette with natural tones
+- 8K ultra high resolution, razor-sharp focus on the food, soft background blur
+- NO PLASTIC-LOOKING FOOD - must look like real, homemade, delicious food
 
 ${noTextRuleSuffix}`;
     }
