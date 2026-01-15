@@ -16,24 +16,49 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-async function generateWithLovableAI(prompt: string, apiKey: string, aspectRatio: string): Promise<string | null> {
+// Generate a Pinterest pin WITH text overlay directly baked into the image
+async function generatePinWithTextOverlay(
+  foodDescription: string, 
+  overlayText: string, 
+  apiKey: string, 
+  aspectRatio: string
+): Promise<string | null> {
   try {
-    // Map aspect ratio to dimensions for the prompt
-    const aspectHint = aspectRatio === '9:16' ? 'vertical portrait 9:16' : 
-                       aspectRatio === '2:3' ? 'vertical portrait 2:3' :
-                       aspectRatio === '1:2' ? 'tall vertical 1:2' : 'vertical';
+    const aspectHint = aspectRatio === '9:16' ? 'vertical 9:16 Pinterest pin format' : 
+                       aspectRatio === '2:3' ? 'vertical 2:3 Pinterest format' :
+                       aspectRatio === '1:2' ? 'tall vertical 1:2 format' : 'vertical Pinterest format';
 
-    // ULTRA-STRICT NO TEXT RULE
-    const noTextRulePrefix = "ABSOLUTE RULE: Generate ONLY a photograph with ZERO text. NO words, NO letters, NO numbers, NO titles, NO labels, NO captions, NO watermarks, NO logos, NO typography anywhere in the image.";
-    const noTextRuleSuffix = "REMINDER: ABSOLUTELY NO TEXT OR WORDS OF ANY KIND.";
-    
-    const enhancedPrompt = `${noTextRulePrefix}
+    // Create a prompt that generates a Pinterest-style pin WITH text overlay at the TOP
+    const pinPrompt = `Create a professional Pinterest food pin image:
 
-Generate: ${prompt}
+LAYOUT (VERY IMPORTANT):
+- The image must have TEXT AT THE TOP portion (upper 25-30% of image)
+- The food photo fills the BOTTOM 70-75% of the image
+- This is a ${aspectHint}
 
-Style: ${aspectHint} aspect ratio. Professional food photography, REAL photograph, NOT illustration, NOT digital art. Ultra photorealistic, appetizing, magazine-quality, perfect natural lighting. 8K ultra high resolution.
+TEXT OVERLAY (AT THE TOP OF IMAGE):
+- Place this exact text at the TOP of the image: "${overlayText}"
+- Text should be LARGE, BOLD, and highly readable
+- Use a clean sans-serif or modern font style
+- Text color: WHITE or cream colored
+- Add a subtle dark gradient or semi-transparent dark overlay behind the text for readability
+- The text area should be at the TOP, above the main food image
 
-${noTextRuleSuffix}`;
+FOOD PHOTO (BELOW THE TEXT):
+- Professional food photography of: ${foodDescription}
+- Appetizing, well-lit, magazine-quality food photo
+- The food should be clearly visible and look delicious
+- Natural lighting, shallow depth of field
+- Clean, appealing food styling
+
+OVERALL STYLE:
+- Professional Pinterest pin design
+- Clean, modern, eye-catching
+- The text must be clearly readable
+- High quality, 8K resolution
+- Like a professional food blogger's Pinterest pin`;
+
+    console.log("Generating Pinterest pin with text overlay:", overlayText);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -46,7 +71,7 @@ ${noTextRuleSuffix}`;
         messages: [
           {
             role: "user",
-            content: enhancedPrompt,
+            content: pinPrompt,
           },
         ],
         modalities: ["image", "text"],
@@ -54,7 +79,7 @@ ${noTextRuleSuffix}`;
     });
 
     if (!response.ok) {
-      console.error("Lovable AI error:", response.status);
+      console.error("Lovable AI error:", response.status, await response.text());
       return null;
     }
 
@@ -62,28 +87,25 @@ ${noTextRuleSuffix}`;
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (imageUrl && imageUrl.startsWith('data:image')) {
+      console.log("Successfully generated pin with text overlay");
       return imageUrl;
     }
     
+    console.error("No image in response");
     return null;
   } catch (error) {
-    console.error("Error with Lovable AI:", error);
+    console.error("Error generating pin with text overlay:", error);
     return null;
   }
 }
 
+// Fallback: Generate plain food image (without text) using Replicate
 async function generateWithReplicate(prompt: string, apiKey: string, aspectRatio: string): Promise<string | null> {
   try {
     const Replicate = (await import("https://esm.sh/replicate@0.25.2")).default;
     const replicate = new Replicate({ auth: apiKey });
 
-    // ULTRA-STRICT NO TEXT RULE
-    const noTextRulePrefix = "ABSOLUTE RULE: Generate ONLY a photograph with ZERO text. NO words, NO letters, NO numbers, NO titles, NO labels, NO captions, NO watermarks, NO logos, NO typography anywhere in the image.";
-    const enhancedPrompt = `${noTextRulePrefix}
-
-Generate: Professional Pinterest food photography of ${prompt}
-
-Style: REAL photograph, NOT illustration, NOT digital art. Ultra photorealistic, appetizing, magazine-quality, perfect natural lighting, shallow depth of field. 8K ultra high resolution. ABSOLUTELY NO TEXT OR WORDS.`;
+    const enhancedPrompt = `Professional Pinterest food photography of ${prompt}. REAL photograph, NOT illustration. Ultra photorealistic, appetizing, magazine-quality, perfect natural lighting, shallow depth of field. 8K ultra high resolution. NO TEXT OR WORDS IN THE IMAGE.`;
 
     const output = await replicate.run("black-forest-labs/flux-schnell", {
       input: {
@@ -115,11 +137,17 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, aspectRatio = "9:16", imageModel = "lovable" } = await req.json();
+    const { prompt, aspectRatio = "9:16", imageModel = "lovable", overlayText = "" } = await req.json();
     
     if (!prompt) {
       throw new Error("Prompt is required");
     }
+
+    console.log("=== Generate Pinterest Image ===");
+    console.log("Prompt:", prompt);
+    console.log("Overlay Text:", overlayText);
+    console.log("Aspect Ratio:", aspectRatio);
+    console.log("Image Model:", imageModel);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const REPLICATE_API_KEY = Deno.env.get("REPLICATE_API_KEY");
@@ -129,13 +157,23 @@ serve(async (req) => {
     let imageUrl: string | null = null;
     let usedModel = imageModel;
 
-    // Try the requested model first
-    if (imageModel === "replicate" && REPLICATE_API_KEY) {
-      imageUrl = await generateWithReplicate(prompt, REPLICATE_API_KEY, aspectRatio);
-      usedModel = "replicate";
-    } else if (LOVABLE_API_KEY) {
-      imageUrl = await generateWithLovableAI(prompt, LOVABLE_API_KEY, aspectRatio);
+    // If overlay text is provided, generate a pin WITH text overlay using Lovable AI
+    if (overlayText && overlayText.trim() && LOVABLE_API_KEY) {
+      console.log("Generating pin WITH text overlay at the top...");
+      imageUrl = await generatePinWithTextOverlay(prompt, overlayText.trim(), LOVABLE_API_KEY, aspectRatio);
       usedModel = "lovable";
+    }
+
+    // If no overlay text or generation failed, try regular image generation
+    if (!imageUrl) {
+      if (imageModel === "replicate" && REPLICATE_API_KEY) {
+        imageUrl = await generateWithReplicate(prompt, REPLICATE_API_KEY, aspectRatio);
+        usedModel = "replicate";
+      } else if (LOVABLE_API_KEY) {
+        // Generate plain food image without text
+        imageUrl = await generatePinWithTextOverlay(prompt, overlayText || prompt, LOVABLE_API_KEY, aspectRatio);
+        usedModel = "lovable";
+      }
     }
 
     // Fallback to other model if first fails
@@ -144,7 +182,7 @@ serve(async (req) => {
         imageUrl = await generateWithReplicate(prompt, REPLICATE_API_KEY, aspectRatio);
         usedModel = "replicate";
       } else if (usedModel === "replicate" && LOVABLE_API_KEY) {
-        imageUrl = await generateWithLovableAI(prompt, LOVABLE_API_KEY, aspectRatio);
+        imageUrl = await generatePinWithTextOverlay(prompt, overlayText || prompt, LOVABLE_API_KEY, aspectRatio);
         usedModel = "lovable";
       }
     }
@@ -168,7 +206,7 @@ serve(async (req) => {
         const fileName = `pinterest-pins/${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
         
         const { error: uploadError } = await supabase.storage
-          .from('generated-images')
+          .from('article-images')
           .upload(fileName, imageBytes, {
             contentType: 'image/webp',
             upsert: false,
@@ -176,9 +214,12 @@ serve(async (req) => {
 
         if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage
-            .from('generated-images')
+            .from('article-images')
             .getPublicUrl(fileName);
           finalUrl = publicUrl;
+          console.log("Uploaded to storage:", publicUrl);
+        } else {
+          console.error("Upload error:", uploadError);
         }
       } catch (uploadError) {
         console.error("Error uploading to storage:", uploadError);
