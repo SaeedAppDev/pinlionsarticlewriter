@@ -493,20 +493,27 @@ Style requirements:
 
 ${noTextRuleSuffix}`;
     } else {
-      // Default: food photography
+      // Default: PROFESSIONAL FOOD PHOTOGRAPHY (like TastyWithTina.com)
+      // Key characteristics: shallow depth of field, natural light, glistening textures, 
+      // clean backgrounds, 45-degree angles, visible moisture/glaze, minimal props
       realisticPrompt = `${noTextRulePrefix}
 
 Generate: ${prompt}
 
-Style requirements:
-- Professional food photograph, REAL photography, NOT illustration, NOT digital art, NOT 3D render
-- Ultra photorealistic with visible texture and natural imperfections
-- Natural window lighting with soft shadows
-- Overhead or 45-degree angle
-- Rustic wooden surface or marble countertop
-- Authentic food styling with real ingredients
-- Magazine quality like Bon Appetit or Food & Wine
-- 8K ultra high resolution, appetizing details
+CRITICAL STYLE - Match professional food blog photography (like TastyWithTina.com):
+- REAL photograph taken with professional camera, NOT AI art, NOT illustration, NOT 3D render, NOT digital painting
+- SHALLOW DEPTH OF FIELD with beautifully blurred background (bokeh effect)
+- Natural soft window light from the side, creating gentle shadows and highlights
+- 45-DEGREE ANGLE or eye-level perspective (NOT flat overhead unless specified)
+- GLISTENING, MOIST textures - visible sauce drips, caramel glaze, melted butter, juice pooling
+- Clean minimal background: white marble countertop, light wood, or simple white plate/cake stand
+- Food looks FRESH, appetizing, ready-to-eat with steam or condensation where appropriate
+- Visible realistic textures: crispy edges, moist crumb, caramelized surfaces, fresh fruit shine
+- Magazine editorial quality like Bon Appetit, Food & Wine, or professional food blogs
+- Warm, inviting color palette with natural tones
+- 8K ultra high resolution, razor-sharp focus on the food, soft background blur
+- Minimal styling props: simple fork, napkin, or sprig of herbs only
+- NO PLASTIC-LOOKING FOOD - must look like real, homemade, delicious food
 
 ${noTextRuleSuffix}`;
     }
