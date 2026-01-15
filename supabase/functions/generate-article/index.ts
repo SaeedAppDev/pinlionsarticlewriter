@@ -493,48 +493,29 @@ Style requirements:
 
 ${noTextRuleSuffix}`;
     } else {
-      // Default: PROFESSIONAL FOOD PHOTOGRAPHY (exactly like TastyWithTina.com)
-      // KEY: Clean, minimal, NO steam, white plates naturally placed, soft natural light
-      realisticPrompt = `${noTextRulePrefix}
+      // FIXED: TastyWithTina.com EXACT style - SIMPLE, CLEAN, REAL
+      // The key insight: AI adds steam/effects when prompts are too complex
+      // Solution: SIMPLE prompt + STRONG negative list FIRST
+      realisticPrompt = `NEGATIVE (DO NOT INCLUDE): steam, smoke, vapor, mist, fog, hot air, floating elements, 3D render, CGI, illustration, cartoon, painting, artificial glow, lens flare, dramatic lighting, plastic-looking food, fake fruit, unrealistic colors, oversaturated, HDR look, text, words, labels, watermarks.
 
-Generate: ${prompt}
+GENERATE THIS EXACT STYLE: ${prompt}
 
-MATCH THIS EXACT STYLE (TastyWithTina.com professional food photography):
+STYLE: Professional food blog photograph like TastyWithTina.com
 
-MANDATORY REQUIREMENTS:
-- REAL photograph from professional DSLR camera (Canon/Nikon style)
-- ABSOLUTELY NO STEAM, NO SMOKE, NO VAPOR - food is at room temperature, clean and beautiful
-- NO ARTIFICIAL EFFECTS - no fake glow, no dramatic lighting, no HDR look
-- Simple white ceramic plate or elegant cake stand NATURALLY placed (not floating, not centered perfectly)
-- Plate sitting naturally on surface with realistic shadow underneath
-- Clean pure white or light gray seamless background (slightly out of focus)
+THE IMAGE MUST LOOK EXACTLY LIKE THIS:
+- Real DSLR camera photo (not AI-generated looking)
+- Food at ROOM TEMPERATURE (completely cold, no heat visible)
+- Simple white plate or marble cake stand on wooden surface or white marble counter
+- Soft natural window light from left side
+- Shallow depth of field with creamy bokeh background
+- 45-degree shooting angle
+- Clean minimal styling with maybe 1-2 small props maximum
+- Natural food textures: you can see crumb structure, real chocolate chips, actual fruit texture
+- Colors are natural and warm but NOT oversaturated
+- Food looks MOIST and FRESH but NOT wet or steaming
+- Slight imperfections that make it look REAL (uneven frosting, natural fruit placement)
 
-LIGHTING & COMPOSITION:
-- Soft diffused natural daylight from large window (left or right side)
-- Gentle shadows, no harsh contrast, no dramatic lighting
-- 45-degree angle or slight eye-level (hero shot style)
-- SHALLOW DEPTH OF FIELD - food sharp, background beautifully blurred (f/2.8 bokeh)
-- Slightly off-center composition (rule of thirds)
-
-FOOD APPEARANCE:
-- Fresh, appetizing, ready-to-serve (NOT steaming, NOT just-out-of-oven)
-- Natural glistening from fresh fruit, glaze, or frosting (not wet-looking)
-- Visible realistic textures: moist crumb, fresh fruit, cream swirls
-- True-to-life colors - warm but not oversaturated
-- Imperfect natural details: slight frosting texture, natural fruit placement
-
-WHAT TO AVOID:
-- NO steam or smoke effects
-- NO artificial glow or lens flare
-- NO perfectly centered plate
-- NO busy backgrounds or props
-- NO plastic/fake looking food
-- NO dramatic shadows
-- NO text overlays
-
-Quality: 8K ultra-high resolution, professional food blog quality
-
-${noTextRuleSuffix}`;
+CRITICAL: The food must look like it's been sitting on the counter for 5 minutes - completely still, no movement, no steam, no vapor. Think: beautiful cookbook photo, not restaurant advertisement.`;
     }
 
     // Parse aspect ratio to get dimensions
