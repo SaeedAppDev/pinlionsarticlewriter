@@ -60,38 +60,56 @@ OVERALL STYLE:
 
     console.log("Generating Pinterest pin with text overlay:", overlayText);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: pinPrompt,
+    // Try with the next-generation image model first
+    const models = [
+      "google/gemini-3-pro-image-preview",
+      "google/gemini-2.5-flash-image-preview"
+    ];
+
+    for (const model of models) {
+      try {
+        console.log(`Trying model: ${model}`);
+        
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
           },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              {
+                role: "user",
+                content: pinPrompt,
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
+        });
 
-    if (!response.ok) {
-      console.error("Lovable AI error:", response.status, await response.text());
-      return null;
-    }
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Model ${model} error:`, response.status, errorText);
+          continue; // Try next model
+        }
 
-    const data = await response.json();
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (imageUrl && imageUrl.startsWith('data:image')) {
-      console.log("Successfully generated pin with text overlay");
-      return imageUrl;
+        const data = await response.json();
+        const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        
+        if (imageUrl && imageUrl.startsWith('data:image')) {
+          console.log(`Successfully generated pin with ${model}`);
+          return imageUrl;
+        }
+        
+        console.log(`No image from ${model}, trying next...`);
+      } catch (modelError) {
+        console.error(`Error with ${model}:`, modelError);
+        continue; // Try next model
+      }
     }
     
-    console.error("No image in response");
+    console.error("All models failed to generate image");
     return null;
   } catch (error) {
     console.error("Error generating pin with text overlay:", error);
