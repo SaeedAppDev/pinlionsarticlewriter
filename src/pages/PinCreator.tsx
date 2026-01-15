@@ -164,22 +164,52 @@ const PinCreator = () => {
   };
 
   const handleCreateSinglePin = async (pinId: string) => {
-    setGeneratedPins(prev => prev.map(pin => 
-      pin.id === pinId ? { ...pin, status: 'generating_image' } : pin
+    const pin = generatedPins.find(p => p.id === pinId);
+    if (!pin) return;
+
+    setGeneratedPins(prev => prev.map(p => 
+      p.id === pinId ? { ...p, status: 'generating_image' } : p
     ));
     
-    // Simulate image generation
-    setTimeout(() => {
-      setGeneratedPins(prev => prev.map(pin => 
-        pin.id === pinId ? {
-          ...pin,
-          imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&h=1000&fit=crop',
+    try {
+      // Import supabase client
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Extract the title text without emoji for overlay
+      const overlayText = pin.title.replace(/^[\p{Emoji}\s]+/u, '').trim() || extractTitleFromUrl(pin.url);
+      
+      // Call the edge function with the overlay text
+      const { data, error } = await supabase.functions.invoke('generate-pinterest-image', {
+        body: {
+          prompt: pin.aiPrompt,
+          aspectRatio: aspectRatio,
+          imageModel: imageModel === 'ideogram' ? 'lovable' : 'replicate',
+          overlayText: overlayText, // Pass the title as overlay text
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setGeneratedPins(prev => prev.map(p => 
+        p.id === pinId ? {
+          ...p,
+          imageUrl: data.imageUrl,
           imagePrompt: pin.aiPrompt,
           status: 'completed',
-        } : pin
+        } : p
       ));
-      toast.success('Pin created successfully');
-    }, 2000);
+      toast.success('Pin created with text overlay!');
+    } catch (error) {
+      console.error('Error creating pin:', error);
+      toast.error('Failed to create pin. Please try again.');
+      setGeneratedPins(prev => prev.map(p => 
+        p.id === pinId ? { ...p, status: 'title_generated' } : p
+      ));
+    }
   };
 
   const handleCopyToClipboard = (text: string, label: string) => {
