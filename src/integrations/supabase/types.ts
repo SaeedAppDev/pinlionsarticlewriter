@@ -177,8 +177,11 @@ export type Database = {
       }
       user_api_settings: {
         Row: {
+          ai_content_model: string | null
           created_at: string
+          freepik_api_key: string | null
           id: string
+          image_source: string | null
           openai_api_key: string | null
           replicate_api_token: string | null
           replicate_model: string | null
@@ -186,8 +189,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_content_model?: string | null
           created_at?: string
+          freepik_api_key?: string | null
           id?: string
+          image_source?: string | null
           openai_api_key?: string | null
           replicate_api_token?: string | null
           replicate_model?: string | null
@@ -195,8 +201,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_content_model?: string | null
           created_at?: string
+          freepik_api_key?: string | null
           id?: string
+          image_source?: string | null
           openai_api_key?: string | null
           replicate_api_token?: string | null
           replicate_model?: string | null
