@@ -333,12 +333,16 @@ serve(async (req) => {
       .eq('id', articleId);
 
     // Generate images for missing placeholders
+    // z-image model works best with dimensions divisible by 64 and max 1024
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       const dimensions: Record<string, { width: number; height: number }> = {
         '1:1': { width: 1024, height: 1024 },
-        '16:9': { width: 1920, height: 1080 },
+        '16:9': { width: 1024, height: 576 },
         '4:3': { width: 1024, height: 768 },
-        '9:16': { width: 1080, height: 1920 },
+        '9:16': { width: 576, height: 1024 },
+        '3:4': { width: 768, height: 1024 },
+        '3:2': { width: 1024, height: 682 },
+        '2:3': { width: 682, height: 1024 },
       };
       return dimensions[ar] || { width: 1024, height: 768 };
     };
