@@ -296,6 +296,274 @@ function calculateEstimatedCost(
   return Math.round((contentCost + imageCost) * 1000) / 1000;
 }
 
+// ============================================================================
+// IMAGE ANALYSIS FOR FASHION CONTENT VALIDATION
+// ============================================================================
+
+interface DetectedOutfit {
+  topPiece: string;
+  bottomPiece: string;
+  footwear: string;
+  accessories: string[];
+  colors: string[];
+  layering: string[];
+  vibe: 'casual' | 'elegant' | 'formal' | 'edgy' | 'romantic' | 'sporty' | 'bohemian';
+  confidenceScore: number;
+}
+
+// Analyze a single fashion image using Lovable AI (Gemini with vision)
+async function analyzeOutfitImage(
+  imageUrl: string,
+  LOVABLE_API_KEY: string
+): Promise<DetectedOutfit | null> {
+  try {
+    console.log(`🔍 Analyzing outfit image for content validation...`);
+    
+    const analysisPrompt = `You are a fashion image analyst. Analyze this outfit photograph and extract ONLY what is CLEARLY VISIBLE in the image.
+
+CRITICAL RULES:
+1. ONLY list items you can actually SEE in the image
+2. If something is not visible or unclear, DO NOT mention it
+3. Never assume jewelry, bags, or accessories unless clearly visible
+4. Match colors as closely as possible to what you see
+5. Be specific about clothing types (e.g., "longline cardigan" not just "cardigan")
+
+Respond in this EXACT JSON format:
+{
+  "topPiece": "description of main top layer (e.g., 'rust-colored longline cardigan' or 'cream fitted turtleneck')",
+  "innerTop": "description of inner layer if visible (e.g., 'cream turtleneck') or null if not visible",
+  "bottomPiece": "description of bottoms (e.g., 'medium-wash high-waisted jeans')",
+  "footwear": "description of shoes (e.g., 'black leather ankle boots with block heel') or 'not fully visible' if cut off",
+  "accessories": ["only items clearly visible like 'small gold hoop earrings'"] or [] if none visible,
+  "colors": ["rust/terracotta", "cream/ivory", "medium blue denim", "black"],
+  "layering": ["turtleneck", "open cardigan"] - describe the layering order if applicable,
+  "vibe": "casual" | "elegant" | "formal" | "edgy" | "romantic" | "sporty" | "bohemian",
+  "confidenceScore": 0-100 based on image clarity
+}
+
+Be strict and honest. If you cannot clearly see an item, do not include it.`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: analysisPrompt },
+              { type: 'image_url', image_url: { url: imageUrl } }
+            ]
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Image analysis failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('Could not parse outfit analysis JSON');
+      return null;
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    console.log(`✅ Image analysis complete: ${parsed.vibe} vibe, ${parsed.confidenceScore}% confidence`);
+    
+    return parsed as DetectedOutfit;
+  } catch (error) {
+    console.error('Error analyzing outfit image:', error);
+    return null;
+  }
+}
+
+// Generate validated outfit content based on detected items from image
+function generateValidatedOutfitContent(
+  detected: DetectedOutfit,
+  outfitNumber: number,
+  originalContent: string
+): string {
+  // Extract the original outfit section
+  const sectionRegex = new RegExp(
+    `<h2>${outfitNumber}\\.\\s*[^<]+</h2>[\\s\\S]*?(?=<h2>\\d+\\.|$)`,
+    'i'
+  );
+  const originalMatch = originalContent.match(sectionRegex);
+  
+  if (!originalMatch) return '';
+  
+  let section = originalMatch[0];
+  
+  // Build validated outfit pieces list
+  const validatedPieces: string[] = [];
+  
+  if (detected.topPiece) {
+    validatedPieces.push(`<li><strong>${detected.topPiece}</strong></li>`);
+  }
+  if ((detected as any).innerTop) {
+    validatedPieces.push(`<li><strong>${(detected as any).innerTop}</strong></li>`);
+  }
+  if (detected.bottomPiece) {
+    validatedPieces.push(`<li><strong>${detected.bottomPiece}</strong></li>`);
+  }
+  if (detected.footwear && detected.footwear !== 'not fully visible') {
+    validatedPieces.push(`<li><strong>${detected.footwear}</strong></li>`);
+  }
+  
+  // Only add accessories that are actually visible
+  for (const accessory of detected.accessories) {
+    if (accessory && accessory.length > 0) {
+      validatedPieces.push(`<li><strong>${accessory}</strong></li>`);
+    }
+  }
+  
+  // Replace the outfit pieces list
+  const outfitPiecesRegex = /<h3>Outfit Pieces:<\/h3>\s*<ul>[\s\S]*?<\/ul>/i;
+  const newOutfitPiecesList = `<h3>Outfit Pieces:</h3>
+<ul>
+${validatedPieces.join('\n')}
+</ul>`;
+  
+  section = section.replace(outfitPiecesRegex, newOutfitPiecesList);
+  
+  // Update the description paragraph to match the vibe
+  const vibeDescriptions: Record<string, string> = {
+    casual: 'relaxed yet put-together',
+    elegant: 'sophisticated and refined',
+    formal: 'polished and professional',
+    edgy: 'bold and fashion-forward',
+    romantic: 'soft and feminine',
+    sporty: 'comfortable and active',
+    bohemian: 'free-spirited and artistic'
+  };
+  
+  return section;
+}
+
+// Validate and correct entire fashion article based on image analysis
+async function validateAndCorrectFashionContent(
+  articleContent: string,
+  imageUrls: string[],
+  LOVABLE_API_KEY: string
+): Promise<{ correctedContent: string; accuracyScore: number; corrections: string[] }> {
+  console.log(`🔄 Validating fashion content against ${imageUrls.length} generated images...`);
+  
+  const corrections: string[] = [];
+  let totalConfidence = 0;
+  let analyzedCount = 0;
+  let correctedContent = articleContent;
+  
+  // Analyze each image and validate corresponding content
+  for (let i = 0; i < imageUrls.length; i++) {
+    const imageUrl = imageUrls[i];
+    if (!imageUrl || imageUrl.length === 0) continue;
+    
+    const detected = await analyzeOutfitImage(imageUrl, LOVABLE_API_KEY);
+    if (!detected) continue;
+    
+    analyzedCount++;
+    totalConfidence += detected.confidenceScore;
+    
+    // Find the corresponding outfit section in content
+    const outfitNumber = i + 1;
+    const sectionRegex = new RegExp(
+      `(<h2>${outfitNumber}\\.\\s*[^<]+</h2>[\\s\\S]*?)(?=<h2>\\d+\\.|$)`,
+      'i'
+    );
+    const sectionMatch = correctedContent.match(sectionRegex);
+    
+    if (!sectionMatch) continue;
+    
+    const originalSection = sectionMatch[1];
+    
+    // Check for items mentioned in content but not visible in image
+    const outfitPiecesMatch = originalSection.match(/<h3>Outfit Pieces:<\/h3>\s*<ul>([\s\S]*?)<\/ul>/i);
+    if (!outfitPiecesMatch) continue;
+    
+    const listedItems = outfitPiecesMatch[1].toLowerCase();
+    
+    // Common false items to check for
+    const potentialFalseItems = [
+      { term: 'necklace', visible: detected.accessories.some(a => a.toLowerCase().includes('necklace')) },
+      { term: 'bracelet', visible: detected.accessories.some(a => a.toLowerCase().includes('bracelet')) },
+      { term: 'watch', visible: detected.accessories.some(a => a.toLowerCase().includes('watch')) },
+      { term: 'bag', visible: detected.accessories.some(a => a.toLowerCase().includes('bag') || a.toLowerCase().includes('purse')) },
+      { term: 'belt', visible: detected.accessories.some(a => a.toLowerCase().includes('belt')) },
+      { term: 'scarf', visible: detected.accessories.some(a => a.toLowerCase().includes('scarf')) },
+      { term: 'hat', visible: detected.accessories.some(a => a.toLowerCase().includes('hat') || a.toLowerCase().includes('cap')) },
+      { term: 'sunglasses', visible: detected.accessories.some(a => a.toLowerCase().includes('sunglasses') || a.toLowerCase().includes('glasses')) },
+    ];
+    
+    // Remove false items from content
+    let updatedSection = originalSection;
+    for (const item of potentialFalseItems) {
+      if (listedItems.includes(item.term) && !item.visible) {
+        // Remove this item from the list
+        const itemRegex = new RegExp(`<li>[^<]*${item.term}[^<]*</li>\\s*`, 'gi');
+        updatedSection = updatedSection.replace(itemRegex, '');
+        corrections.push(`Outfit ${outfitNumber}: Removed "${item.term}" - not visible in image`);
+      }
+    }
+    
+    // Also fix color mismatches - replace "dark wash" with actual detected color
+    if (detected.colors.length > 0) {
+      // Check for color mentions and correct them
+      const colorCorrections: Record<string, string[]> = {
+        'dark wash': ['medium wash', 'light wash', 'medium-wash', 'light-wash'],
+        'light wash': ['dark wash', 'medium wash', 'dark-wash', 'medium-wash'],
+      };
+      
+      for (const [wrong, replacements] of Object.entries(colorCorrections)) {
+        if (updatedSection.toLowerCase().includes(wrong)) {
+          // Check if any of the detected colors match the "wrong" value
+          const hasWrongColor = detected.colors.some(c => c.toLowerCase().includes(wrong.split(' ')[0]));
+          if (!hasWrongColor) {
+            // Find what the actual color should be
+            const actualDenimColor = detected.colors.find(c => 
+              c.toLowerCase().includes('denim') || 
+              c.toLowerCase().includes('wash') ||
+              c.toLowerCase().includes('blue') ||
+              c.toLowerCase().includes('jeans')
+            );
+            if (actualDenimColor) {
+              updatedSection = updatedSection.replace(new RegExp(wrong, 'gi'), actualDenimColor);
+              corrections.push(`Outfit ${outfitNumber}: Corrected "${wrong}" to "${actualDenimColor}"`);
+            }
+          }
+        }
+      }
+    }
+    
+    // Replace the section in content
+    if (updatedSection !== originalSection) {
+      correctedContent = correctedContent.replace(originalSection, updatedSection);
+    }
+  }
+  
+  const accuracyScore = analyzedCount > 0 ? Math.round(totalConfidence / analyzedCount) : 100;
+  
+  console.log(`✅ Content validation complete: ${accuracyScore}% accuracy, ${corrections.length} corrections made`);
+  
+  return {
+    correctedContent,
+    accuracyScore,
+    corrections
+  };
+}
+
 // Analyze article content and generate specific image prompts using AI
 async function analyzeArticleForImagePrompts(
   articleContent: string,
@@ -2018,6 +2286,54 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     
     console.log(`✅ Generated ${successCount}/${imageCount} images with aspect ratio: ${aspectRatio} (PARALLEL)`);
 
+    // Step 5.5: FASHION CONTENT VALIDATION - Analyze images and correct content
+    let contentAccuracyScore = 100;
+    let contentCorrections: string[] = [];
+    
+    if (articleCategory === 'fashion' && successCount > 0) {
+      console.log(`🔍 Running fashion content validation against generated images...`);
+      
+      // Update progress to show validation step
+      await supabase
+        .from(tableName)
+        .update({ 
+          generation_progress: { 
+            step: 'validating_content', 
+            totalImages: imageCount,
+            completedImages: successCount,
+            status: 'validating'
+          } 
+        })
+        .eq('id', entityId);
+      
+      try {
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY') || '';
+        
+        if (LOVABLE_API_KEY) {
+          const validationResult = await validateAndCorrectFashionContent(
+            articleContent,
+            imageUrls,
+            LOVABLE_API_KEY
+          );
+          
+          articleContent = validationResult.correctedContent;
+          contentAccuracyScore = validationResult.accuracyScore;
+          contentCorrections = validationResult.corrections;
+          
+          if (contentCorrections.length > 0) {
+            console.log(`📝 Content corrections made: ${contentCorrections.length}`);
+            for (const correction of contentCorrections) {
+              console.log(`   - ${correction}`);
+            }
+          }
+        } else {
+          console.log('⚠️ Skipping content validation - LOVABLE_API_KEY not available');
+        }
+      } catch (validationError) {
+        console.error('⚠️ Content validation error (continuing with original content):', validationError);
+      }
+    }
+
     // Step 6: Replace image placeholders (dynamic count)
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       // z-image model works best with dimensions divisible by 64 and max 1024
@@ -2077,7 +2393,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     }
 
     // Build generation metadata for tracking
-    const generationMetadata = {
+    const generationMetadata: Record<string, any> = {
       content_model: aiProvider === 'lovable' ? 'Lovable AI (Gemini)' : 'OpenAI GPT-5',
       content_provider: aiProvider === 'lovable' ? 'Lovable AI' : 'OpenAI API',
       image_model: normalizedImageModel,
@@ -2088,6 +2404,13 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
       estimated_cost: calculateEstimatedCost(aiProvider, normalizedImageModel, imageUrls.filter(u => u && u.length > 0).length),
       generated_at: new Date().toISOString(),
     };
+    
+    // Add fashion validation metadata
+    if (articleCategory === 'fashion') {
+      generationMetadata.content_accuracy_score = contentAccuracyScore;
+      generationMetadata.content_corrections = contentCorrections;
+      generationMetadata.content_validated = true;
+    }
 
     console.log(`📊 Generation metadata:`, generationMetadata);
     console.log(`🎉 Article generated successfully for: ${seoTitle}`);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, CheckCircle2, Sparkles, Image as ImageIcon, Cpu, DollarSign } from 'lucide-react';
+import { X, CheckCircle2, Sparkles, Image as ImageIcon, Cpu, DollarSign, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +13,10 @@ interface GenerationMetadata {
   aspect_ratio: string;
   estimated_cost: number;
   generated_at: string;
+  // Fashion validation fields
+  content_accuracy_score?: number;
+  content_corrections?: string[];
+  content_validated?: boolean;
 }
 
 interface GenerationNotificationProps {
@@ -30,6 +34,7 @@ export function GenerationNotification({
 }: GenerationNotificationProps) {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
 
   useEffect(() => {
     // Animate in
@@ -56,6 +61,20 @@ export function GenerationNotification({
     };
     return labels[model] || model;
   };
+
+  const getAccuracyColor = (score: number) => {
+    if (score >= 90) return 'text-emerald-600 dark:text-emerald-400';
+    if (score >= 70) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
+  const getAccuracyBg = (score: number) => {
+    if (score >= 90) return 'bg-emerald-100 dark:bg-emerald-900/50';
+    if (score >= 70) return 'bg-amber-100 dark:bg-amber-900/50';
+    return 'bg-red-100 dark:bg-red-900/50';
+  };
+
+  const hasCorrections = metadata.content_corrections && metadata.content_corrections.length > 0;
 
   return (
     <div 
@@ -130,6 +149,53 @@ export function GenerationNotification({
             </div>
           </div>
         </div>
+
+        {/* Content Accuracy Score (Fashion articles only) */}
+        {metadata.content_validated && metadata.content_accuracy_score !== undefined && (
+          <div className="px-4 pb-3">
+            <div className={`flex items-center justify-between text-xs rounded-lg px-3 py-2 ${getAccuracyBg(metadata.content_accuracy_score)}`}>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className={`w-4 h-4 ${getAccuracyColor(metadata.content_accuracy_score)}`} />
+                <span className="text-foreground font-medium">Content Accuracy</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`font-bold ${getAccuracyColor(metadata.content_accuracy_score)}`}>
+                  {metadata.content_accuracy_score}%
+                </span>
+                {hasCorrections && (
+                  <button 
+                    onClick={() => setShowCorrections(!showCorrections)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Corrections List (expandable) */}
+            {showCorrections && hasCorrections && (
+              <div className="mt-2 text-xs bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2 border border-amber-200 dark:border-amber-800">
+                <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                  {metadata.content_corrections!.length} correction(s) made:
+                </p>
+                <ul className="space-y-0.5 text-amber-700 dark:text-amber-300">
+                  {metadata.content_corrections!.slice(0, 5).map((correction, i) => (
+                    <li key={i} className="flex items-start gap-1">
+                      <span className="mt-0.5">•</span>
+                      <span>{correction}</span>
+                    </li>
+                  ))}
+                  {metadata.content_corrections!.length > 5 && (
+                    <li className="text-muted-foreground">
+                      +{metadata.content_corrections!.length - 5} more...
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="px-4 pb-4 flex gap-2">
