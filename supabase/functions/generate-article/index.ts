@@ -1024,6 +1024,14 @@ serve(async (req) => {
       else if (niche === 'food') articleCategory = 'food';
     }
     console.log(`🏷️ Article category detected: ${articleCategory}`);
+    
+    // OVERRIDE: Fashion articles use 9:16 (vertical portrait) for full-body images
+    let effectiveAspectRatio = aspectRatio;
+    if (articleCategory === 'fashion') {
+      effectiveAspectRatio = '9:16';
+      console.log(`📐 Fashion article: Overriding aspect ratio to 9:16 (vertical portrait)`);
+    }
+
 
     // Determine which API key to use
     let AI_API_KEY: string;
@@ -1941,7 +1949,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
           i + 1,
           REPLICATE_API_KEY,
           supabase,
-          aspectRatio,
+          effectiveAspectRatio,
           imageSubject,
           articleCategory,
           normalizedImageModel
@@ -1994,7 +2002,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
       return dimensions[ar] || { width: 1024, height: 768 };
     };
     
-    const imgDimensions = getImageDimensions(aspectRatio);
+    const imgDimensions = getImageDimensions(effectiveAspectRatio);
     console.log(`📐 Using image dimensions: ${imgDimensions.width}x${imgDimensions.height}`);
     
     let finalContent = articleContent;
@@ -2003,7 +2011,7 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
       if (imageUrls[i]) {
         finalContent = finalContent.replace(
           placeholder,
-          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${seoTitle} - Image ${i + 1}" loading="lazy" width="${imgDimensions.width}" height="${imgDimensions.height}" style="width: 100%; height: auto; aspect-ratio: ${aspectRatio.replace(':', '/')};" /></figure>`
+          `<figure class="article-image"><img src="${imageUrls[i]}" alt="${seoTitle} - Image ${i + 1}" loading="lazy" width="${imgDimensions.width}" height="${imgDimensions.height}" style="width: 100%; height: auto; aspect-ratio: ${effectiveAspectRatio.replace(':', '/')};" /></figure>`
         );
       } else {
         finalContent = finalContent.replace(placeholder, '');
