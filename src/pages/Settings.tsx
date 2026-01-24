@@ -662,7 +662,7 @@ const Settings = () => {
       // Load API settings
       const { data: apiData } = await supabase
         .from('user_api_settings')
-        .select('openai_api_key, replicate_api_token, replicate_model')
+        .select('openai_api_key, replicate_api_token, replicate_model, freepik_api_key, image_source, ai_content_model')
         .eq('user_id', user.id)
         .single();
 
@@ -670,6 +670,9 @@ const Settings = () => {
         setOpenaiKey(apiData.openai_api_key || '');
         setReplicateToken(apiData.replicate_api_token || '');
         setReplicateModel(apiData.replicate_model || 'google-nano-banana-pro');
+        setFreepikApiKey(apiData.freepik_api_key || '');
+        setImageSource(apiData.image_source || 'ai-generated');
+        setAiContentModel(apiData.ai_content_model || 'deepseek-v3');
       }
 
       // Load classic prompt
@@ -746,6 +749,9 @@ const Settings = () => {
           openai_api_key: openaiKey,
           replicate_api_token: replicateToken,
           replicate_model: replicateModel,
+          freepik_api_key: freepikApiKey,
+          image_source: imageSource,
+          ai_content_model: aiContentModel,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id'
