@@ -45,6 +45,18 @@ const imageGenModels = [
   { value: 'seedream-4.5', label: 'Seedream 4.5 (ByteDance)', description: '$0.04 per image (high quality)' },
 ];
 
+const imageSources = [
+  { value: 'ai-generated', label: 'AI Generated (Replicate)' },
+  { value: 'freepik', label: 'Freepik Stock Photos' },
+];
+
+const aiContentModels = [
+  { value: 'deepseek-v3', label: 'DeepSeek v3 (via Replicate)', description: 'Fast & affordable' },
+  { value: 'chatgpt-gpt5', label: 'ChatGPT (GPT-5 via Replicate)', description: 'High quality' },
+  { value: 'claude-sonnet', label: 'Claude Sonnet (via Replicate)', description: 'Balanced' },
+  { value: 'llama-3', label: 'Llama 3 (via Replicate)', description: 'Open source' },
+];
+
 const imageQualityLevels = [
   { value: 'standard', label: 'Standard', description: 'Good quality, faster generation' },
   { value: 'high', label: 'High Quality', description: 'Better details and realism' },
@@ -600,6 +612,9 @@ Include science-backed information and an FAQ section.`,
 const Settings = () => {
   const [openaiKey, setOpenaiKey] = useState('');
   const [replicateToken, setReplicateToken] = useState('');
+  const [freepikApiKey, setFreepikApiKey] = useState('');
+  const [imageSource, setImageSource] = useState('ai-generated');
+  const [aiContentModel, setAiContentModel] = useState('deepseek-v3');
   const [replicateModel, setReplicateModel] = useState('google-nano-banana-pro');
   const [imageGenModel, setImageGenModel] = useState('z-image-turbo');
   const [imageQuality, setImageQuality] = useState('ultra');
@@ -1001,10 +1016,74 @@ const Settings = () => {
               className="bg-card"
             />
             <p className="text-xs text-muted-foreground">
-              Your Replicate API token for image generation models. Get yours at{' '}
+              Your Replicate API token for accessing AI models. Get yours at{' '}
               <a href="https://replicate.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 replicate.com
               </a>
+            </p>
+          </div>
+
+          {/* Freepik API Key */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Freepik API Key (Optional)
+            </label>
+            <Input
+              type="password"
+              value={freepikApiKey}
+              onChange={(e) => setFreepikApiKey(e.target.value)}
+              placeholder="Enter your Freepik API key"
+              className="bg-card"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your Freepik API key for accessing stock photos (optional). Get yours at{' '}
+              <a href="https://freepik.com/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                freepik.com/api
+              </a>
+            </p>
+          </div>
+
+          {/* Image Source */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Image Source
+            </label>
+            <Select value={imageSource} onValueChange={setImageSource}>
+              <SelectTrigger className="bg-card">
+                <SelectValue placeholder="Select image source" />
+              </SelectTrigger>
+              <SelectContent>
+                {imageSources.map((source) => (
+                  <SelectItem key={source.value} value={source.value}>
+                    {source.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose between AI-generated images or real stock photos from Freepik
+            </p>
+          </div>
+
+          {/* AI Content Generation Model */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              AI Content Generation Model
+            </label>
+            <Select value={aiContentModel} onValueChange={setAiContentModel}>
+              <SelectTrigger className="bg-card">
+                <SelectValue placeholder="Select AI model" />
+              </SelectTrigger>
+              <SelectContent>
+                {aiContentModels.map((model) => (
+                  <SelectItem key={model.value} value={model.value}>
+                    {model.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose the AI model for generating article content and image prompts
             </p>
           </div>
 
