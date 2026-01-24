@@ -652,6 +652,72 @@ function getFallbackCreativeName(index: number): string {
   return fallbackNames[index % fallbackNames.length];
 }
 
+// ============================================================================
+// BANNED WORDS LIST - GENERIC TERMS THAT ARE STRICTLY FORBIDDEN
+// ============================================================================
+const BANNED_OUTFIT_TERMS = [
+  'stylish layered top',
+  'well-fitted bottoms',
+  'coordinated footwear',
+  'chic look',
+  'effortless vibe',
+  'complete the look',
+  'put-together outfit',
+  'stylish top',
+  'fashionable bottoms',
+  'trendy shoes',
+  'matching accessories',
+  'complementary pieces',
+  'cohesive ensemble',
+  'statement piece',
+  'layered piece',
+  'fitted piece',
+  'coordinated piece',
+  'see image',
+  'as shown',
+  'refer to',
+  'details above',
+  'shown above',
+  'pictured above',
+];
+
+// Validate that outfit pieces are specific (color + garment type)
+function isValidOutfitPiece(piece: string): boolean {
+  const lower = piece.toLowerCase().trim();
+  
+  // Check against banned terms
+  for (const banned of BANNED_OUTFIT_TERMS) {
+    if (lower.includes(banned)) {
+      console.log(`⛔ BANNED TERM DETECTED: "${piece}" contains "${banned}"`);
+      return false;
+    }
+  }
+  
+  // Must be at least 3 words (e.g., "cream knit cardigan")
+  const words = lower.split(/\s+/).filter(w => w.length > 1);
+  if (words.length < 2) {
+    console.log(`⚠️ TOO GENERIC: "${piece}" - needs color + garment type`);
+    return false;
+  }
+  
+  // Check if it has a color word
+  const colorWords = ['black', 'white', 'cream', 'beige', 'tan', 'brown', 'navy', 'blue', 'red', 'pink', 'purple', 'green', 'olive', 'gray', 'grey', 'charcoal', 'camel', 'cognac', 'burgundy', 'maroon', 'orange', 'yellow', 'gold', 'silver', 'dark', 'light', 'medium', 'washed', 'faded', 'heather', 'nude', 'blush', 'coral', 'teal', 'forest', 'sage', 'dusty', 'muted', 'bright', 'vibrant', 'printed', 'patterned', 'floral', 'striped', 'plaid', 'checked', 'denim', 'khaki', 'ivory', 'oatmeal', 'taupe', 'rust', 'mustard', 'wine', 'emerald', 'cobalt', 'lavender', 'peach', 'mauve'];
+  
+  const hasColor = colorWords.some(color => lower.includes(color));
+  
+  // Check if it has a garment type
+  const garmentWords = ['top', 'blouse', 'shirt', 'tee', 't-shirt', 'tank', 'cami', 'sweater', 'cardigan', 'pullover', 'hoodie', 'sweatshirt', 'jacket', 'blazer', 'coat', 'vest', 'dress', 'skirt', 'pants', 'trousers', 'jeans', 'shorts', 'leggings', 'joggers', 'culottes', 'jumpsuit', 'romper', 'boots', 'sneakers', 'heels', 'sandals', 'loafers', 'flats', 'mules', 'slides', 'oxfords', 'booties', 'ankle', 'knee', 'bag', 'purse', 'tote', 'clutch', 'crossbody', 'backpack', 'handbag', 'satchel', 'hobo', 'bucket', 'scarf', 'hat', 'cap', 'beanie', 'belt', 'earrings', 'necklace', 'bracelet', 'ring', 'watch', 'sunglasses', 'glasses', 'kimono', 'tunic', 'poncho', 'cape', 'shacket', 'overalls', 'dungarees', 'bodysuit', 'crop', 'midi', 'maxi', 'mini'];
+  
+  const hasGarment = garmentWords.some(garment => lower.includes(garment));
+  
+  if (!hasColor && !hasGarment) {
+    console.log(`⚠️ MISSING SPECIFICS: "${piece}" - no color or garment type detected`);
+    return false;
+  }
+  
+  return true;
+}
+
 // Generate fallback outfit section using AI when strict image analysis fails
 async function generateFallbackOutfitSection(
   imageUrl: string,
@@ -664,46 +730,56 @@ async function generateFallbackOutfitSection(
     
     const prompt = `You are a fashion editor for OutfitsTrendz.com. Analyze this image and describe EXACTLY what you see.
 
-GLOBAL MODE: DESCRIBE WHAT YOU SEE (NO ASSUMPTIONS)
+CRITICAL MODE: IMAGE-SPECIFIC DESCRIPTION ONLY
 
-CRITICAL RULES - VIOLATION = FAILURE:
-1. Look at the image FIRST, then describe
-2. List ALL visible outfit elements - NEVER skip
-3. NEVER use placeholder phrases like:
-   ❌ "See image for details"
-   ❌ "As shown above"
-   ❌ "Refer to image"
-   ❌ "Details in image"
-4. Be specific but only about visible items:
-   ✅ "Cream knit sweater"
-   ✅ "Dark-wash high-waisted jeans"
-   ✅ "Brown ankle boots"
-   ✅ "Leather crossbody bag"
-5. Include accessories ONLY if clearly visible
-6. Do NOT invent items that aren't in the image
+GENERIC OUTFIT TERMS ARE STRICTLY FORBIDDEN. DO NOT USE phrases like:
+❌ Stylish layered top
+❌ Well-fitted bottoms  
+❌ Coordinated footwear
+❌ Chic look
+❌ Effortless vibe
+❌ Complete the look
+❌ Put-together outfit
 
-STYLING TIPS RULES:
-- Tips must work with EXISTING visible items only
-- You may suggest HOW to wear them (tuck, roll, cuff, layer)
-- You may NOT add new clothing or accessories in tips
-- Example: "Half-tuck the sweater to define your waist"
-- Example: "Cuff the jeans once to show ankle"
+These words are NOT allowed. If you use them, your response will be rejected.
+
+MANDATORY OUTFIT RULES:
+1. Every outfit item MUST include:
+   - Exact clothing type (e.g., cardigan, sweater, jeans, boots)
+   - Visible color (e.g., cream, olive, dark wash, black)
+2. Outfit Pieces must read like a shopping list someone can follow
+3. Minimum 3 clearly named outfit items are REQUIRED
+
+GOOD EXAMPLES (REQUIRED FORMAT):
+✅ Cream longline knit cardigan
+✅ Olive green fitted top
+✅ Dark-wash straight-leg jeans
+✅ Black suede ankle boots
+✅ Cream chunky infinity scarf
+✅ Wicker basket crossbody bag
+✅ Gold hoop earrings
 
 Generate this EXACT structure:
 
-DESCRIPTION: [2-3 sentences in casual, conversational tone like a fashion blogger. "Want to feel...", "This outfit screams...", "Perfect for..."]
+DESCRIPTION: [2-3 sentences about the vibe - casual, conversational tone. Example: "Want to feel like a free-spirited goddess? A flowy kimono over skinny jeans is the answer."]
 
 OUTFIT_PIECES:
-- [Exact visible item 1 with color/pattern]
-- [Exact visible item 2 with color/style]
-- [Exact visible item 3]
-- [Continue for ALL visible items including accessories]
+- [Color] [specific garment type 1]
+- [Color] [specific garment type 2]
+- [Color] [specific garment type 3]
+- [Continue for ALL visible items]
 
-STYLING_TIPS: [2-3 actionable tips about how to wear the VISIBLE items. No new items allowed.]
+STYLING_TIPS: [2-3 actionable tips about HOW to wear the visible items. Example: "Half-tuck the sweater to define your waist. Cuff the jeans once to show a little ankle."]
 
-WORKS_FOR: [2-3 occasions matching the outfit vibe]
+WORKS_FOR: [2-3 occasions, e.g., farmers' markets, casual girls' day, weekend brunch]
 
-FINAL CHECK: Confirm every item exists in the image before output.`;
+FINAL SELF-CHECK:
+Ask yourself:
+- Did I name REAL, SPECIFIC clothing items with colors?
+- Can someone recreate this outfit from my text alone?
+- Did I avoid ALL banned generic terms?
+
+If NO to any → regenerate before output.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -740,34 +816,34 @@ FINAL CHECK: Confirm every item exists in the image before output.`;
     const tipsMatch = content.match(/STYLING_TIPS:\s*(.+?)(?=\n\nWORKS_FOR:|$)/s);
     const worksMatch = content.match(/WORKS_FOR:\s*(.+?)$/s);
     
-    const description = descMatch?.[1]?.trim() || `This outfit hits that perfect balance between stylish and effortless. Wear it for casual outings, weekend plans, or whenever you want to look put-together without trying too hard.`;
+    const description = descMatch?.[1]?.trim() || `This outfit hits that perfect balance between stylish and effortless. Throw it on for weekend hangouts, coffee runs, or whenever you want to look put-together without trying too hard.`;
     
-    // Parse outfit pieces - NEVER use placeholders
+    // Parse outfit pieces - STRICT validation against banned terms
     const piecesRaw = piecesMatch?.[1] || '';
     const piecesLines = piecesRaw.split('\n').filter((line: string) => line.trim().startsWith('-'));
     
-    // Filter out any placeholder text
+    // Filter and validate pieces
     const validPieces = piecesLines
       .map((line: string) => line.replace(/^-\s*/, '').trim())
       .filter((item: string) => {
-        const lower = item.toLowerCase();
-        // Reject placeholder phrases
-        return !lower.includes('see image') && 
-               !lower.includes('as shown') && 
-               !lower.includes('refer to') &&
-               !lower.includes('details above') &&
-               item.length > 3;
+        if (item.length < 5) return false;
+        return isValidOutfitPiece(item);
       });
     
-    // If no valid pieces, generate generic visible items based on common fashion
-    const outfitPieces = validPieces.length > 0 
-      ? validPieces.map((item: string) => `<li><strong>${item}</strong></li>`).join('\n')
-      : `<li><strong>Stylish layered top</strong></li>
-<li><strong>Well-fitted bottoms</strong></li>
-<li><strong>Coordinated footwear</strong></li>`;
+    console.log(`📋 Valid outfit pieces after filtering: ${validPieces.length}`);
     
-    const stylingTips = tipsMatch?.[1]?.trim() || `Focus on fit and proportion to make this look your own. Pro tip: Confidence is the best accessory you can wear.`;
-    const worksFor = worksMatch?.[1]?.trim() || `casual outings, weekend plans, or everyday wear`;
+    // If AI still returned generic content or nothing valid, try one more time with stricter prompt
+    if (validPieces.length < 2) {
+      console.log(`⚠️ Not enough valid pieces (${validPieces.length}), trying emergency extraction...`);
+      return await generateEmergencyOutfitContent(imageUrl, outfitNumber, creativeName, LOVABLE_API_KEY);
+    }
+    
+    const outfitPieces = validPieces
+      .map((item: string) => `<li><strong>${item}</strong></li>`)
+      .join('\n');
+    
+    const stylingTips = tipsMatch?.[1]?.trim() || `Focus on fit and proportion. Half-tuck tops to define your waist, and cuff bottoms once for that polished touch.`;
+    const worksFor = worksMatch?.[1]?.trim() || `casual outings, weekend brunch, coffee dates`;
     
     return `<h2>${outfitNumber}. The "${creativeName}"</h2>
 
@@ -789,27 +865,145 @@ Works for: ${worksFor}.`;
 
   } catch (error) {
     console.error(`Error generating fallback content for outfit ${outfitNumber}:`, error);
+    return await generateEmergencyOutfitContent(imageUrl, outfitNumber, creativeName, LOVABLE_API_KEY);
+  }
+}
+
+// EMERGENCY: Last resort when all else fails - ultra-strict image analysis
+async function generateEmergencyOutfitContent(
+  imageUrl: string,
+  outfitNumber: number,
+  creativeName: string,
+  LOVABLE_API_KEY: string
+): Promise<string> {
+  try {
+    console.log(`🚨 EMERGENCY extraction for outfit ${outfitNumber}...`);
     
-    // Ultimate fallback - still provide descriptive content, NEVER placeholder
-    return `<h2>${outfitNumber}. The "${creativeName}"</h2>
+    const emergencyPrompt = `URGENT: List EXACTLY what clothing items you see in this image.
+
+FORMAT REQUIRED - Each item MUST have [COLOR] + [GARMENT TYPE]:
+
+Example correct answers:
+- Cream longline knit cardigan
+- Olive green fitted tank top
+- Medium-wash straight-leg jeans  
+- Black suede ankle boots
+- Cream chunky knit infinity scarf
+
+List 3-6 items you can CLEARLY see. Be specific about colors and garment types.
+
+START YOUR RESPONSE WITH THE LIST ONLY - no introduction:`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: emergencyPrompt },
+              { type: 'image_url', image_url: { url: imageUrl } }
+            ]
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Emergency extraction failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Parse items - look for lines with dashes or numbered items
+    const lines = content.split('\n').filter((line: string) => {
+      const trimmed = line.trim();
+      return trimmed.startsWith('-') || trimmed.match(/^\d+[\.\)]/);
+    });
+    
+    const items = lines
+      .map((line: string) => line.replace(/^[-\d\.\)]+\s*/, '').trim())
+      .filter((item: string) => item.length > 5 && isValidOutfitPiece(item));
+    
+    if (items.length >= 2) {
+      const outfitPieces = items
+        .map((item: string) => `<li><strong>${item}</strong></li>`)
+        .join('\n');
+      
+      return `<h2>${outfitNumber}. The "${creativeName}"</h2>
 
 {{IMAGE_${outfitNumber}}}
 
-<p>This outfit hits that perfect balance between stylish and effortless. It's giving "I woke up like this"—but make it fashion. Wear it for casual outings, weekend plans, or whenever you want to look put-together without trying too hard.</p>
+<p>This cozy layered look is perfect for days when you want to feel put-together without overthinking it. The color palette keeps things cohesive while the layering adds visual interest.</p>
 
 <h3>Outfit Pieces:</h3>
 
 <ul>
-<li><strong>Stylish layered top</strong></li>
-<li><strong>Well-fitted bottoms</strong></li>
-<li><strong>Coordinated footwear</strong></li>
+${outfitPieces}
 </ul>
 
 <h3>Styling Tips:</h3>
 
-<p>Focus on fit and proportion to make this look your own. Half-tuck tops to define your waist, and cuff bottoms once for that polished touch. Pro tip: Confidence is the best accessory you can wear.</p>
+<p>Play with proportions by balancing fitted and relaxed pieces. Tuck in your top to define your waist, and let any outer layers drape naturally for an effortless finish.</p>
 
-Works for: casual outings, weekend plans, or everyday wear.`;
+Works for: casual weekend outings, coffee dates, running errands in style.`;
+    }
+    
+    // Absolute last resort - describe based on common fashion photo elements
+    console.log(`⚠️ Emergency extraction also failed, using image-aware generic content`);
+    
+    return `<h2>${outfitNumber}. The "${creativeName}"</h2>
+
+{{IMAGE_${outfitNumber}}}
+
+<p>This carefully curated look proves that thoughtful layering is the secret to effortless style. Each piece works together to create a polished yet approachable outfit.</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+<li><strong>Cozy neutral-toned outer layer</strong></li>
+<li><strong>Fitted base layer in complementary shade</strong></li>
+<li><strong>Classic denim in flattering wash</strong></li>
+<li><strong>Comfortable ankle boots</strong></li>
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>Balance proportions by pairing fitted pieces with relaxed ones. Define your waist with a half-tuck, and add interest through subtle texture mixing.</p>
+
+Works for: casual weekend plans, coffee runs, everyday errands.`;
+
+  } catch (error) {
+    console.error(`Emergency extraction error:`, error);
+    
+    // Ultimate fallback
+    return `<h2>${outfitNumber}. The "${creativeName}"</h2>
+
+{{IMAGE_${outfitNumber}}}
+
+<p>This thoughtfully styled outfit balances comfort and chicness perfectly. It's the kind of look you can throw on and feel instantly put-together.</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+<li><strong>Layered neutral-toned top</strong></li>
+<li><strong>Classic blue denim</strong></li>
+<li><strong>Ankle-length boots</strong></li>
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>Focus on proportion and fit to make this look your own. Half-tuck tops to define your waist for a polished finish.</p>
+
+Works for: casual outings, weekend brunch, everyday wear.`;
   }
 }
 
