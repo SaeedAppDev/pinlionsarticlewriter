@@ -36,37 +36,53 @@ ${noTextRuleSuffix}`;
     } else if (articleCategory === 'fashion') {
       // Detect body type keywords from the prompt to ensure consistent model representation
       const promptLower = prompt.toLowerCase();
-      const isPlusSize = promptLower.includes('plus size') || promptLower.includes('plus-size') || promptLower.includes('curvy') || promptLower.includes('fuller figure');
+      const isPlusSize = promptLower.includes('plus size') || promptLower.includes('plus-size') || promptLower.includes('curvy') || promptLower.includes('fuller');
       const isPetite = promptLower.includes('petite') || promptLower.includes('short women') || promptLower.includes('short woman');
       const isTall = promptLower.includes('tall women') || promptLower.includes('tall woman');
       
-      let bodyTypeDescription = '';
+      let bodyType = 'BEAUTIFUL woman';
       if (isPlusSize) {
-        bodyTypeDescription = 'BEAUTIFUL PLUS-SIZE/CURVY woman with fuller figure and natural curves';
+        bodyType = 'BEAUTIFUL PLUS-SIZE/CURVY woman with fuller figure, natural curves, and confident presence';
       } else if (isPetite) {
-        bodyTypeDescription = 'BEAUTIFUL PETITE woman with shorter stature';
+        bodyType = 'BEAUTIFUL PETITE woman with shorter stature';
       } else if (isTall) {
-        bodyTypeDescription = 'BEAUTIFUL TALL woman with longer frame';
-      } else {
-        bodyTypeDescription = 'BEAUTIFUL woman';
+        bodyType = 'BEAUTIFUL TALL woman with longer frame';
       }
       
       realisticPrompt = `${noTextRulePrefix}
 
-Generate: ${prompt}
+SUBJECT: ${bodyType} wearing ${prompt}
 
-Style: Professional fashion editorial photograph matching OutfitsTrendz.com quality. REAL photography showing full outfit on model, NOT illustration, NOT flat lay, NOT mannequin.
+===== ABSOLUTE REQUIREMENTS - VIOLATION OF ANY MEANS COMPLETE FAILURE =====
 
-CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
-1. MODEL: ${bodyTypeDescription} - maintain this body type consistently
-2. FACE: The model's FACE MUST BE CLEARLY VISIBLE AND IN FOCUS - show full face with natural beautiful expression, confident smile or relaxed look, DO NOT crop, hide, or obscure the face in any way
-3. FULL BODY: Complete head-to-toe shot showing entire outfit including shoes - nothing cut off
-4. FRAMING: Camera positioned to capture full body from head to feet with face as a key focal point
-5. BACKGROUND: Natural urban or lifestyle setting with soft bokeh
-6. LIGHTING: Natural daylight or golden hour with soft flattering shadows
-7. POSE: Confident, relaxed pose showing clothing naturally on the body
-8. DETAILS: Visible fabric textures, stitching, material quality, all accessories
-9. QUALITY: 8K ultra high resolution, editorial street style photography
+1. FACE VISIBILITY (CRITICAL - MOST IMPORTANT):
+   - The model's FACE MUST BE FULLY VISIBLE in the frame
+   - Face must be IN SHARP FOCUS with clear facial features
+   - Camera MUST capture from ABOVE the head (include hair/top of head in frame)
+   - Show natural beautiful expression: confident smile, relaxed look, or elegant poise
+   - Eyes, nose, mouth, and chin ALL clearly visible
+   - DO NOT crop at forehead, DO NOT hide face, DO NOT blur face
+   - Face should be a KEY FOCAL POINT of the photograph
+
+2. FULL BODY FRAMING (MANDATORY):
+   - Complete HEAD-TO-TOE shot with NOTHING cut off
+   - Must show: top of head, full face, torso, arms, hands, legs, feet, shoes
+   - Camera positioned far enough back to capture ENTIRE person
+   - Leave small margin of space above head and below feet
+   - Portrait orientation (3:4 or 2:3) preferred for full body
+
+3. BODY TYPE CONSISTENCY:
+   - Model MUST match: ${bodyType}
+   - Maintain this exact body type throughout
+   - Natural proportions, realistic representation
+
+4. PHOTOGRAPHY QUALITY:
+   - Professional fashion editorial photograph matching OutfitsTrendz.com
+   - REAL photography, NOT illustration, NOT 3D render, NOT AI art style
+   - Natural urban/lifestyle background with soft bokeh
+   - Golden hour or soft natural daylight lighting
+   - Visible fabric textures, stitching, material quality
+   - 8K ultra high resolution
 
 ${noTextRuleSuffix}`;
     } else {

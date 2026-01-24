@@ -502,19 +502,55 @@ Style requirements:
 
 ${noTextRuleSuffix}`;
     } else if (articleCategory === 'fashion') {
+      // Detect body type from prompt to ensure consistent model representation
+      const promptLower = prompt.toLowerCase();
+      const isPlusSize = promptLower.includes('plus size') || promptLower.includes('plus-size') || promptLower.includes('curvy') || promptLower.includes('fuller');
+      const isPetite = promptLower.includes('petite') || promptLower.includes('short women') || promptLower.includes('short woman');
+      const isTall = promptLower.includes('tall women') || promptLower.includes('tall woman');
+      
+      let bodyType = 'BEAUTIFUL woman';
+      if (isPlusSize) {
+        bodyType = 'BEAUTIFUL PLUS-SIZE/CURVY woman with fuller figure, natural curves, and confident presence';
+      } else if (isPetite) {
+        bodyType = 'BEAUTIFUL PETITE woman with shorter stature';
+      } else if (isTall) {
+        bodyType = 'BEAUTIFUL TALL woman with longer frame';
+      }
+      
       realisticPrompt = `${noTextRulePrefix}
 
-Generate: ${prompt}
+SUBJECT: ${bodyType} wearing ${prompt}
 
-Style requirements:
-- Professional fashion photograph, REAL photography, NOT illustration, NOT digital art, NOT 3D render
-- Ultra photorealistic with natural skin texture
-- Studio lighting with soft diffusion and gentle shadows
-- Fashion editorial composition
-- Visible fabric weave and texture details
-- Authentic clothing drape and fit
-- Magazine quality like Vogue or Harper's Bazaar
-- 8K ultra high resolution, crisp details
+===== ABSOLUTE REQUIREMENTS - VIOLATION OF ANY MEANS COMPLETE FAILURE =====
+
+1. FACE VISIBILITY (CRITICAL - MOST IMPORTANT):
+   - The model's FACE MUST BE FULLY VISIBLE in the frame
+   - Face must be IN SHARP FOCUS with clear facial features
+   - Camera MUST capture from ABOVE the head (include hair/top of head in frame)
+   - Show natural beautiful expression: confident smile, relaxed look, or elegant poise
+   - Eyes, nose, mouth, and chin ALL clearly visible
+   - DO NOT crop at forehead, DO NOT hide face, DO NOT blur face
+   - Face should be a KEY FOCAL POINT of the photograph
+
+2. FULL BODY FRAMING (MANDATORY):
+   - Complete HEAD-TO-TOE shot with NOTHING cut off
+   - Must show: top of head, full face, torso, arms, hands, legs, feet, shoes
+   - Camera positioned far enough back to capture ENTIRE person
+   - Leave small margin of space above head and below feet
+   - Portrait orientation (3:4 or 2:3) preferred for full body
+
+3. BODY TYPE CONSISTENCY:
+   - Model MUST match: ${bodyType}
+   - Maintain this exact body type throughout
+   - Natural proportions, realistic representation
+
+4. PHOTOGRAPHY QUALITY:
+   - Professional fashion editorial photograph matching OutfitsTrendz.com
+   - REAL photography, NOT illustration, NOT 3D render, NOT AI art style
+   - Natural urban/lifestyle background with soft bokeh
+   - Golden hour or soft natural daylight lighting
+   - Visible fabric textures, stitching, material quality
+   - 8K ultra high resolution
 
 ${noTextRuleSuffix}`;
     } else {
