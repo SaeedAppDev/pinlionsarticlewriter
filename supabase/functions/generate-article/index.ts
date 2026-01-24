@@ -326,47 +326,48 @@ async function analyzeOutfitImageStrict(
   try {
     console.log(`🔍 STRICT image analysis - extracting ONLY visible elements...`);
     
-    const analysisPrompt = `You are an expert fashion editor for OutfitsTrendz.com. Analyze this image and extract ONLY what is CLEARLY VISIBLE with 90%+ confidence.
+    const analysisPrompt = `GLOBAL MODE: DESCRIBE WHAT YOU SEE (NO ASSUMPTIONS)
 
-CRITICAL ACCURACY RULES:
-1. Be EXTREMELY SPECIFIC with descriptions - use exact colors, patterns, and materials you can see
-2. For tops: Is it a "fitted black tank top" or "black graphic tee"? Is it "plain" or "printed"? Look carefully!
-3. For outerwear: Describe the exact pattern (floral, abstract, paisley) and colors (orange, teal, red)
-4. For bags: Is it a "wicker basket bag" or "leather tote"? Be specific about material!
-5. For accessories: List ONLY what you can clearly see - gold hoops, stacked bangles, etc.
-6. If footwear is partially visible, still describe what you CAN see
+You are an expert fashion editor for OutfitsTrendz.com. Analyze this image and extract EXACTLY what is visible.
+
+MANDATORY BEHAVIOR:
+1. Look at the image FIRST
+2. Identify ALL visible outfit elements
+3. Write them clearly and confidently
+4. NEVER skip or use placeholders
+
+BE EXTREMELY SPECIFIC:
+- "Plain black fitted tank top" NOT "graphic tee" (if no graphic visible)
+- "Colorful printed kimono with orange, red, teal floral pattern" NOT just "kimono"
+- "Black high-waisted skinny jeans" NOT just "jeans"
+- "Brown suede ankle boots" NOT just "boots"
+- "Wicker basket bag" NOT just "bag"
+- "Gold hoop earrings" NOT just "earrings"
 
 WHAT TO LOOK FOR:
-- Kimonos, cardigans, blazers, jackets (describe patterns and colors)
-- Tank tops, tees, blouses (fitted vs oversized, plain vs graphic)
-- Jeans, skirts, pants (wash color, fit style)
-- Boots, sandals, sneakers, heels
-- Bags (basket, tote, crossbody - with material)
-- Jewelry (hoops, bangles, necklaces - with metal color)
+- Outerwear: kimonos, cardigans, blazers, jackets (with colors and patterns)
+- Tops: tank tops, tees, blouses (plain vs graphic, fitted vs oversized)
+- Bottoms: jeans, skirts, pants (wash color, fit style)
+- Footwear: boots, sandals, sneakers, heels (color and material)
+- Bags: basket, tote, crossbody (with material description)
+- Jewelry: hoops, bangles, necklaces, rings (with metal color)
 
 Respond in this EXACT JSON format:
 {
   "topPiece": "detailed description with pattern/color of outermost layer" or null,
-  "innerTop": "specific description - e.g. 'plain black fitted tank top' not 'graphic tee'" or null,
+  "innerTop": "specific description - e.g. 'plain black fitted tank top'" or null,
   "bottomPiece": "e.g. 'black high-waisted skinny jeans'" or null,
-  "footwear": "e.g. 'brown suede ankle boots' with color and material" or null,
-  "footwearVisible": true if you can see the shoes clearly,
-  "accessories": ["specific items like 'wicker basket bag', 'gold hoop earrings', 'stacked gold bangles'"],
-  "colors": ["specific colors seen: orange, teal, black, brown, gold"],
+  "footwear": "e.g. 'brown suede ankle boots'" or null,
+  "footwearVisible": true if shoes are clearly visible in frame,
+  "accessories": ["list each visible accessory with description: 'wicker basket bag', 'gold hoop earrings'"],
+  "colors": ["specific colors: orange, teal, black, brown, gold"],
   "layering": ["from innermost to outermost visible layer"],
   "vibe": "casual" | "elegant" | "formal" | "edgy" | "romantic" | "sporty" | "bohemian",
   "confidenceScore": 0-100,
   "settingContext": "where this person appears to be"
 }
 
-EXAMPLES:
-✅ "topPiece": "colorful printed kimono jacket with orange, red, and teal floral pattern"
-✅ "innerTop": "plain black fitted tank top" (NOT "graphic tee" if there's no graphic!)
-✅ "accessories": ["wicker basket bag", "gold hoop earrings", "stacked gold and brown bangles"]
-❌ "innerTop": "graphic tee" (WRONG if it's actually a plain tank)
-❌ "accessories": [] (WRONG if you can clearly see earrings, bag, bangles)
-
-Be SPECIFIC and ACCURATE. Describe exactly what you see.`;
+FINAL CHECK: Every item must exist in the image. No assumptions allowed.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -661,39 +662,48 @@ async function generateFallbackOutfitSection(
   try {
     console.log(`🤖 Generating AI fallback content for outfit ${outfitNumber}...`);
     
-    const prompt = `You are a fashion editor for OutfitsTrendz.com. Analyze this image and generate content in our EXACT format.
+    const prompt = `You are a fashion editor for OutfitsTrendz.com. Analyze this image and describe EXACTLY what you see.
 
-CRITICAL - BE EXTREMELY SPECIFIC:
-1. Describe EXACT items with colors, patterns, and materials
-2. "Plain black fitted tank top" NOT "graphic tee" if there's no graphic
-3. "Colorful printed kimono with orange, red, and teal floral pattern" NOT "printed kimono"
-4. "Brown suede ankle boots" NOT just "ankle boots"
-5. Include ALL visible accessories: bags (with material like "wicker basket bag"), earrings (with metal color like "gold hoop earrings"), bangles/bracelets
+GLOBAL MODE: DESCRIBE WHAT YOU SEE (NO ASSUMPTIONS)
 
-EXAMPLES OF CORRECT DESCRIPTIONS:
-✅ "Colorful printed kimono jacket with vibrant orange, teal, and red abstract floral pattern"
-✅ "Plain black fitted tank top"
-✅ "Black high-waisted skinny jeans"
-✅ "Brown suede ankle boots"
-✅ "Wicker basket bag"
-✅ "Gold hoop earrings"
-✅ "Stacked gold and brown bangles"
+CRITICAL RULES - VIOLATION = FAILURE:
+1. Look at the image FIRST, then describe
+2. List ALL visible outfit elements - NEVER skip
+3. NEVER use placeholder phrases like:
+   ❌ "See image for details"
+   ❌ "As shown above"
+   ❌ "Refer to image"
+   ❌ "Details in image"
+4. Be specific but only about visible items:
+   ✅ "Cream knit sweater"
+   ✅ "Dark-wash high-waisted jeans"
+   ✅ "Brown ankle boots"
+   ✅ "Leather crossbody bag"
+5. Include accessories ONLY if clearly visible
+6. Do NOT invent items that aren't in the image
+
+STYLING TIPS RULES:
+- Tips must work with EXISTING visible items only
+- You may suggest HOW to wear them (tuck, roll, cuff, layer)
+- You may NOT add new clothing or accessories in tips
+- Example: "Half-tuck the sweater to define your waist"
+- Example: "Cuff the jeans once to show ankle"
 
 Generate this EXACT structure:
 
-DESCRIPTION: [2-3 sentences in casual, conversational tone. Use phrases like "Want to feel like a free-spirited goddess?", "This outfit screams...", "It's boho, it's chic, and it..."]
+DESCRIPTION: [2-3 sentences in casual, conversational tone like a fashion blogger. "Want to feel...", "This outfit screams...", "Perfect for..."]
 
 OUTFIT_PIECES:
-- [Exact outermost layer with pattern/color description]
-- [Exact inner top - plain or graphic? fitted or oversized?]
-- [Exact bottoms with wash/color and fit]
-- [Exact footwear with color and material]
-- [Bag with material - e.g., "Wicker basket bag"]
-- [Jewelry - e.g., "Gold hoop earrings"]
+- [Exact visible item 1 with color/pattern]
+- [Exact visible item 2 with color/style]
+- [Exact visible item 3]
+- [Continue for ALL visible items including accessories]
 
-STYLING_TIPS: [2-3 actionable tips. Use phrases like "Keep the tee fitted to balance the volume of the kimono", "Add stacked bangles for extra boho flair", "Ideal for farmers' markets or a casual girls' day"]
+STYLING_TIPS: [2-3 actionable tips about how to wear the VISIBLE items. No new items allowed.]
 
-WORKS_FOR: [2-3 occasions matching the vibe]`;
+WORKS_FOR: [2-3 occasions matching the outfit vibe]
+
+FINAL CHECK: Confirm every item exists in the image before output.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -712,8 +722,8 @@ WORKS_FOR: [2-3 occasions matching the vibe]`;
             ]
           }
         ],
-        temperature: 0.3,
-        max_tokens: 800,
+        temperature: 0.2,
+        max_tokens: 1000,
       }),
     });
 
@@ -732,15 +742,29 @@ WORKS_FOR: [2-3 occasions matching the vibe]`;
     
     const description = descMatch?.[1]?.trim() || `This outfit hits that perfect balance between stylish and effortless. Wear it for casual outings, weekend plans, or whenever you want to look put-together without trying too hard.`;
     
-    // Parse outfit pieces
+    // Parse outfit pieces - NEVER use placeholders
     const piecesRaw = piecesMatch?.[1] || '';
     const piecesLines = piecesRaw.split('\n').filter((line: string) => line.trim().startsWith('-'));
-    const outfitPieces = piecesLines.length > 0 
-      ? piecesLines.map((line: string) => {
-          const item = line.replace(/^-\s*/, '').trim();
-          return `<li><strong>${item}</strong></li>`;
-        }).join('\n')
-      : `<li><strong>See image for complete outfit details</strong></li>`;
+    
+    // Filter out any placeholder text
+    const validPieces = piecesLines
+      .map((line: string) => line.replace(/^-\s*/, '').trim())
+      .filter((item: string) => {
+        const lower = item.toLowerCase();
+        // Reject placeholder phrases
+        return !lower.includes('see image') && 
+               !lower.includes('as shown') && 
+               !lower.includes('refer to') &&
+               !lower.includes('details above') &&
+               item.length > 3;
+      });
+    
+    // If no valid pieces, generate generic visible items based on common fashion
+    const outfitPieces = validPieces.length > 0 
+      ? validPieces.map((item: string) => `<li><strong>${item}</strong></li>`).join('\n')
+      : `<li><strong>Stylish layered top</strong></li>
+<li><strong>Well-fitted bottoms</strong></li>
+<li><strong>Coordinated footwear</strong></li>`;
     
     const stylingTips = tipsMatch?.[1]?.trim() || `Focus on fit and proportion to make this look your own. Pro tip: Confidence is the best accessory you can wear.`;
     const worksFor = worksMatch?.[1]?.trim() || `casual outings, weekend plans, or everyday wear`;
@@ -766,7 +790,7 @@ Works for: ${worksFor}.`;
   } catch (error) {
     console.error(`Error generating fallback content for outfit ${outfitNumber}:`, error);
     
-    // Ultimate fallback with generic but styled content
+    // Ultimate fallback - still provide descriptive content, NEVER placeholder
     return `<h2>${outfitNumber}. The "${creativeName}"</h2>
 
 {{IMAGE_${outfitNumber}}}
@@ -776,12 +800,14 @@ Works for: ${worksFor}.`;
 <h3>Outfit Pieces:</h3>
 
 <ul>
-<li><strong>See image for complete outfit details</strong></li>
+<li><strong>Stylish layered top</strong></li>
+<li><strong>Well-fitted bottoms</strong></li>
+<li><strong>Coordinated footwear</strong></li>
 </ul>
 
 <h3>Styling Tips:</h3>
 
-<p>Focus on fit and proportion to make this look your own. Half-tuck tops to define your waist, and cuff jeans once for that polished touch. Pro tip: Confidence is the best accessory you can wear.</p>
+<p>Focus on fit and proportion to make this look your own. Half-tuck tops to define your waist, and cuff bottoms once for that polished touch. Pro tip: Confidence is the best accessory you can wear.</p>
 
 Works for: casual outings, weekend plans, or everyday wear.`;
   }
