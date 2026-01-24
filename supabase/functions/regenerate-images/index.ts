@@ -40,15 +40,16 @@ Generate: ${prompt}
 
 Style: Professional fashion editorial photograph matching OutfitsTrendz.com quality. REAL photography showing full outfit on model, NOT illustration, NOT flat lay, NOT mannequin.
 
-Requirements:
-- Full body or three-quarter body shot of model wearing the complete outfit
+CRITICAL REQUIREMENTS:
+- FACE MUST BE CLEARLY VISIBLE - show the model's full face with natural expression, do NOT crop or hide the face
+- Full body shot of model wearing the complete outfit from head to toe
 - Natural urban or lifestyle background with soft bokeh
 - Natural daylight or golden hour lighting with soft shadows
 - Model in confident, relaxed pose showing clothing naturally
 - Visible fabric textures, stitching details, and material quality
-- Natural skin with subtle makeup
+- Natural skin with subtle makeup, beautiful facial features visible
 - All accessories and shoes visible in frame
-- Sharp focus on clothing with slight background blur
+- Sharp focus on both face and clothing
 - Editorial street style photography quality
 - 8K ultra high resolution
 
