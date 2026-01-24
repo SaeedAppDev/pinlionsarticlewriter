@@ -303,10 +303,12 @@ async function analyzeArticleForImagePrompts(
 - "Modern farmhouse kitchen with white shaker cabinets, black iron handles, butcher block island countertop, open wooden shelving displaying ceramic dishes, copper pendant lights, subway tile backsplash, natural window light, professional real estate photography quality"`;
     categoryContext = "professional interior design and home decor photography";
   } else if (articleCategory === 'fashion') {
-    categoryExamples = `Examples of EXCELLENT DETAILED prompts for fashion:
-- "Elegant autumn layered outfit on model, camel wool coat over cream turtleneck sweater, high-waisted dark denim jeans, brown leather ankle boots, gold minimalist jewelry, standing in urban setting with brick wall background, soft overcast lighting, Vogue editorial style, natural skin texture visible, 8K fashion photography"
-- "Summer beach casual outfit flat lay on white linen backdrop, flowing white cotton maxi dress, woven straw tote bag, gold sandals, shell necklace, sunglasses, fresh flowers accent, overhead shot, soft diffused natural light, Harper's Bazaar style product photography"`;
-    categoryContext = "professional fashion and style photography";
+    categoryExamples = `Examples of EXCELLENT DETAILED prompts for fashion (OutfitsTrendz.com quality):
+- "Beautiful woman wearing camel oversized wool blazer over white fitted tee, distressed high-waisted jeans, white leather sneakers, minimalist gold hoop earrings, standing confidently in urban street with soft bokeh cityscape background, natural daylight, full body shot from waist up, sharp focus on clothing textures, visible fabric weave and stitching details, natural skin with subtle makeup, editorial street style photography, Vogue quality, 8K resolution"
+- "Stylish young woman in cream monochrome outfit, soft knit sweater tucked into matching wide-leg pants, strappy nude sandals, chunky beige leather tote, walking through minimalist gallery space, soft diffused window light, full body visible, natural relaxed pose, fabric draping naturally, Harper's Bazaar editorial quality photography"
+- "Fashionable woman wearing light-wash denim jacket over dark-wash skinny jeans, white crop top visible, tan ankle boots, retro sunglasses, standing against exposed brick wall, golden hour lighting, casual confident pose, visible denim texture and button details, street style fashion photography, magazine quality"
+- "Plus size woman in flattering floral wrap dress with defined waist, nude pointed-toe flats, delicate gold hoop earrings, standing in bright outdoor cafe setting, soft natural daylight, confident radiant expression, visible fabric pattern and flow, inclusive fashion editorial photography, 8K resolution"`;
+    categoryContext = "professional fashion and style photography matching OutfitsTrendz.com editorial quality";
   } else {
     categoryExamples = `Examples of EXCELLENT DETAILED prompts for food (TastyWithTina.com quality):
 - "Freshly baked chocolate chip cookies cooling on wire rack, perfectly golden brown edges with soft chewy centers, visible gooey chocolate chunks, small cracks on surface showing dense texture, light dusting of sea salt flakes, warm natural window light from left side, shallow depth of field, clean white marble countertop, professional food blog photography, 8K editorial cookbook quality"
@@ -392,13 +394,13 @@ etc.`;
         ];
       } else if (category === 'fashion') {
         return [
-          `${subject} outfit styled on model with natural skin texture, soft studio lighting, fashion editorial composition, Vogue magazine quality, 8K resolution professional photography`,
-          `${subject} accessory detail shot on neutral background, soft diffused lighting, sharp focus on textures, luxury product photography style`,
-          `${subject} full look styling in urban setting, natural daylight, editorial fashion photography, magazine quality`,
-          `${subject} layered outfit with visible fabric textures, professional fashion photography, Harper's Bazaar style`,
-          `${subject} footwear styling with clean background, product photography lighting, sharp detail focus`,
-          `${subject} seasonal look with appropriate styling, natural outdoor lighting, editorial fashion aesthetic`,
-          `${subject} casual ensemble in lifestyle setting, soft natural light, approachable fashion photography`
+          `Beautiful woman wearing ${subject}, full body shot showing complete outfit from head to toe, natural urban street background with soft bokeh, golden hour lighting, confident relaxed pose, visible fabric textures and clothing details, natural skin with subtle makeup, editorial street style photography matching OutfitsTrendz.com quality, 8K resolution`,
+          `Stylish model showcasing ${subject}, standing against minimalist architectural backdrop, soft diffused natural daylight, three-quarter body visible, clothing draping naturally, sharp focus on outfit details and accessories, magazine editorial fashion photography, Vogue quality`,
+          `Fashionable woman in ${subject}, urban lifestyle setting with coffee shop or boutique background, warm natural lighting, candid confident pose, visible stitching and fabric weave details, approachable yet polished aesthetic, Harper's Bazaar street style quality`,
+          `${subject} styled on model, outdoor setting with greenery or city view background, soft overcast lighting creating even illumination, full length view showing shoes and accessories, natural movement in fabric, editorial fashion blog photography`,
+          `Woman wearing ${subject}, bright airy indoor setting near large windows, soft natural window light from side, relaxed standing pose, clothing texture and color accuracy, clean minimal background, professional fashion influencer photography style`,
+          `${subject} complete look on model, brick wall or modern architecture background, late afternoon golden light, confident stylish pose, visible accessory details and fabric quality, editorial street fashion photography, 8K magazine quality`,
+          `Elegant woman showcasing ${subject}, sophisticated urban backdrop, professional fashion photography lighting, full outfit visible with shoe and bag details, natural skin texture, polished editorial aesthetic matching OutfitsTrendz.com style`
         ];
       }
       // DETAILED food prompts matching TastyWithTina.com quality
@@ -1473,6 +1475,170 @@ EXACT NUMBER OF DESIGNS REQUIRED: ${imageCount}
 - EXACTLY ${imageCount} designs, no more, no less
 - STOP after design #${imageCount}
 - Pure HTML output only`;
+      } else if (articleCategory === 'fashion') {
+        // FASHION LISTICLE - OutfitsTrendz.com structure
+        articleSystemPrompt = `SYSTEM ROLE: FASHION ARTICLE GENERATOR
+
+You are an elite fashion content writer with 15+ years experience writing for Vogue, Harper's Bazaar, and Who What Wear.
+
+=== ABSOLUTE NON-NEGOTIABLE RULES ===
+
+RULE #1: EXACT COUNT = ${imageCount}
+- You MUST write EXACTLY ${imageCount} outfit ideas
+- You MUST create EXACTLY ${imageCount} <h2> sections
+- Count them: 1, 2, 3... up to ${imageCount}
+- VERIFY your count before responding
+
+RULE #2: EACH OUTFIT FOLLOWS THIS EXACT STRUCTURE
+For EVERY outfit:
+1. <h2>X. "Creative Outfit Name"</h2> (with quotes around the name, e.g., <h2>1. The "Effortlessly Cool" Blazer-and-Jeans Combo</h2>)
+2. {{IMAGE_X}} immediately after the h2
+3. <p>Short engaging paragraph (2-3 sentences) describing the outfit vibe and appeal</p>
+4. <h3>Outfit Pieces:</h3>
+5. <ul> with 4-6 <li> items, key pieces in <strong> bold
+6. <h3>Styling Tips:</h3>
+7. <p>Practical styling advice paragraph (2-3 sentences)</p>
+8. <p>Works for: [occasions this outfit is perfect for]</p>
+
+RULE #3: FORBIDDEN SECTIONS (INSTANT FAIL IF INCLUDED)
+❌ NO FAQ section
+❌ NO conclusion/summary section
+❌ NO "tips for choosing" sections
+❌ NO comparison sections
+❌ NO generic advice paragraphs at the end
+❌ Article ENDS immediately after outfit #${imageCount}
+
+RULE #4: EACH OUTFIT MUST BE 100% UNIQUE
+- Different clothing pieces
+- Different style vibe (casual, formal, edgy, romantic, etc.)
+- Different color palette
+- Different occasions
+- If 2 outfits feel similar = FAIL
+${internalLinksInstruction}
+
+=== MANDATORY STRUCTURE ===
+
+<h1>[VIRAL SEO TITLE]</h1>
+Requirements:
+- Maximum 15 words
+- MUST contain the core phrase from: "${focusKeyword}"
+- Catchy, click-worthy, magazine-worthy
+- Use phrases like "That'll Make You", "You Need", "Every Woman Should"
+- Example: "10 Fashion Sense Ideas for Women That'll Make You Instantly Chic"
+
+<p>[INTRODUCTION - 2-3 sentences ONLY]</p>
+- Jump straight into value
+- NO generic openers: "In today's world", "Looking to upgrade", "Are you tired of"
+- Address reader directly
+- Set expectations about what they'll learn
+- Conversational, fun tone
+
+THEN EXACTLY ${imageCount} OUTFITS:
+
+<h2>1. The "[Creative Name]" [Outfit Type]</h2>
+{{IMAGE_1}}
+<p>[2-3 sentences describing the vibe and appeal]</p>
+<h3>Outfit Pieces:</h3>
+<ul>
+<li><strong>Key piece 1</strong> (color or style detail)</li>
+<li><strong>Key piece 2</strong></li>
+<li><strong>Shoes</strong></li>
+<li><strong>Accessory</strong></li>
+</ul>
+<h3>Styling Tips:</h3>
+<p>[2-3 sentences of practical styling advice]</p>
+<p>Works for: [Occasion 1], [Occasion 2], or [Occasion 3].</p>
+
+[Repeat for ALL ${imageCount} outfits]
+
+<h2>${imageCount}. The "[Creative Name]" [Outfit Type]</h2>
+{{IMAGE_${imageCount}}}
+...content...
+<p>Works for: [occasions].</p>
+
+[ARTICLE ENDS HERE - NO MORE CONTENT]
+
+=== IMAGE PLACEMENT ===
+- {{IMAGE_X}} appears IMMEDIATELY after its <h2> heading
+- Place exactly one image per outfit
+- Images are: ${imagePlaceholderList}
+
+=== WORD COUNTS ===
+- Introduction: 40-60 words
+- Each outfit section: 100-150 words
+- Total article: approximately 1500-2000 words
+
+=== HTML FORMATTING (STRICT) ===
+✅ <h1> for main title (ONLY ONE)
+✅ <h2> for numbered outfits: "<h2>1. The "Name" Type</h2>"
+✅ <h3> for "Outfit Pieces:" and "Styling Tips:"
+✅ <p> for paragraphs including "Works for:" lines
+✅ <strong> for bold key clothing pieces
+✅ <ul>/<li> for outfit piece lists
+✅ Keep paragraphs 2-3 sentences max
+
+❌ NO Markdown (##, **, -, etc.)
+❌ NO emojis
+❌ NO code fences
+❌ NO FAQ or conclusion sections
+
+=== TONE & STYLE ===
+- Conversational, fun, like a stylish friend giving fashion advice
+- Confident and encouraging
+- Light humor allowed (sparingly): "we won't tell", "chef's kiss", "bonus points"
+- Active voice only
+- Specific and descriptive clothing details`;
+
+        articlePrompt = `TASK: Write a fashion listicle article
+
+TITLE/TOPIC: "${seoTitle}"
+FOCUS KEYWORD: "${focusKeyword}"
+EXACT NUMBER OF OUTFITS REQUIRED: ${imageCount}
+
+=== STRUCTURE TO GENERATE ===
+
+<h1>[Viral catchy title about "${seoTitle}"]</h1>
+
+<p>[Introduction - 2-3 sentences, jump straight in, fun and engaging]</p>
+
+<h2>1. The "[Creative Name]" [Outfit Description]</h2>
+{{IMAGE_1}}
+<p>[Describe the vibe and appeal]</p>
+<h3>Outfit Pieces:</h3>
+<ul>
+<li><strong>[Main piece]</strong> (style detail)</li>
+<li><strong>[Secondary piece]</strong></li>
+<li><strong>[Bottoms/skirt/pants]</strong></li>
+<li><strong>[Shoes]</strong></li>
+<li><strong>[Accessories]</strong></li>
+</ul>
+<h3>Styling Tips:</h3>
+<p>[Practical advice for wearing this look]</p>
+<p>Works for: [occasion 1], [occasion 2], or [occasion 3].</p>
+
+[Continue for ALL ${imageCount} outfits with same structure]
+
+<h2>${imageCount}. The "[Creative Name]" [Outfit Description]</h2>
+{{IMAGE_${imageCount}}}
+...same structure...
+<p>Works for: [occasions].</p>
+
+[ARTICLE ENDS HERE - NO MORE CONTENT]
+
+=== VERIFICATION CHECKLIST ===
+□ Article has exactly 1 <h1> tag with viral title
+□ Article has EXACTLY ${imageCount} <h2> outfit sections
+□ Each <h2> follows format: "<h2>X. The "Name" Type</h2>"
+□ Each outfit has: image, description, Outfit Pieces list, Styling Tips, Works for line
+□ {{IMAGE_X}} appears right after each <h2>
+□ Each outfit has 4-6 clothing/accessory pieces in bullet list
+□ Focus keyword "${focusKeyword}" appears 8-12 times naturally
+□ NO FAQ section exists
+□ NO conclusion section exists
+□ Article ENDS after outfit #${imageCount}
+□ All output is valid HTML (no Markdown)
+
+CRITICAL: Output pure HTML only. Match OutfitsTrendz.com style and structure exactly.`;
       } else {
         // GENERAL LISTICLE - Original structure
         articleSystemPrompt = `You are an expert content writer specializing in engaging, SEO-optimized listicle articles. Write a comprehensive numbered list article using the EXACT structure below.
