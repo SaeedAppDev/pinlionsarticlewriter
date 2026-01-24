@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle, Sparkles, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Copy, Check, Wand2, Loader2, Upload, ExternalLink, Trash2, FileText, Image as ImageIcon, Calendar, Globe, CheckCircle, Sparkles, Download, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,10 +38,22 @@ interface PinterestPin {
   isGenerating?: boolean;
 }
 
+interface Article {
+  title: string;
+  content_html: string;
+  updated_at: string;
+  niche?: string;
+  generation_metadata?: {
+    content_accuracy_score?: number;
+    content_corrections?: string[];
+    last_revalidated_at?: string;
+  };
+}
+
 const ArticleView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [article, setArticle] = useState<{ title: string; content_html: string; updated_at: string } | null>(null);
+  const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
@@ -57,6 +69,7 @@ const ArticleView = () => {
   const [isGeneratingPinImage, setIsGeneratingPinImage] = useState(false);
   const [isGeneratingPinTitle, setIsGeneratingPinTitle] = useState(false);
   const [isRegeneratingImages, setIsRegeneratingImages] = useState(false);
+  const [isRevalidating, setIsRevalidating] = useState(false);
 
   const hasMissingImages = (content: string | null) => {
     if (!content) return false;
@@ -107,6 +120,36 @@ const ArticleView = () => {
     }
   };
 
+  const handleRevalidateContent = async () => {
+    if (!id) return;
+    setIsRevalidating(true);
+    toast.info('Re-validating content against images...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('revalidate-fashion-content', {
+        body: { articleId: id },
+      });
+
+      if (error) throw error;
+      
+      if (data?.success) {
+        if (data.correctionsCount > 0) {
+          toast.success(`Validation complete! ${data.correctionsCount} corrections made. Accuracy: ${data.accuracyScore}%`);
+        } else {
+          toast.success(`Content validated! Accuracy: ${data.accuracyScore}% - No corrections needed.`);
+        }
+        fetchArticle();
+      } else {
+        throw new Error(data?.error || 'Failed to validate content');
+      }
+    } catch (err) {
+      console.error('Error revalidating content:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to validate content');
+    } finally {
+      setIsRevalidating(false);
+    }
+  };
+
   const fetchArticle = useCallback(async () => {
     if (!id) return;
 
@@ -114,12 +157,18 @@ const ArticleView = () => {
       // Try articles table first (new system), then fall back to recipes
       const { data: articlesData, error: articlesError } = await supabase
         .from('articles')
-        .select('title, content_html, updated_at')
+        .select('title, content_html, updated_at, niche, generation_metadata')
         .eq('id', id)
         .single();
       
       if (articlesData && !articlesError) {
-        setArticle(articlesData);
+        setArticle({
+          title: articlesData.title,
+          content_html: articlesData.content_html || '',
+          updated_at: articlesData.updated_at,
+          niche: articlesData.niche,
+          generation_metadata: articlesData.generation_metadata as Article['generation_metadata'],
+        });
       } else {
         // Fallback to recipes table
         const { data: recipesData, error: recipesError } = await supabase
@@ -602,6 +651,25 @@ const ArticleView = () => {
                   <>
                     <RefreshCw className="w-4 h-4" />
                     Regenerate Images
+                  </>
+                )}
+              </Button>
+            )}
+            {article.niche === 'fashion' && (
+              <Button 
+                onClick={handleRevalidateContent}
+                disabled={isRevalidating}
+                className="gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white border-0"
+              >
+                {isRevalidating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    Re-validate Content
                   </>
                 )}
               </Button>
