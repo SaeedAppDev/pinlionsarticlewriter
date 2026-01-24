@@ -40,49 +40,21 @@ ${noTextRuleSuffix}`;
       const isPetite = promptLower.includes('petite') || promptLower.includes('short women') || promptLower.includes('short woman');
       const isTall = promptLower.includes('tall women') || promptLower.includes('tall woman');
       
-      let bodyType = 'BEAUTIFUL woman';
+      let bodyType = 'beautiful woman';
       if (isPlusSize) {
-        bodyType = 'BEAUTIFUL PLUS-SIZE/CURVY woman with fuller figure, natural curves, and confident presence';
+        bodyType = 'beautiful plus-size curvy woman with fuller figure';
       } else if (isPetite) {
-        bodyType = 'BEAUTIFUL PETITE woman with shorter stature';
+        bodyType = 'beautiful petite woman';
       } else if (isTall) {
-        bodyType = 'BEAUTIFUL TALL woman with longer frame';
+        bodyType = 'beautiful tall woman';
       }
       
+      // Simple, direct positive prompt matching reference image style
       realisticPrompt = `${noTextRulePrefix}
 
-SUBJECT: ${bodyType} wearing ${prompt}
+Professional street style fashion photograph. Full body portrait of ${bodyType} with beautiful face looking at camera, natural relaxed expression. She is wearing ${prompt}. 
 
-===== ABSOLUTE REQUIREMENTS - VIOLATION OF ANY MEANS COMPLETE FAILURE =====
-
-1. FACE VISIBILITY (CRITICAL - MOST IMPORTANT):
-   - The model's FACE MUST BE FULLY VISIBLE in the frame
-   - Face must be IN SHARP FOCUS with clear facial features
-   - Camera MUST capture from ABOVE the head (include hair/top of head in frame)
-   - Show natural beautiful expression: confident smile, relaxed look, or elegant poise
-   - Eyes, nose, mouth, and chin ALL clearly visible
-   - DO NOT crop at forehead, DO NOT hide face, DO NOT blur face
-   - Face should be a KEY FOCAL POINT of the photograph
-
-2. FULL BODY FRAMING (MANDATORY):
-   - Complete HEAD-TO-TOE shot with NOTHING cut off
-   - Must show: top of head, full face, torso, arms, hands, legs, feet, shoes
-   - Camera positioned far enough back to capture ENTIRE person
-   - Leave small margin of space above head and below feet
-   - Portrait orientation (3:4 or 2:3) preferred for full body
-
-3. BODY TYPE CONSISTENCY:
-   - Model MUST match: ${bodyType}
-   - Maintain this exact body type throughout
-   - Natural proportions, realistic representation
-
-4. PHOTOGRAPHY QUALITY:
-   - Professional fashion editorial photograph matching OutfitsTrendz.com
-   - REAL photography, NOT illustration, NOT 3D render, NOT AI art style
-   - Natural urban/lifestyle background with soft bokeh
-   - Golden hour or soft natural daylight lighting
-   - Visible fabric textures, stitching, material quality
-   - 8K ultra high resolution
+Vertical 2:3 portrait orientation. Model standing naturally on city sidewalk. Camera positioned 10 feet away capturing entire body from top of head to shoes with margin above and below. Face is the focal point - sharp focus on eyes, natural skin, confident expression. Soft bokeh urban background. Natural daylight. Clean composition. Professional fashion blog photography, OutfitsTrendz.com editorial quality. 8K resolution. Real photograph.
 
 ${noTextRuleSuffix}`;
     } else {
