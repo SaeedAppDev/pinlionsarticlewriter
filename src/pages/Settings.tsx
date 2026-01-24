@@ -51,10 +51,8 @@ const imageSources = [
 ];
 
 const aiContentModels = [
-  { value: 'deepseek-v3', label: 'DeepSeek v3 (via Replicate)', description: 'Fast & affordable' },
-  { value: 'chatgpt-gpt5', label: 'ChatGPT (GPT-5 via Replicate)', description: 'High quality' },
-  { value: 'claude-sonnet', label: 'Claude Sonnet (via Replicate)', description: 'Balanced' },
-  { value: 'llama-3', label: 'Llama 3 (via Replicate)', description: 'Open source' },
+  { value: 'deepseek-v3', label: 'DeepSeek v3 (via Replicate)', model_id: 'deepseek-ai/deepseek-v3', description: 'Fast & affordable', link: 'https://replicate.com/deepseek-ai/deepseek-v3' },
+  { value: 'chatgpt-gpt5', label: 'ChatGPT (GPT-5 via Replicate)', model_id: 'openai/gpt-5', description: 'High quality', link: 'https://replicate.com/openai/gpt-5' },
 ];
 
 const imageQualityLevels = [
