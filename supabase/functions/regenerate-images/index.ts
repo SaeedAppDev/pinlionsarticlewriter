@@ -293,7 +293,13 @@ serve(async (req) => {
     }
     if (article.niche === 'decor') articleCategory = 'home';
     else if (article.niche === 'fashion') articleCategory = 'fashion';
-
+    
+    // OVERRIDE: Fashion articles use 9:16 (vertical portrait) for full-body images
+    let effectiveAspectRatio = aspectRatio;
+    if (articleCategory === 'fashion') {
+      effectiveAspectRatio = '9:16';
+      console.log(`📐 Fashion article: Using 9:16 aspect ratio for vertical portrait images`);
+    }
     // Find image placeholders or missing images
     const placeholderMatches = content.match(/\{\{IMAGE_(\d+)\}\}/g) || [];
     const missingImageNumbers: number[] = placeholderMatches.map((p: string) => {
@@ -337,7 +343,7 @@ serve(async (req) => {
       return dimensions[ar] || { width: 1024, height: 768 };
     };
     
-    const imgDimensions = getImageDimensions(aspectRatio);
+    const imgDimensions = getImageDimensions(effectiveAspectRatio);
     let updatedContent = content;
     let regeneratedCount = 0;
 
@@ -363,7 +369,7 @@ serve(async (req) => {
         imgNum,
         REPLICATE_API_KEY,
         supabase,
-        aspectRatio,
+        effectiveAspectRatio,
         normalizedModel,
         articleCategory
       );
@@ -372,7 +378,7 @@ serve(async (req) => {
         const placeholder = `{{IMAGE_${imgNum}}}`;
         updatedContent = updatedContent.replace(
           placeholder,
-          `<figure class="article-image"><img src="${imageUrl}" alt="${title} - Image ${imgNum}" loading="lazy" width="${imgDimensions.width}" height="${imgDimensions.height}" style="width: 100%; height: auto; aspect-ratio: ${aspectRatio.replace(':', '/')};" /></figure>`
+          `<figure class="article-image"><img src="${imageUrl}" alt="${title} - Image ${imgNum}" loading="lazy" width="${imgDimensions.width}" height="${imgDimensions.height}" style="width: 100%; height: auto; aspect-ratio: ${effectiveAspectRatio.replace(':', '/')};" /></figure>`
         );
         regeneratedCount++;
         console.log(`✅ Regenerated image ${imgNum}`);
