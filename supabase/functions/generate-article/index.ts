@@ -326,46 +326,47 @@ async function analyzeOutfitImageStrict(
   try {
     console.log(`🔍 STRICT image analysis - extracting ONLY visible elements...`);
     
-    const analysisPrompt = `You are a STRICT fashion image analyst. Your job is to extract ONLY what is CLEARLY VISIBLE in this photograph with 90%+ confidence.
+    const analysisPrompt = `You are an expert fashion editor for OutfitsTrendz.com. Analyze this image and extract ONLY what is CLEARLY VISIBLE with 90%+ confidence.
 
-ABSOLUTE RULES - VIOLATION = FAILURE:
-1. If you cannot clearly see an item, DO NOT include it - return null/empty
-2. If visibility confidence < 90%, EXCLUDE the item completely
-3. NEVER assume jewelry, bags, hats, sunglasses, or scarves unless CLEARLY visible
-4. NEVER add accessories for "completeness" - accuracy > completeness
-5. If footwear is cut off or unclear, mark footwearVisible: false
-6. Only list colors you can ACTUALLY see in the clothing
-7. Be SPECIFIC about what you see, not generic
+CRITICAL ACCURACY RULES:
+1. Be EXTREMELY SPECIFIC with descriptions - use exact colors, patterns, and materials you can see
+2. For tops: Is it a "fitted black tank top" or "black graphic tee"? Is it "plain" or "printed"? Look carefully!
+3. For outerwear: Describe the exact pattern (floral, abstract, paisley) and colors (orange, teal, red)
+4. For bags: Is it a "wicker basket bag" or "leather tote"? Be specific about material!
+5. For accessories: List ONLY what you can clearly see - gold hoops, stacked bangles, etc.
+6. If footwear is partially visible, still describe what you CAN see
+
+WHAT TO LOOK FOR:
+- Kimonos, cardigans, blazers, jackets (describe patterns and colors)
+- Tank tops, tees, blouses (fitted vs oversized, plain vs graphic)
+- Jeans, skirts, pants (wash color, fit style)
+- Boots, sandals, sneakers, heels
+- Bags (basket, tote, crossbody - with material)
+- Jewelry (hoops, bangles, necklaces - with metal color)
 
 Respond in this EXACT JSON format:
 {
-  "topPiece": "exact description of outermost top layer visible" or null if not visible,
-  "innerTop": "exact description of inner layer if visible" or null,
-  "bottomPiece": "exact description of pants/skirt/shorts visible" or null,
-  "footwear": "exact description of shoes" or null if not visible,
-  "footwearVisible": true/false - is footwear clearly visible in frame?,
-  "accessories": ["ONLY items you can 100% clearly see"] or [] if NONE visible,
-  "colors": ["specific colors you can actually see in the outfit"],
-  "layering": ["describe layers from inside to outside if applicable"] or [],
+  "topPiece": "detailed description with pattern/color of outermost layer" or null,
+  "innerTop": "specific description - e.g. 'plain black fitted tank top' not 'graphic tee'" or null,
+  "bottomPiece": "e.g. 'black high-waisted skinny jeans'" or null,
+  "footwear": "e.g. 'brown suede ankle boots' with color and material" or null,
+  "footwearVisible": true if you can see the shoes clearly,
+  "accessories": ["specific items like 'wicker basket bag', 'gold hoop earrings', 'stacked gold bangles'"],
+  "colors": ["specific colors seen: orange, teal, black, brown, gold"],
+  "layering": ["from innermost to outermost visible layer"],
   "vibe": "casual" | "elegant" | "formal" | "edgy" | "romantic" | "sporty" | "bohemian",
-  "confidenceScore": 0-100 based on image clarity,
-  "settingContext": "brief description of setting/background for occasion matching"
+  "confidenceScore": 0-100,
+  "settingContext": "where this person appears to be"
 }
 
-EXAMPLES OF WHAT NOT TO DO:
-❌ Adding "statement necklace" when no necklace is visible
-❌ Adding "leather handbag" when no bag is visible  
-❌ Adding "delicate gold bracelet" when wrists are not clear
-❌ Adding "stylish sunglasses" when face has no sunglasses
-❌ Saying "ankle boots" when feet are cut off from frame
+EXAMPLES:
+✅ "topPiece": "colorful printed kimono jacket with orange, red, and teal floral pattern"
+✅ "innerTop": "plain black fitted tank top" (NOT "graphic tee" if there's no graphic!)
+✅ "accessories": ["wicker basket bag", "gold hoop earrings", "stacked gold and brown bangles"]
+❌ "innerTop": "graphic tee" (WRONG if it's actually a plain tank)
+❌ "accessories": [] (WRONG if you can clearly see earrings, bag, bangles)
 
-EXAMPLES OF CORRECT ANALYSIS:
-✅ "accessories": [] when no accessories are clearly visible
-✅ "footwear": null, "footwearVisible": false when shoes are cut off
-✅ Being specific: "rust-colored ribbed knit cardigan" not just "cardigan"
-
-REMEMBER: It's better to list FEWER items correctly than MORE items incorrectly.
-Accuracy is MANDATORY. Completeness is OPTIONAL.`;
+Be SPECIFIC and ACCURATE. Describe exactly what you see.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -384,8 +385,8 @@ Accuracy is MANDATORY. Completeness is OPTIONAL.`;
             ]
           }
         ],
-        temperature: 0.1, // Low temperature for accuracy
-        max_tokens: 1000,
+        temperature: 0.1,
+        max_tokens: 1200,
       }),
     });
 
@@ -660,27 +661,39 @@ async function generateFallbackOutfitSection(
   try {
     console.log(`🤖 Generating AI fallback content for outfit ${outfitNumber}...`);
     
-    const prompt = `Analyze this fashion image and generate content in EXACT OutfitsTrendz.com format.
+    const prompt = `You are a fashion editor for OutfitsTrendz.com. Analyze this image and generate content in our EXACT format.
 
-STRICT RULES:
-1. Only describe items you can CLEARLY SEE in the image
-2. If you cannot see footwear clearly, DO NOT guess - leave it out
-3. If you cannot see accessories clearly, DO NOT guess - leave it out
-4. Be SPECIFIC about colors (e.g., "light-wash" not just "blue")
-5. Be SPECIFIC about styles (e.g., "oversized beige blazer" not just "blazer")
+CRITICAL - BE EXTREMELY SPECIFIC:
+1. Describe EXACT items with colors, patterns, and materials
+2. "Plain black fitted tank top" NOT "graphic tee" if there's no graphic
+3. "Colorful printed kimono with orange, red, and teal floral pattern" NOT "printed kimono"
+4. "Brown suede ankle boots" NOT just "ankle boots"
+5. Include ALL visible accessories: bags (with material like "wicker basket bag"), earrings (with metal color like "gold hoop earrings"), bangles/bracelets
 
-Generate this EXACT structure (replace placeholders with actual content):
+EXAMPLES OF CORRECT DESCRIPTIONS:
+✅ "Colorful printed kimono jacket with vibrant orange, teal, and red abstract floral pattern"
+✅ "Plain black fitted tank top"
+✅ "Black high-waisted skinny jeans"
+✅ "Brown suede ankle boots"
+✅ "Wicker basket bag"
+✅ "Gold hoop earrings"
+✅ "Stacked gold and brown bangles"
 
-DESCRIPTION: [2-3 sentences in casual, conversational tone - like talking to a friend. Include when/where to wear it. Use phrases like "This outfit screams...", "Perfect for...", "When you want to..."]
+Generate this EXACT structure:
+
+DESCRIPTION: [2-3 sentences in casual, conversational tone. Use phrases like "Want to feel like a free-spirited goddess?", "This outfit screams...", "It's boho, it's chic, and it..."]
 
 OUTFIT_PIECES:
-- [Specific item 1 with color and style]
-- [Specific item 2 with color and style]
-- [Only items you can CLEARLY see]
+- [Exact outermost layer with pattern/color description]
+- [Exact inner top - plain or graphic? fitted or oversized?]
+- [Exact bottoms with wash/color and fit]
+- [Exact footwear with color and material]
+- [Bag with material - e.g., "Wicker basket bag"]
+- [Jewelry - e.g., "Gold hoop earrings"]
 
-STYLING_TIPS: [2-3 actionable tips. Use phrases like "Cuff the jeans...", "Leave the blazer unbuttoned...", "Half-tuck...", "Pro tip:...", "Bonus: Swap X for Y..."]
+STYLING_TIPS: [2-3 actionable tips. Use phrases like "Keep the tee fitted to balance the volume of the kimono", "Add stacked bangles for extra boho flair", "Ideal for farmers' markets or a casual girls' day"]
 
-WORKS_FOR: [2-3 occasions that match the outfit vibe]`;
+WORKS_FOR: [2-3 occasions matching the vibe]`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
