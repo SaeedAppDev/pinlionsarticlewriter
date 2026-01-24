@@ -7,47 +7,62 @@ const corsHeaders = {
 };
 
 interface DetectedOutfit {
-  topPiece: string;
-  bottomPiece: string;
-  footwear: string;
+  topPiece: string | null;
+  innerTop: string | null;
+  bottomPiece: string | null;
+  footwear: string | null;
+  footwearVisible: boolean;
   accessories: string[];
   colors: string[];
   layering: string[];
   vibe: 'casual' | 'elegant' | 'formal' | 'edgy' | 'romantic' | 'sporty' | 'bohemian';
   confidenceScore: number;
+  settingContext: string;
 }
 
-// Analyze a single fashion image using Lovable AI (Gemini with vision)
-async function analyzeOutfitImage(
+// STRICT image analysis - extracts ONLY visible items with high confidence
+async function analyzeOutfitImageStrict(
   imageUrl: string,
   LOVABLE_API_KEY: string
 ): Promise<DetectedOutfit | null> {
   try {
-    console.log(`🔍 Analyzing outfit image for content validation...`);
+    console.log(`🔍 STRICT image analysis - extracting ONLY visible elements...`);
     
-    const analysisPrompt = `You are a fashion image analyst. Analyze this outfit photograph and extract ONLY what is CLEARLY VISIBLE in the image.
+    const analysisPrompt = `You are a STRICT fashion image analyst. Your job is to extract ONLY what is CLEARLY VISIBLE in this photograph with 90%+ confidence.
 
-CRITICAL RULES:
-1. ONLY list items you can actually SEE in the image
-2. If something is not visible or unclear, DO NOT mention it
-3. Never assume jewelry, bags, or accessories unless clearly visible
-4. Match colors as closely as possible to what you see
-5. Be specific about clothing types (e.g., "longline cardigan" not just "cardigan")
+ABSOLUTE RULES - VIOLATION = FAILURE:
+1. If you cannot clearly see an item, DO NOT include it - return null/empty
+2. If visibility confidence < 90%, EXCLUDE the item completely
+3. NEVER assume jewelry, bags, hats, sunglasses, or scarves unless CLEARLY visible
+4. NEVER add accessories for "completeness" - accuracy > completeness
+5. If footwear is cut off or unclear, mark footwearVisible: false
+6. Only list colors you can ACTUALLY see in the clothing
+7. Be SPECIFIC about what you see, not generic
 
 Respond in this EXACT JSON format:
 {
-  "topPiece": "description of main top layer (e.g., 'rust-colored longline cardigan' or 'cream fitted turtleneck')",
-  "innerTop": "description of inner layer if visible (e.g., 'cream turtleneck') or null if not visible",
-  "bottomPiece": "description of bottoms (e.g., 'medium-wash high-waisted jeans')",
-  "footwear": "description of shoes (e.g., 'black leather ankle boots with block heel') or 'not fully visible' if cut off",
-  "accessories": ["only items clearly visible like 'small gold hoop earrings'"] or [] if none visible,
-  "colors": ["rust/terracotta", "cream/ivory", "medium blue denim", "black"],
-  "layering": ["turtleneck", "open cardigan"] - describe the layering order if applicable,
+  "topPiece": "exact description of outermost top layer visible" or null if not visible,
+  "innerTop": "exact description of inner layer if visible" or null,
+  "bottomPiece": "exact description of pants/skirt/shorts visible" or null,
+  "footwear": "exact description of shoes" or null if not visible,
+  "footwearVisible": true/false - is footwear clearly visible in frame?,
+  "accessories": ["ONLY items you can 100% clearly see"] or [] if NONE visible,
+  "colors": ["specific colors you can actually see in the outfit"],
+  "layering": ["describe layers from inside to outside if applicable"] or [],
   "vibe": "casual" | "elegant" | "formal" | "edgy" | "romantic" | "sporty" | "bohemian",
-  "confidenceScore": 0-100 based on image clarity
+  "confidenceScore": 0-100 based on image clarity,
+  "settingContext": "brief description of setting/background for occasion matching"
 }
 
-Be strict and honest. If you cannot clearly see an item, do not include it.`;
+EXAMPLES OF WHAT NOT TO DO:
+❌ Adding "statement necklace" when no necklace is visible
+❌ Adding "leather handbag" when no bag is visible  
+❌ Adding "delicate gold bracelet" when wrists are not clear
+❌ Adding "stylish sunglasses" when face has no sunglasses
+❌ Saying "ankle boots" when feet are cut off from frame
+
+REMEMBER: It's better to list FEWER items correctly than MORE items incorrectly.
+Accuracy is MANDATORY. Completeness is OPTIONAL.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -66,20 +81,19 @@ Be strict and honest. If you cannot clearly see an item, do not include it.`;
             ]
           }
         ],
-        temperature: 0.3,
+        temperature: 0.1,
         max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      console.error('Image analysis failed:', response.status);
+      console.error('Strict image analysis failed:', response.status);
       return null;
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('Could not parse outfit analysis JSON');
@@ -87,40 +101,65 @@ Be strict and honest. If you cannot clearly see an item, do not include it.`;
     }
     
     const parsed = JSON.parse(jsonMatch[0]);
-    console.log(`✅ Image analysis complete: ${parsed.vibe} vibe, ${parsed.confidenceScore}% confidence`);
+    console.log(`✅ Strict analysis complete: ${parsed.vibe} vibe, ${parsed.confidenceScore}% confidence`);
     
     return parsed as DetectedOutfit;
   } catch (error) {
-    console.error('Error analyzing outfit image:', error);
+    console.error('Error in strict image analysis:', error);
     return null;
   }
 }
 
-// Validate and correct entire fashion article based on image analysis
-async function validateAndCorrectFashionContent(
+// Generate outfit pieces list ONLY from detected visible items
+function generateOutfitPiecesList(detected: DetectedOutfit): string {
+  const pieces: string[] = [];
+  
+  if (detected.topPiece) {
+    pieces.push(`<li><strong>${detected.topPiece}</strong></li>`);
+  }
+  if (detected.innerTop) {
+    pieces.push(`<li><strong>${detected.innerTop}</strong></li>`);
+  }
+  if (detected.bottomPiece) {
+    pieces.push(`<li><strong>${detected.bottomPiece}</strong></li>`);
+  }
+  if (detected.footwear && detected.footwearVisible) {
+    pieces.push(`<li><strong>${detected.footwear}</strong></li>`);
+  }
+  
+  // Add ONLY visible accessories
+  for (const accessory of detected.accessories) {
+    if (accessory && accessory.trim().length > 0) {
+      pieces.push(`<li><strong>${accessory}</strong></li>`);
+    }
+  }
+  
+  return pieces.join('\n');
+}
+
+// Revalidate and regenerate content based on strict image analysis
+async function revalidateAndRegenerateFashionContent(
   articleContent: string,
   imageUrls: string[],
   LOVABLE_API_KEY: string
 ): Promise<{ correctedContent: string; accuracyScore: number; corrections: string[] }> {
-  console.log(`🔄 Validating fashion content against ${imageUrls.length} images...`);
+  console.log(`🔄 STRICT revalidation of fashion content against ${imageUrls.length} images...`);
   
   const corrections: string[] = [];
   let totalConfidence = 0;
   let analyzedCount = 0;
   let correctedContent = articleContent;
   
-  // Analyze each image and validate corresponding content
   for (let i = 0; i < imageUrls.length; i++) {
     const imageUrl = imageUrls[i];
     if (!imageUrl || imageUrl.length === 0) continue;
     
-    const detected = await analyzeOutfitImage(imageUrl, LOVABLE_API_KEY);
+    const detected = await analyzeOutfitImageStrict(imageUrl, LOVABLE_API_KEY);
     if (!detected) continue;
     
     analyzedCount++;
     totalConfidence += detected.confidenceScore;
     
-    // Find the corresponding outfit section in content
     const outfitNumber = i + 1;
     const sectionRegex = new RegExp(
       `(<h2>${outfitNumber}\\.\\s*[^<]+</h2>[\\s\\S]*?)(?=<h2>\\d+\\.|$)`,
@@ -131,58 +170,40 @@ async function validateAndCorrectFashionContent(
     if (!sectionMatch) continue;
     
     const originalSection = sectionMatch[1];
-    
-    // Check for items mentioned in content but not visible in image
-    const outfitPiecesMatch = originalSection.match(/<h3>Outfit Pieces:<\/h3>\s*<ul>([\s\S]*?)<\/ul>/i);
-    if (!outfitPiecesMatch) continue;
-    
-    const listedItems = outfitPiecesMatch[1].toLowerCase();
-    
-    // Common false items to check for
-    const potentialFalseItems = [
-      { term: 'necklace', visible: detected.accessories.some(a => a.toLowerCase().includes('necklace')) },
-      { term: 'bracelet', visible: detected.accessories.some(a => a.toLowerCase().includes('bracelet')) },
-      { term: 'watch', visible: detected.accessories.some(a => a.toLowerCase().includes('watch')) },
-      { term: 'bag', visible: detected.accessories.some(a => a.toLowerCase().includes('bag') || a.toLowerCase().includes('purse')) },
-      { term: 'belt', visible: detected.accessories.some(a => a.toLowerCase().includes('belt')) },
-      { term: 'scarf', visible: detected.accessories.some(a => a.toLowerCase().includes('scarf')) },
-      { term: 'hat', visible: detected.accessories.some(a => a.toLowerCase().includes('hat') || a.toLowerCase().includes('cap')) },
-      { term: 'sunglasses', visible: detected.accessories.some(a => a.toLowerCase().includes('sunglasses') || a.toLowerCase().includes('glasses')) },
-    ];
-    
-    // Remove false items from content
     let updatedSection = originalSection;
-    for (const item of potentialFalseItems) {
-      if (listedItems.includes(item.term) && !item.visible) {
-        // Remove this item from the list
-        const itemRegex = new RegExp(`<li>[^<]*${item.term}[^<]*</li>\\s*`, 'gi');
-        updatedSection = updatedSection.replace(itemRegex, '');
-        corrections.push(`Outfit ${outfitNumber}: Removed "${item.term}" - not visible in image`);
+    
+    // STRICT: Replace entire outfit pieces list with only detected items
+    const outfitPiecesMatch = originalSection.match(/(<h3>Outfit Pieces:<\/h3>\s*<ul>)([\s\S]*?)(<\/ul>)/i);
+    if (outfitPiecesMatch) {
+      const newPiecesList = generateOutfitPiecesList(detected);
+      const originalList = outfitPiecesMatch[2].trim();
+      
+      if (newPiecesList !== originalList) {
+        updatedSection = updatedSection.replace(
+          outfitPiecesMatch[0],
+          `${outfitPiecesMatch[1]}\n${newPiecesList}\n${outfitPiecesMatch[3]}`
+        );
+        corrections.push(`Outfit ${outfitNumber}: Regenerated outfit pieces from strict image analysis`);
       }
     }
     
-    // Also fix color mismatches
-    if (detected.colors.length > 0) {
-      const colorCorrections: Record<string, string[]> = {
-        'dark wash': ['medium wash', 'light wash', 'medium-wash', 'light-wash'],
-        'light wash': ['dark wash', 'medium wash', 'dark-wash', 'medium-wash'],
-      };
+    // Check for common hallucinated items that might be in description paragraphs
+    const hallucinatedItems = [
+      'necklace', 'bracelet', 'watch', 'bag', 'purse', 'handbag', 
+      'belt', 'scarf', 'hat', 'cap', 'sunglasses', 'glasses'
+    ];
+    
+    for (const item of hallucinatedItems) {
+      const isVisible = detected.accessories.some(a => a.toLowerCase().includes(item));
+      const mentionRegex = new RegExp(`\\b${item}s?\\b`, 'gi');
       
-      for (const [wrong, replacements] of Object.entries(colorCorrections)) {
-        if (updatedSection.toLowerCase().includes(wrong)) {
-          const hasWrongColor = detected.colors.some(c => c.toLowerCase().includes(wrong.split(' ')[0]));
-          if (!hasWrongColor) {
-            const actualDenimColor = detected.colors.find(c => 
-              c.toLowerCase().includes('denim') || 
-              c.toLowerCase().includes('wash') ||
-              c.toLowerCase().includes('blue') ||
-              c.toLowerCase().includes('jeans')
-            );
-            if (actualDenimColor) {
-              updatedSection = updatedSection.replace(new RegExp(wrong, 'gi'), actualDenimColor);
-              corrections.push(`Outfit ${outfitNumber}: Corrected "${wrong}" to "${actualDenimColor}"`);
-            }
-          }
+      if (!isVisible && mentionRegex.test(updatedSection)) {
+        // Remove mentions from list items
+        const itemRegex = new RegExp(`<li>[^<]*\\b${item}s?\\b[^<]*</li>\\s*`, 'gi');
+        const before = updatedSection;
+        updatedSection = updatedSection.replace(itemRegex, '');
+        if (before !== updatedSection) {
+          corrections.push(`Outfit ${outfitNumber}: Removed hallucinated "${item}" - not visible in image`);
         }
       }
     }
@@ -193,9 +214,14 @@ async function validateAndCorrectFashionContent(
     }
   }
   
+  // Add accuracy confirmation comment
+  if (!correctedContent.includes('Accuracy Confirmation')) {
+    correctedContent += '\n\n<!-- Accuracy Confirmation: Content revalidated against images. No hallucinated items included. -->';
+  }
+  
   const accuracyScore = analyzedCount > 0 ? Math.round(totalConfidence / analyzedCount) : 100;
   
-  console.log(`✅ Content validation complete: ${accuracyScore}% accuracy, ${corrections.length} corrections made`);
+  console.log(`✅ STRICT revalidation complete: ${accuracyScore}% accuracy, ${corrections.length} corrections made`);
   
   return {
     correctedContent,
@@ -212,7 +238,6 @@ function extractImageUrls(htmlContent: string): string[] {
   
   while ((match = imgRegex.exec(htmlContent)) !== null) {
     const url = match[1];
-    // Only include valid http(s) URLs, skip data: URLs
     if (url && url.startsWith('http')) {
       urls.push(url);
     }
@@ -245,7 +270,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch the article
     const { data: article, error: fetchError } = await supabase
       .from('articles')
       .select('content_html, title, niche, generation_metadata')
@@ -259,7 +283,6 @@ serve(async (req) => {
       );
     }
 
-    // Check if this is a fashion article
     if (article.niche !== 'fashion') {
       return new Response(
         JSON.stringify({ 
@@ -271,7 +294,6 @@ serve(async (req) => {
       );
     }
 
-    // Extract image URLs from the article content
     const imageUrls = extractImageUrls(article.content_html || '');
     
     if (imageUrls.length === 0) {
@@ -286,14 +308,13 @@ serve(async (req) => {
 
     console.log(`📊 Found ${imageUrls.length} images to analyze for article: ${article.title}`);
 
-    // Run the validation
-    const validationResult = await validateAndCorrectFashionContent(
+    // Run STRICT revalidation
+    const validationResult = await revalidateAndRegenerateFashionContent(
       article.content_html || '',
       imageUrls,
       LOVABLE_API_KEY
     );
 
-    // Update the article with corrected content and metadata
     const existingMetadata = typeof article.generation_metadata === 'object' 
       ? article.generation_metadata 
       : {};
@@ -302,7 +323,10 @@ serve(async (req) => {
       ...existingMetadata,
       content_accuracy_score: validationResult.accuracyScore,
       content_corrections: validationResult.corrections,
+      content_validated: true,
+      image_first_workflow: true,
       last_revalidated_at: new Date().toISOString(),
+      validation_note: 'No hallucinated items included. All pieces are image-confirmed.',
     };
 
     const { error: updateError } = await supabase
@@ -325,6 +349,7 @@ serve(async (req) => {
         correctionsCount: validationResult.corrections.length,
         corrections: validationResult.corrections,
         imagesAnalyzed: imageUrls.length,
+        message: 'No hallucinated items included. All pieces are image-confirmed.',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

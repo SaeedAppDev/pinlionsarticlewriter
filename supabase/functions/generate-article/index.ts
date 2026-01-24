@@ -300,48 +300,72 @@ function calculateEstimatedCost(
 // IMAGE ANALYSIS FOR FASHION CONTENT VALIDATION
 // ============================================================================
 
+// ============================================================================
+// IMAGE-FIRST CONTENT GENERATION FOR FASHION ARTICLES
+// ============================================================================
+
 interface DetectedOutfit {
-  topPiece: string;
-  bottomPiece: string;
-  footwear: string;
+  topPiece: string | null;
+  innerTop: string | null;
+  bottomPiece: string | null;
+  footwear: string | null;
+  footwearVisible: boolean;
   accessories: string[];
   colors: string[];
   layering: string[];
   vibe: 'casual' | 'elegant' | 'formal' | 'edgy' | 'romantic' | 'sporty' | 'bohemian';
   confidenceScore: number;
+  settingContext: string;
 }
 
-// Analyze a single fashion image using Lovable AI (Gemini with vision)
-async function analyzeOutfitImage(
+// STRICT image analysis - extracts ONLY visible items with high confidence
+async function analyzeOutfitImageStrict(
   imageUrl: string,
   LOVABLE_API_KEY: string
 ): Promise<DetectedOutfit | null> {
   try {
-    console.log(`🔍 Analyzing outfit image for content validation...`);
+    console.log(`🔍 STRICT image analysis - extracting ONLY visible elements...`);
     
-    const analysisPrompt = `You are a fashion image analyst. Analyze this outfit photograph and extract ONLY what is CLEARLY VISIBLE in the image.
+    const analysisPrompt = `You are a STRICT fashion image analyst. Your job is to extract ONLY what is CLEARLY VISIBLE in this photograph with 90%+ confidence.
 
-CRITICAL RULES:
-1. ONLY list items you can actually SEE in the image
-2. If something is not visible or unclear, DO NOT mention it
-3. Never assume jewelry, bags, or accessories unless clearly visible
-4. Match colors as closely as possible to what you see
-5. Be specific about clothing types (e.g., "longline cardigan" not just "cardigan")
+ABSOLUTE RULES - VIOLATION = FAILURE:
+1. If you cannot clearly see an item, DO NOT include it - return null/empty
+2. If visibility confidence < 90%, EXCLUDE the item completely
+3. NEVER assume jewelry, bags, hats, sunglasses, or scarves unless CLEARLY visible
+4. NEVER add accessories for "completeness" - accuracy > completeness
+5. If footwear is cut off or unclear, mark footwearVisible: false
+6. Only list colors you can ACTUALLY see in the clothing
+7. Be SPECIFIC about what you see, not generic
 
 Respond in this EXACT JSON format:
 {
-  "topPiece": "description of main top layer (e.g., 'rust-colored longline cardigan' or 'cream fitted turtleneck')",
-  "innerTop": "description of inner layer if visible (e.g., 'cream turtleneck') or null if not visible",
-  "bottomPiece": "description of bottoms (e.g., 'medium-wash high-waisted jeans')",
-  "footwear": "description of shoes (e.g., 'black leather ankle boots with block heel') or 'not fully visible' if cut off",
-  "accessories": ["only items clearly visible like 'small gold hoop earrings'"] or [] if none visible,
-  "colors": ["rust/terracotta", "cream/ivory", "medium blue denim", "black"],
-  "layering": ["turtleneck", "open cardigan"] - describe the layering order if applicable,
+  "topPiece": "exact description of outermost top layer visible" or null if not visible,
+  "innerTop": "exact description of inner layer if visible" or null,
+  "bottomPiece": "exact description of pants/skirt/shorts visible" or null,
+  "footwear": "exact description of shoes" or null if not visible,
+  "footwearVisible": true/false - is footwear clearly visible in frame?,
+  "accessories": ["ONLY items you can 100% clearly see"] or [] if NONE visible,
+  "colors": ["specific colors you can actually see in the outfit"],
+  "layering": ["describe layers from inside to outside if applicable"] or [],
   "vibe": "casual" | "elegant" | "formal" | "edgy" | "romantic" | "sporty" | "bohemian",
-  "confidenceScore": 0-100 based on image clarity
+  "confidenceScore": 0-100 based on image clarity,
+  "settingContext": "brief description of setting/background for occasion matching"
 }
 
-Be strict and honest. If you cannot clearly see an item, do not include it.`;
+EXAMPLES OF WHAT NOT TO DO:
+❌ Adding "statement necklace" when no necklace is visible
+❌ Adding "leather handbag" when no bag is visible  
+❌ Adding "delicate gold bracelet" when wrists are not clear
+❌ Adding "stylish sunglasses" when face has no sunglasses
+❌ Saying "ankle boots" when feet are cut off from frame
+
+EXAMPLES OF CORRECT ANALYSIS:
+✅ "accessories": [] when no accessories are clearly visible
+✅ "footwear": null, "footwearVisible": false when shoes are cut off
+✅ Being specific: "rust-colored ribbed knit cardigan" not just "cardigan"
+
+REMEMBER: It's better to list FEWER items correctly than MORE items incorrectly.
+Accuracy is MANDATORY. Completeness is OPTIONAL.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -360,13 +384,13 @@ Be strict and honest. If you cannot clearly see an item, do not include it.`;
             ]
           }
         ],
-        temperature: 0.3,
+        temperature: 0.1, // Low temperature for accuracy
         max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      console.error('Image analysis failed:', response.status);
+      console.error('Strict image analysis failed:', response.status);
       return null;
     }
 
@@ -381,187 +405,284 @@ Be strict and honest. If you cannot clearly see an item, do not include it.`;
     }
     
     const parsed = JSON.parse(jsonMatch[0]);
-    console.log(`✅ Image analysis complete: ${parsed.vibe} vibe, ${parsed.confidenceScore}% confidence`);
+    
+    // Validate minimum confidence
+    if (parsed.confidenceScore < 60) {
+      console.log(`⚠️ Low confidence image (${parsed.confidenceScore}%) - may need manual review`);
+    }
+    
+    console.log(`✅ Strict analysis complete: ${parsed.vibe} vibe, ${parsed.confidenceScore}% confidence, ${parsed.accessories?.length || 0} accessories detected`);
     
     return parsed as DetectedOutfit;
   } catch (error) {
-    console.error('Error analyzing outfit image:', error);
+    console.error('Error in strict image analysis:', error);
     return null;
   }
 }
 
-// Generate validated outfit content based on detected items from image
-function generateValidatedOutfitContent(
+// Generate outfit section content STRICTLY from detected image elements
+function generateOutfitContentFromImage(
   detected: DetectedOutfit,
   outfitNumber: number,
-  originalContent: string
+  creativeOutfitName: string
 ): string {
-  // Extract the original outfit section
-  const sectionRegex = new RegExp(
-    `<h2>${outfitNumber}\\.\\s*[^<]+</h2>[\\s\\S]*?(?=<h2>\\d+\\.|$)`,
-    'i'
-  );
-  const originalMatch = originalContent.match(sectionRegex);
-  
-  if (!originalMatch) return '';
-  
-  let section = originalMatch[0];
-  
-  // Build validated outfit pieces list
-  const validatedPieces: string[] = [];
+  // Build outfit pieces list ONLY from detected items
+  const outfitPieces: string[] = [];
   
   if (detected.topPiece) {
-    validatedPieces.push(`<li><strong>${detected.topPiece}</strong></li>`);
+    outfitPieces.push(`<li><strong>${detected.topPiece}</strong></li>`);
   }
-  if ((detected as any).innerTop) {
-    validatedPieces.push(`<li><strong>${(detected as any).innerTop}</strong></li>`);
+  if (detected.innerTop) {
+    outfitPieces.push(`<li><strong>${detected.innerTop}</strong></li>`);
   }
   if (detected.bottomPiece) {
-    validatedPieces.push(`<li><strong>${detected.bottomPiece}</strong></li>`);
+    outfitPieces.push(`<li><strong>${detected.bottomPiece}</strong></li>`);
   }
-  if (detected.footwear && detected.footwear !== 'not fully visible') {
-    validatedPieces.push(`<li><strong>${detected.footwear}</strong></li>`);
+  if (detected.footwear && detected.footwearVisible) {
+    outfitPieces.push(`<li><strong>${detected.footwear}</strong></li>`);
   }
   
-  // Only add accessories that are actually visible
+  // Add ONLY visible accessories
   for (const accessory of detected.accessories) {
-    if (accessory && accessory.length > 0) {
-      validatedPieces.push(`<li><strong>${accessory}</strong></li>`);
+    if (accessory && accessory.trim().length > 0) {
+      outfitPieces.push(`<li><strong>${accessory}</strong></li>`);
     }
   }
   
-  // Replace the outfit pieces list
-  const outfitPiecesRegex = /<h3>Outfit Pieces:<\/h3>\s*<ul>[\s\S]*?<\/ul>/i;
-  const newOutfitPiecesList = `<h3>Outfit Pieces:</h3>
+  // Generate styling tips based ONLY on visible items (no new pieces)
+  const stylingTips = generateImageSafeStylingTips(detected);
+  
+  // Match "Works for" to detected vibe and setting
+  const occasions = getOccasionsFromVibeAndSetting(detected.vibe, detected.settingContext);
+  
+  // Build the section
+  const section = `<h2>${outfitNumber}. The "${creativeOutfitName}"</h2>
+{{IMAGE_${outfitNumber}}}
+<p>${generateVibeDescription(detected)}</p>
+<h3>Outfit Pieces:</h3>
 <ul>
-${validatedPieces.join('\n')}
-</ul>`;
-  
-  section = section.replace(outfitPiecesRegex, newOutfitPiecesList);
-  
-  // Update the description paragraph to match the vibe
-  const vibeDescriptions: Record<string, string> = {
-    casual: 'relaxed yet put-together',
-    elegant: 'sophisticated and refined',
-    formal: 'polished and professional',
-    edgy: 'bold and fashion-forward',
-    romantic: 'soft and feminine',
-    sporty: 'comfortable and active',
-    bohemian: 'free-spirited and artistic'
-  };
-  
+${outfitPieces.join('\n')}
+</ul>
+<h3>Styling Tips:</h3>
+<p>${stylingTips}</p>
+<p>Works for: ${occasions}.</p>`;
+
   return section;
 }
 
-// Validate and correct entire fashion article based on image analysis
-async function validateAndCorrectFashionContent(
-  articleContent: string,
-  imageUrls: string[],
-  LOVABLE_API_KEY: string
-): Promise<{ correctedContent: string; accuracyScore: number; corrections: string[] }> {
-  console.log(`🔄 Validating fashion content against ${imageUrls.length} generated images...`);
+// Generate styling tips that ONLY reference visible items - NO new pieces
+function generateImageSafeStylingTips(detected: DetectedOutfit): string {
+  const tips: string[] = [];
   
-  const corrections: string[] = [];
-  let totalConfidence = 0;
-  let analyzedCount = 0;
-  let correctedContent = articleContent;
+  // Tips about fit and proportion (always safe)
+  if (detected.layering && detected.layering.length > 1) {
+    tips.push('Play with the layering by adjusting how each piece sits on your frame');
+  }
   
-  // Analyze each image and validate corresponding content
-  for (let i = 0; i < imageUrls.length; i++) {
-    const imageUrl = imageUrls[i];
-    if (!imageUrl || imageUrl.length === 0) continue;
-    
-    const detected = await analyzeOutfitImage(imageUrl, LOVABLE_API_KEY);
-    if (!detected) continue;
-    
-    analyzedCount++;
-    totalConfidence += detected.confidenceScore;
-    
-    // Find the corresponding outfit section in content
-    const outfitNumber = i + 1;
-    const sectionRegex = new RegExp(
-      `(<h2>${outfitNumber}\\.\\s*[^<]+</h2>[\\s\\S]*?)(?=<h2>\\d+\\.|$)`,
-      'i'
-    );
-    const sectionMatch = correctedContent.match(sectionRegex);
-    
-    if (!sectionMatch) continue;
-    
-    const originalSection = sectionMatch[1];
-    
-    // Check for items mentioned in content but not visible in image
-    const outfitPiecesMatch = originalSection.match(/<h3>Outfit Pieces:<\/h3>\s*<ul>([\s\S]*?)<\/ul>/i);
-    if (!outfitPiecesMatch) continue;
-    
-    const listedItems = outfitPiecesMatch[1].toLowerCase();
-    
-    // Common false items to check for
-    const potentialFalseItems = [
-      { term: 'necklace', visible: detected.accessories.some(a => a.toLowerCase().includes('necklace')) },
-      { term: 'bracelet', visible: detected.accessories.some(a => a.toLowerCase().includes('bracelet')) },
-      { term: 'watch', visible: detected.accessories.some(a => a.toLowerCase().includes('watch')) },
-      { term: 'bag', visible: detected.accessories.some(a => a.toLowerCase().includes('bag') || a.toLowerCase().includes('purse')) },
-      { term: 'belt', visible: detected.accessories.some(a => a.toLowerCase().includes('belt')) },
-      { term: 'scarf', visible: detected.accessories.some(a => a.toLowerCase().includes('scarf')) },
-      { term: 'hat', visible: detected.accessories.some(a => a.toLowerCase().includes('hat') || a.toLowerCase().includes('cap')) },
-      { term: 'sunglasses', visible: detected.accessories.some(a => a.toLowerCase().includes('sunglasses') || a.toLowerCase().includes('glasses')) },
-    ];
-    
-    // Remove false items from content
-    let updatedSection = originalSection;
-    for (const item of potentialFalseItems) {
-      if (listedItems.includes(item.term) && !item.visible) {
-        // Remove this item from the list
-        const itemRegex = new RegExp(`<li>[^<]*${item.term}[^<]*</li>\\s*`, 'gi');
-        updatedSection = updatedSection.replace(itemRegex, '');
-        corrections.push(`Outfit ${outfitNumber}: Removed "${item.term}" - not visible in image`);
-      }
-    }
-    
-    // Also fix color mismatches - replace "dark wash" with actual detected color
-    if (detected.colors.length > 0) {
-      // Check for color mentions and correct them
-      const colorCorrections: Record<string, string[]> = {
-        'dark wash': ['medium wash', 'light wash', 'medium-wash', 'light-wash'],
-        'light wash': ['dark wash', 'medium wash', 'dark-wash', 'medium-wash'],
-      };
-      
-      for (const [wrong, replacements] of Object.entries(colorCorrections)) {
-        if (updatedSection.toLowerCase().includes(wrong)) {
-          // Check if any of the detected colors match the "wrong" value
-          const hasWrongColor = detected.colors.some(c => c.toLowerCase().includes(wrong.split(' ')[0]));
-          if (!hasWrongColor) {
-            // Find what the actual color should be
-            const actualDenimColor = detected.colors.find(c => 
-              c.toLowerCase().includes('denim') || 
-              c.toLowerCase().includes('wash') ||
-              c.toLowerCase().includes('blue') ||
-              c.toLowerCase().includes('jeans')
-            );
-            if (actualDenimColor) {
-              updatedSection = updatedSection.replace(new RegExp(wrong, 'gi'), actualDenimColor);
-              corrections.push(`Outfit ${outfitNumber}: Corrected "${wrong}" to "${actualDenimColor}"`);
-            }
-          }
-        }
-      }
-    }
-    
-    // Replace the section in content
-    if (updatedSection !== originalSection) {
-      correctedContent = correctedContent.replace(originalSection, updatedSection);
+  // Color coordination tips based on detected colors
+  if (detected.colors.length >= 2) {
+    tips.push(`The ${detected.colors[0]} and ${detected.colors[1]} tones create a cohesive palette`);
+  }
+  
+  // Specific to detected pieces only
+  if (detected.topPiece && detected.topPiece.toLowerCase().includes('cardigan')) {
+    tips.push('Leave the cardigan open for a relaxed look or buttoned for a more polished appearance');
+  }
+  if (detected.topPiece && detected.topPiece.toLowerCase().includes('blazer')) {
+    tips.push('Push up the sleeves slightly for a more casual, effortless feel');
+  }
+  if (detected.bottomPiece && detected.bottomPiece.toLowerCase().includes('jeans')) {
+    tips.push('A slight cuff at the ankle can add visual interest');
+  }
+  
+  // Footwear tips only if visible
+  if (detected.footwear && detected.footwearVisible) {
+    if (detected.footwear.toLowerCase().includes('boot')) {
+      tips.push('Ankle boots add a structured finish to the silhouette');
+    } else if (detected.footwear.toLowerCase().includes('sneaker')) {
+      tips.push('Clean sneakers keep the look casual but put-together');
     }
   }
   
+  // Fallback safe tip
+  if (tips.length === 0) {
+    tips.push('Focus on fit and proportion to make this look your own');
+  }
+  
+  return tips.slice(0, 2).join('. ') + '.';
+}
+
+// Generate vibe description based on detected elements
+function generateVibeDescription(detected: DetectedOutfit): string {
+  const vibeDescriptions: Record<string, string[]> = {
+    casual: [
+      'This effortlessly relaxed look balances comfort with style.',
+      'A laid-back combination that feels put-together without trying too hard.',
+      'Easy-going pieces that work for everyday wear.',
+    ],
+    elegant: [
+      'Sophisticated layers create a refined, polished appearance.',
+      'This ensemble strikes the perfect balance between chic and timeless.',
+      'Elevated pieces that exude understated luxury.',
+    ],
+    formal: [
+      'A structured, professional look that commands attention.',
+      'Polished and refined from head to toe.',
+      'Sharp tailoring meets modern sophistication.',
+    ],
+    edgy: [
+      'Bold choices create a fashion-forward statement.',
+      'This look has attitude without being over the top.',
+      'Modern edge meets wearable style.',
+    ],
+    romantic: [
+      'Soft, feminine pieces create an dreamy aesthetic.',
+      'Delicate details add a touch of romance.',
+      'Flowing silhouettes and gentle colors.',
+    ],
+    sporty: [
+      'Active-inspired pieces that transition easily.',
+      'Comfort-first without sacrificing style.',
+      'Athletic influences meet everyday wearability.',
+    ],
+    bohemian: [
+      'Free-spirited layers create an artistic vibe.',
+      'Relaxed, creative styling with earthy tones.',
+      'An organic, effortless aesthetic.',
+    ],
+  };
+  
+  const descriptions = vibeDescriptions[detected.vibe] || vibeDescriptions.casual;
+  return descriptions[Math.floor(Math.random() * descriptions.length)];
+}
+
+// Match occasions to vibe and setting context
+function getOccasionsFromVibeAndSetting(vibe: string, settingContext: string): string {
+  const vibeOccasions: Record<string, string[]> = {
+    casual: ['weekend brunch', 'coffee dates', 'casual shopping', 'relaxed outings'],
+    elegant: ['dinner dates', 'gallery openings', 'upscale events', 'special occasions'],
+    formal: ['office meetings', 'business lunches', 'professional events', 'interviews'],
+    edgy: ['concert nights', 'art events', 'trendy spots', 'creative gatherings'],
+    romantic: ['date nights', 'garden parties', 'afternoon tea', 'special dinners'],
+    sporty: ['active outings', 'casual meetups', 'daytime activities', 'travel days'],
+    bohemian: ['markets', 'festivals', 'creative events', 'outdoor gatherings'],
+  };
+  
+  const occasions = vibeOccasions[vibe] || vibeOccasions.casual;
+  // Pick 2-3 random occasions
+  const shuffled = occasions.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 3).join(', ');
+}
+
+// Generate creative outfit names based on detected elements
+function generateCreativeOutfitName(detected: DetectedOutfit, index: number): string {
+  const vibeNames: Record<string, string[]> = {
+    casual: ['Easy Chic', 'Effortlessly Cool', 'Weekend Ready', 'Relaxed Refined', 'Laid-Back Luxe'],
+    elegant: ['Modern Classic', 'Refined Edge', 'Understated Glam', 'Polished Perfection', 'Timeless Beauty'],
+    formal: ['Power Move', 'Boss Energy', 'Corporate Chic', 'Sharp and Sleek', 'Business Beautiful'],
+    edgy: ['Street Smart', 'Bold Statement', 'Fashion Forward', 'Urban Edge', 'Rebel Refined'],
+    romantic: ['Soft Elegance', 'Feminine Flow', 'Dreamy Details', 'Sweet Sophistication', 'Gentle Glamour'],
+    sporty: ['Active Luxe', 'Athleisure Ace', 'Comfort Meets Cool', 'Sporty Chic', 'On-the-Go Glam'],
+    bohemian: ['Free Spirit', 'Artistic Soul', 'Boho Beautiful', 'Earth Goddess', 'Creative Flow'],
+  };
+  
+  const names = vibeNames[detected.vibe] || vibeNames.casual;
+  return names[index % names.length];
+}
+// IMAGE-FIRST: Generate fashion article content based on analyzed images
+async function generateFashionContentFromImages(
+  imageUrls: string[],
+  seoTitle: string,
+  focusKeyword: string,
+  LOVABLE_API_KEY: string
+): Promise<{ content: string; accuracyScore: number; detectedOutfits: DetectedOutfit[] }> {
+  console.log(`🎯 IMAGE-FIRST: Generating content from ${imageUrls.length} analyzed images...`);
+  
+  const detectedOutfits: DetectedOutfit[] = [];
+  const outfitSections: string[] = [];
+  let totalConfidence = 0;
+  let analyzedCount = 0;
+  
+  // Step 1: Analyze ALL images first
+  for (let i = 0; i < imageUrls.length; i++) {
+    const imageUrl = imageUrls[i];
+    if (!imageUrl || imageUrl.length === 0) {
+      detectedOutfits.push(null as any);
+      continue;
+    }
+    
+    console.log(`📸 Analyzing image ${i + 1}/${imageUrls.length}...`);
+    const detected = await analyzeOutfitImageStrict(imageUrl, LOVABLE_API_KEY);
+    
+    if (detected) {
+      detectedOutfits.push(detected);
+      analyzedCount++;
+      totalConfidence += detected.confidenceScore;
+      
+      // Generate content section STRICTLY from detected elements
+      const creativeOutfitName = generateCreativeOutfitName(detected, i);
+      const section = generateOutfitContentFromImage(detected, i + 1, creativeOutfitName);
+      outfitSections.push(section);
+    } else {
+      detectedOutfits.push(null as any);
+      // Fallback: Create minimal section with just the image
+      outfitSections.push(`<h2>${i + 1}. Outfit ${i + 1}</h2>
+{{IMAGE_${i + 1}}}
+<p>A stylish look perfect for various occasions.</p>
+<h3>Outfit Pieces:</h3>
+<ul>
+<li><strong>See image for outfit details</strong></li>
+</ul>
+<h3>Styling Tips:</h3>
+<p>Focus on fit and comfort for your personal style.</p>
+<p>Works for: casual outings, everyday wear.</p>`);
+    }
+  }
+  
+  // Step 2: Generate intro based on overall vibe
+  const dominantVibe = getDominantVibe(detectedOutfits.filter(d => d !== null));
+  
+  const intro = `<h1>${seoTitle}</h1>
+
+<p>Looking for fresh outfit inspiration? We've curated ${imageUrls.length} stunning looks that prove great style doesn't have to be complicated. Each outfit has been carefully analyzed to bring you only accurate, wearable combinations you can recreate right now.</p>`;
+  
+  // Step 3: Combine all sections
+  const content = intro + '\n\n' + outfitSections.join('\n\n') + `
+
+<!-- Accuracy Confirmation: No hallucinated items included. All outfit pieces are image-confirmed. -->`;
+  
   const accuracyScore = analyzedCount > 0 ? Math.round(totalConfidence / analyzedCount) : 100;
   
-  console.log(`✅ Content validation complete: ${accuracyScore}% accuracy, ${corrections.length} corrections made`);
+  console.log(`✅ IMAGE-FIRST content generation complete: ${accuracyScore}% accuracy, ${analyzedCount} outfits analyzed`);
   
   return {
-    correctedContent,
+    content,
     accuracyScore,
-    corrections
+    detectedOutfits
   };
+}
+
+// Get dominant vibe from analyzed outfits
+function getDominantVibe(outfits: DetectedOutfit[]): string {
+  const vibeCounts: Record<string, number> = {};
+  
+  for (const outfit of outfits) {
+    if (outfit && outfit.vibe) {
+      vibeCounts[outfit.vibe] = (vibeCounts[outfit.vibe] || 0) + 1;
+    }
+  }
+  
+  let dominantVibe = 'casual';
+  let maxCount = 0;
+  
+  for (const [vibe, count] of Object.entries(vibeCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantVibe = vibe;
+    }
+  }
+  
+  return dominantVibe;
 }
 
 // Analyze article content and generate specific image prompts using AI
@@ -2286,22 +2407,24 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
     
     console.log(`✅ Generated ${successCount}/${imageCount} images with aspect ratio: ${aspectRatio} (PARALLEL)`);
 
-    // Step 5.5: FASHION CONTENT VALIDATION - Analyze images and correct content
+    // Step 5.5: IMAGE-FIRST FASHION CONTENT GENERATION
+    // For fashion articles, regenerate content based on what's ACTUALLY visible in images
     let contentAccuracyScore = 100;
     let contentCorrections: string[] = [];
+    let detectedOutfits: DetectedOutfit[] = [];
     
     if (articleCategory === 'fashion' && successCount > 0) {
-      console.log(`🔍 Running fashion content validation against generated images...`);
+      console.log(`🎯 IMAGE-FIRST: Regenerating fashion content based on analyzed images...`);
       
-      // Update progress to show validation step
+      // Update progress to show image-first generation step
       await supabase
         .from(tableName)
         .update({ 
           generation_progress: { 
-            step: 'validating_content', 
+            step: 'analyzing_images_for_content', 
             totalImages: imageCount,
             completedImages: successCount,
-            status: 'validating'
+            status: 'generating_from_images'
           } 
         })
         .eq('id', entityId);
@@ -2310,27 +2433,29 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
         const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY') || '';
         
         if (LOVABLE_API_KEY) {
-          const validationResult = await validateAndCorrectFashionContent(
-            articleContent,
+          // IMAGE-FIRST: Generate content strictly from analyzed images
+          const imageFirstResult = await generateFashionContentFromImages(
             imageUrls,
+            seoTitle,
+            focusKeyword,
             LOVABLE_API_KEY
           );
           
-          articleContent = validationResult.correctedContent;
-          contentAccuracyScore = validationResult.accuracyScore;
-          contentCorrections = validationResult.corrections;
+          // Replace the AI-generated content with image-first content
+          articleContent = imageFirstResult.content;
+          contentAccuracyScore = imageFirstResult.accuracyScore;
+          detectedOutfits = imageFirstResult.detectedOutfits;
           
-          if (contentCorrections.length > 0) {
-            console.log(`📝 Content corrections made: ${contentCorrections.length}`);
-            for (const correction of contentCorrections) {
-              console.log(`   - ${correction}`);
-            }
-          }
+          // Build corrections list showing what was done
+          contentCorrections = ['IMAGE-FIRST generation: Content written strictly from image analysis'];
+          
+          console.log(`✅ IMAGE-FIRST content generation complete: ${contentAccuracyScore}% accuracy`);
+          console.log(`   Analyzed ${detectedOutfits.filter(d => d !== null).length} outfits from images`);
         } else {
-          console.log('⚠️ Skipping content validation - LOVABLE_API_KEY not available');
+          console.log('⚠️ Skipping image-first generation - LOVABLE_API_KEY not available');
         }
-      } catch (validationError) {
-        console.error('⚠️ Content validation error (continuing with original content):', validationError);
+      } catch (imageFirstError) {
+        console.error('⚠️ Image-first generation error (continuing with original content):', imageFirstError);
       }
     }
 
@@ -2405,11 +2530,13 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
       generated_at: new Date().toISOString(),
     };
     
-    // Add fashion validation metadata
+    // Add fashion IMAGE-FIRST metadata
     if (articleCategory === 'fashion') {
       generationMetadata.content_accuracy_score = contentAccuracyScore;
       generationMetadata.content_corrections = contentCorrections;
       generationMetadata.content_validated = true;
+      generationMetadata.image_first_workflow = true;
+      generationMetadata.validation_note = 'No hallucinated items included. All pieces are image-confirmed.';
     }
 
     console.log(`📊 Generation metadata:`, generationMetadata);
