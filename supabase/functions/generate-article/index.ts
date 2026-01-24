@@ -477,85 +477,119 @@ Works for: ${occasions}.`;
   return section;
 }
 
-// Generate styling tips that ONLY reference visible items - NO new pieces
+// Generate styling tips that ONLY reference visible items - OutfitsTrendz conversational style
 function generateImageSafeStylingTips(detected: DetectedOutfit): string {
   const tips: string[] = [];
   
-  // Tips about fit and proportion (always safe)
-  if (detected.layering && detected.layering.length > 1) {
-    tips.push('Play with the layering by adjusting how each piece sits on your frame');
-  }
-  
-  // Color coordination tips based on detected colors
-  if (detected.colors.length >= 2) {
-    tips.push(`The ${detected.colors[0]} and ${detected.colors[1]} tones create a cohesive palette`);
-  }
-  
-  // Specific to detected pieces only
-  if (detected.topPiece && detected.topPiece.toLowerCase().includes('cardigan')) {
-    tips.push('Leave the cardigan open for a relaxed look or buttoned for a more polished appearance');
-  }
-  if (detected.topPiece && detected.topPiece.toLowerCase().includes('blazer')) {
-    tips.push('Push up the sleeves slightly for a more casual, effortless feel');
-  }
-  if (detected.bottomPiece && detected.bottomPiece.toLowerCase().includes('jeans')) {
-    tips.push('A slight cuff at the ankle can add visual interest');
-  }
-  
-  // Footwear tips only if visible
-  if (detected.footwear && detected.footwearVisible) {
-    if (detected.footwear.toLowerCase().includes('boot')) {
-      tips.push('Ankle boots add a structured finish to the silhouette');
-    } else if (detected.footwear.toLowerCase().includes('sneaker')) {
-      tips.push('Clean sneakers keep the look casual but put-together');
+  // Specific tips for detected top pieces
+  if (detected.topPiece) {
+    const topLower = detected.topPiece.toLowerCase();
+    if (topLower.includes('blazer')) {
+      tips.push('Leave the blazer unbuttoned for that cool-girl nonchalance');
+      tips.push('Push up the sleeves slightly for a more casual, effortless vibe');
+    } else if (topLower.includes('cardigan') || topLower.includes('sweater') || topLower.includes('knit')) {
+      tips.push('Half-tuck the sweater to define your waist');
+      tips.push('Pro tip: This combo looks even better with a thin belt for extra structure');
+    } else if (topLower.includes('jacket') && topLower.includes('leather')) {
+      tips.push('Roll the jacket sleeves once to show off any accessories');
+    } else if (topLower.includes('hoodie') || topLower.includes('sweatshirt')) {
+      tips.push('Leave it slightly oversized for that cozy-cool balance');
+    } else if (topLower.includes('button') || topLower.includes('shirt')) {
+      tips.push('Knot the shirt at the waist for a playful touch');
+    } else if (topLower.includes('tee') || topLower.includes('t-shirt')) {
+      tips.push('Tuck the tee in fully for a more polished look');
     }
   }
   
-  // Fallback safe tip
-  if (tips.length === 0) {
-    tips.push('Focus on fit and proportion to make this look your own');
+  // Tips for inner layers
+  if (detected.innerTop) {
+    const innerLower = detected.innerTop.toLowerCase();
+    if (innerLower.includes('tank') || innerLower.includes('cami')) {
+      tips.push('Tuck the inner layer in smoothly for a clean silhouette');
+    } else if (innerLower.includes('turtleneck')) {
+      tips.push('Tuck the turtleneck in fully and consider a delicate necklace');
+    }
   }
   
-  return tips.slice(0, 2).join('. ') + '.';
+  // Tips for jeans/bottoms
+  if (detected.bottomPiece) {
+    const bottomLower = detected.bottomPiece.toLowerCase();
+    if (bottomLower.includes('jeans') || bottomLower.includes('denim')) {
+      tips.push('Cuff the jeans once to show a little ankle—it keeps things polished');
+    } else if (bottomLower.includes('flare') || bottomLower.includes('wide')) {
+      tips.push('Let the wide-leg hem skim the floor for maximum drama');
+    } else if (bottomLower.includes('skinny') || bottomLower.includes('slim')) {
+      tips.push('Skinny jeans pair perfectly with chunkier shoes for balance');
+    }
+  }
+  
+  // Footwear suggestions only if visible
+  if (detected.footwear && detected.footwearVisible) {
+    const footLower = detected.footwear.toLowerCase();
+    if (footLower.includes('boot')) {
+      tips.push('Bonus: Swap boots for loafers if you need to go more casual');
+    } else if (footLower.includes('sneaker')) {
+      tips.push('Bonus: Swap sneakers for ankle boots in cooler weather—instant seasonal update');
+    } else if (footLower.includes('sandal')) {
+      tips.push('Swap sandals for ankle boots in fall—instant seasonal update');
+    } else if (footLower.includes('loafer') || footLower.includes('flat')) {
+      tips.push('Bonus: Swap flats for block heels if you want extra sass');
+    }
+  }
+  
+  // Color coordination if multiple colors detected
+  if (detected.colors && detected.colors.length >= 2) {
+    tips.push(`The ${detected.colors[0]} and ${detected.colors[1]} tones work beautifully together`);
+  }
+  
+  // Default fallback tips
+  if (tips.length === 0) {
+    tips.push('Focus on fit and proportion to make this look your own');
+    tips.push('Pro tip: Confidence is the best accessory you can wear');
+  }
+  
+  // Pick 2-3 tips and format conversationally
+  const selectedTips = tips.slice(0, 3);
+  return selectedTips.join('. ') + '.';
 }
 
-// Generate vibe description based on detected elements
+// Generate vibe description based on detected elements - OutfitsTrendz conversational style
 function generateVibeDescription(detected: DetectedOutfit): string {
   const vibeDescriptions: Record<string, string[]> = {
     casual: [
-      'This effortlessly relaxed look balances comfort with style.',
-      'A laid-back combination that feels put-together without trying too hard.',
-      'Easy-going pieces that work for everyday wear.',
+      `This outfit screams "effortlessly chic" while secretly requiring zero effort. Throw it on for coffee runs, weekend hangouts, or when you need to pretend you have your life together.`,
+      `When you want to feel put-together but hate trying too hard, this combo is your BFF. Ideal for errands, casual dates, or just living your best low-key life.`,
+      `This laid-back look proves you don't need to overcomplicate things. It's giving "I woke up like this"—but make it fashion.`,
     ],
     elegant: [
-      'Sophisticated layers create a refined, polished appearance.',
-      'This ensemble strikes the perfect balance between chic and timeless.',
-      'Elevated pieces that exude understated luxury.',
+      `This look says "I definitely have my life together"—even if you don't. Perfect for dinner dates, gallery openings, or impressing literally anyone.`,
+      `Sophisticated without being stuffy, this outfit hits that sweet spot between dressy and approachable. You'll look expensive (even if you're not).`,
+      `When you need to look put-together but still feel like yourself, this ensemble delivers. It's effortlessly polished in the best way.`,
     ],
     formal: [
-      'A structured, professional look that commands attention.',
-      'Polished and refined from head to toe.',
-      'Sharp tailoring meets modern sophistication.',
+      `Who says structured can't be stylish? This outfit proves tailored pieces belong in every modern wardrobe—no boring slacks required.`,
+      `This polished look commands attention without trying too hard. Perfect for work meetings, interviews, or when you need to bring your A-game.`,
+      `Professional with a twist—this outfit shows you mean business while still looking on-trend.`,
     ],
     edgy: [
-      'Bold choices create a fashion-forward statement.',
-      'This look has attitude without being over the top.',
-      'Modern edge meets wearable style.',
+      `Channel your inner cool-girl without trying too hard. This outfit works for concerts, late-night hangouts, or just pretending you're edgier than you actually are.`,
+      `Bold, fashion-forward, and unapologetically cool—this look has attitude written all over it. Wear it when you want to make a statement.`,
+      `This outfit screams confidence. It's giving main character energy with zero pretense.`,
     ],
     romantic: [
-      'Soft, feminine pieces create an dreamy aesthetic.',
-      'Delicate details add a touch of romance.',
-      'Flowing silhouettes and gentle colors.',
+      `Soft, dreamy, and totally swoon-worthy—this outfit is perfect for date nights, garden parties, or channeling your inner romantic lead.`,
+      `Feminine pieces that feel fresh, not frilly. This look is giving modern romance vibes.`,
+      `Delicate without being delicate, this outfit balances sweetness with sophistication.`,
     ],
     sporty: [
-      'Active-inspired pieces that transition easily.',
-      'Comfort-first without sacrificing style.',
-      'Athletic influences meet everyday wearability.',
+      `When athleisure meets actual style, you get this gem. Ideal for errands, travel days, or pretending you work out.`,
+      `Comfort-first but make it fashion. This outfit proves you can look good while feeling like you're in pajamas.`,
+      `Athletic influences meet street style in this laid-back yet intentional combo.`,
     ],
     bohemian: [
-      'Free-spirited layers create an artistic vibe.',
-      'Relaxed, creative styling with earthy tones.',
-      'An organic, effortless aesthetic.',
+      `Free-spirited and artistic, this outfit is perfect for markets, festivals, or just feeling like a creative soul.`,
+      `Relaxed, earthy, and effortlessly cool—this look has serious boho-chic energy.`,
+      `Organic vibes meet modern styling in this artsy, approachable outfit.`,
     ],
   };
   
@@ -596,6 +630,150 @@ function generateCreativeOutfitName(detected: DetectedOutfit, index: number): st
   const names = vibeNames[detected.vibe] || vibeNames.casual;
   return names[index % names.length];
 }
+
+// Get fallback creative name for outfits when image analysis fails
+function getFallbackCreativeName(index: number): string {
+  const fallbackNames = [
+    'Effortlessly Chic',
+    'Style Statement',
+    'Modern Classic',
+    'Weekend Ready',
+    'Polished Perfection',
+    'Casual Cool',
+    'Urban Edge',
+    'Laid-Back Luxe',
+    'Timeless Combo',
+    'Fresh Take',
+    'Easy Elegance',
+    'Street Smart'
+  ];
+  return fallbackNames[index % fallbackNames.length];
+}
+
+// Generate fallback outfit section using AI when strict image analysis fails
+async function generateFallbackOutfitSection(
+  imageUrl: string,
+  outfitNumber: number,
+  creativeName: string,
+  LOVABLE_API_KEY: string
+): Promise<string> {
+  try {
+    console.log(`🤖 Generating AI fallback content for outfit ${outfitNumber}...`);
+    
+    const prompt = `Analyze this fashion image and generate content in EXACT OutfitsTrendz.com format.
+
+STRICT RULES:
+1. Only describe items you can CLEARLY SEE in the image
+2. If you cannot see footwear clearly, DO NOT guess - leave it out
+3. If you cannot see accessories clearly, DO NOT guess - leave it out
+4. Be SPECIFIC about colors (e.g., "light-wash" not just "blue")
+5. Be SPECIFIC about styles (e.g., "oversized beige blazer" not just "blazer")
+
+Generate this EXACT structure (replace placeholders with actual content):
+
+DESCRIPTION: [2-3 sentences in casual, conversational tone - like talking to a friend. Include when/where to wear it. Use phrases like "This outfit screams...", "Perfect for...", "When you want to..."]
+
+OUTFIT_PIECES:
+- [Specific item 1 with color and style]
+- [Specific item 2 with color and style]
+- [Only items you can CLEARLY see]
+
+STYLING_TIPS: [2-3 actionable tips. Use phrases like "Cuff the jeans...", "Leave the blazer unbuttoned...", "Half-tuck...", "Pro tip:...", "Bonus: Swap X for Y..."]
+
+WORKS_FOR: [2-3 occasions that match the outfit vibe]`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: imageUrl } }
+            ]
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 800,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI fallback failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Parse the AI response
+    const descMatch = content.match(/DESCRIPTION:\s*(.+?)(?=\n\nOUTFIT_PIECES:|$)/s);
+    const piecesMatch = content.match(/OUTFIT_PIECES:\s*\n([\s\S]+?)(?=\n\nSTYLING_TIPS:|$)/);
+    const tipsMatch = content.match(/STYLING_TIPS:\s*(.+?)(?=\n\nWORKS_FOR:|$)/s);
+    const worksMatch = content.match(/WORKS_FOR:\s*(.+?)$/s);
+    
+    const description = descMatch?.[1]?.trim() || `This outfit hits that perfect balance between stylish and effortless. Wear it for casual outings, weekend plans, or whenever you want to look put-together without trying too hard.`;
+    
+    // Parse outfit pieces
+    const piecesRaw = piecesMatch?.[1] || '';
+    const piecesLines = piecesRaw.split('\n').filter((line: string) => line.trim().startsWith('-'));
+    const outfitPieces = piecesLines.length > 0 
+      ? piecesLines.map((line: string) => {
+          const item = line.replace(/^-\s*/, '').trim();
+          return `<li><strong>${item}</strong></li>`;
+        }).join('\n')
+      : `<li><strong>See image for complete outfit details</strong></li>`;
+    
+    const stylingTips = tipsMatch?.[1]?.trim() || `Focus on fit and proportion to make this look your own. Pro tip: Confidence is the best accessory you can wear.`;
+    const worksFor = worksMatch?.[1]?.trim() || `casual outings, weekend plans, or everyday wear`;
+    
+    return `<h2>${outfitNumber}. The "${creativeName}"</h2>
+
+{{IMAGE_${outfitNumber}}}
+
+<p>${description}</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+${outfitPieces}
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>${stylingTips}</p>
+
+Works for: ${worksFor}.`;
+
+  } catch (error) {
+    console.error(`Error generating fallback content for outfit ${outfitNumber}:`, error);
+    
+    // Ultimate fallback with generic but styled content
+    return `<h2>${outfitNumber}. The "${creativeName}"</h2>
+
+{{IMAGE_${outfitNumber}}}
+
+<p>This outfit hits that perfect balance between stylish and effortless. It's giving "I woke up like this"—but make it fashion. Wear it for casual outings, weekend plans, or whenever you want to look put-together without trying too hard.</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+<li><strong>See image for complete outfit details</strong></li>
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>Focus on fit and proportion to make this look your own. Half-tuck tops to define your waist, and cuff jeans once for that polished touch. Pro tip: Confidence is the best accessory you can wear.</p>
+
+Works for: casual outings, weekend plans, or everyday wear.`;
+  }
+}
+
 // IMAGE-FIRST: Generate fashion article content based on analyzed images
 async function generateFashionContentFromImages(
   imageUrls: string[],
@@ -632,24 +810,17 @@ async function generateFashionContentFromImages(
       outfitSections.push(section);
     } else {
       detectedOutfits.push(null as any);
-      // Fallback: Create minimal section with just the image - OutfitsTrendz structure
-      outfitSections.push(`<h2>${i + 1}. The "Style Statement" Look</h2>
-
-{{IMAGE_${i + 1}}}
-
-<p>A stylish look perfect for various occasions. Sometimes the best outfits speak for themselves—this one's all about effortless appeal.</p>
-
-<h3>Outfit Pieces:</h3>
-
-<ul>
-<li><strong>See image for outfit details</strong></li>
-</ul>
-
-<h3>Styling Tips:</h3>
-
-<p>Focus on fit and proportion to make this look your own. Pro tip: Confidence is the best accessory you can wear.</p>
-
-Works for: casual outings, weekend plans, or everyday wear.`);
+      // Fallback: Generate content using AI when image analysis fails
+      console.log(`⚠️ Image analysis failed for image ${i + 1}, generating AI-based content...`);
+      
+      const fallbackCreativeName = getFallbackCreativeName(i);
+      const fallbackSection = await generateFallbackOutfitSection(
+        imageUrls[i],
+        i + 1,
+        fallbackCreativeName,
+        LOVABLE_API_KEY
+      );
+      outfitSections.push(fallbackSection);
     }
   }
   
