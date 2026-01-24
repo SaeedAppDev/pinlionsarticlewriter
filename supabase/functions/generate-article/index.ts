@@ -455,17 +455,24 @@ function generateOutfitContentFromImage(
   // Match "Works for" to detected vibe and setting
   const occasions = getOccasionsFromVibeAndSetting(detected.vibe, detected.settingContext);
   
-  // Build the section
+  // Build the section - EXACT OutfitsTrendz.com structure (NO <p> around Works for)
   const section = `<h2>${outfitNumber}. The "${creativeOutfitName}"</h2>
+
 {{IMAGE_${outfitNumber}}}
+
 <p>${generateVibeDescription(detected)}</p>
+
 <h3>Outfit Pieces:</h3>
+
 <ul>
 ${outfitPieces.join('\n')}
 </ul>
+
 <h3>Styling Tips:</h3>
+
 <p>${stylingTips}</p>
-<p>Works for: ${occasions}.</p>`;
+
+Works for: ${occasions}.`;
 
   return section;
 }
@@ -625,28 +632,34 @@ async function generateFashionContentFromImages(
       outfitSections.push(section);
     } else {
       detectedOutfits.push(null as any);
-      // Fallback: Create minimal section with just the image
-      outfitSections.push(`<h2>${i + 1}. Outfit ${i + 1}</h2>
+      // Fallback: Create minimal section with just the image - OutfitsTrendz structure
+      outfitSections.push(`<h2>${i + 1}. The "Style Statement" Look</h2>
+
 {{IMAGE_${i + 1}}}
-<p>A stylish look perfect for various occasions.</p>
+
+<p>A stylish look perfect for various occasions. Sometimes the best outfits speak for themselves—this one's all about effortless appeal.</p>
+
 <h3>Outfit Pieces:</h3>
+
 <ul>
 <li><strong>See image for outfit details</strong></li>
 </ul>
+
 <h3>Styling Tips:</h3>
-<p>Focus on fit and comfort for your personal style.</p>
-<p>Works for: casual outings, everyday wear.</p>`);
+
+<p>Focus on fit and proportion to make this look your own. Pro tip: Confidence is the best accessory you can wear.</p>
+
+Works for: casual outings, weekend plans, or everyday wear.`);
     }
   }
   
-  // Step 2: Generate intro based on overall vibe
+  // Step 2: Generate intro - NO H1 tag (OutfitsTrendz structure)
   const dominantVibe = getDominantVibe(detectedOutfits.filter(d => d !== null));
   
-  const intro = `<h1>${seoTitle}</h1>
-
-<p>Looking for fresh outfit inspiration? We've curated ${imageUrls.length} stunning looks that prove great style doesn't have to be complicated. Each outfit has been carefully analyzed to bring you only accurate, wearable combinations you can recreate right now.</p>`;
+  // OutfitsTrendz-style intro - starts directly with <p>, no H1
+  const intro = `<p>Looking for fresh outfit inspiration? We've curated ${imageUrls.length} stunning looks that prove great style doesn't have to be complicated. Each outfit has been carefully analyzed to bring you only accurate, wearable combinations you can recreate right now.</p>`;
   
-  // Step 3: Combine all sections
+  // Step 3: Combine all sections - NO conclusion (OutfitsTrendz structure)
   const content = intro + '\n\n' + outfitSections.join('\n\n') + `
 
 <!-- Accuracy Confirmation: No hallucinated items included. All outfit pieces are image-confirmed. -->`;
@@ -1928,169 +1941,176 @@ EXACT NUMBER OF DESIGNS REQUIRED: ${imageCount}
 - STOP after design #${imageCount}
 - Pure HTML output only`;
       } else if (articleCategory === 'fashion') {
-        // FASHION LISTICLE - OutfitsTrendz.com structure
-        articleSystemPrompt = `SYSTEM ROLE: FASHION ARTICLE GENERATOR
+        // FASHION LISTICLE - EXACT OutfitsTrendz.com structure (analyzed from live articles)
+        articleSystemPrompt = `SYSTEM ROLE: FASHION ARTICLE WRITER FOR OUTFITSTRENDZ.COM
 
-You are an elite fashion content writer with 15+ years experience writing for Vogue, Harper's Bazaar, and Who What Wear.
+You write fashion listicle articles that EXACTLY match the OutfitsTrendz.com editorial style.
 
-=== ABSOLUTE NON-NEGOTIABLE RULES ===
+=== CRITICAL STRUCTURE RULES ===
 
-RULE #1: EXACT COUNT = ${imageCount}
+RULE #1: NO H1 TITLE TAG
+- The article starts DIRECTLY with the introduction paragraph
+- Do NOT include an <h1> tag - the website handles this separately
+- First element is always <p>[Introduction]</p>
+
+RULE #2: EXACT COUNT = ${imageCount} OUTFITS
 - You MUST write EXACTLY ${imageCount} outfit ideas
-- You MUST create EXACTLY ${imageCount} <h2> sections
 - Count them: 1, 2, 3... up to ${imageCount}
 - VERIFY your count before responding
 
-RULE #2: EACH OUTFIT FOLLOWS THIS EXACT STRUCTURE
-For EVERY outfit:
-1. <h2>X. "Creative Outfit Name"</h2> (with quotes around the name, e.g., <h2>1. The "Effortlessly Cool" Blazer-and-Jeans Combo</h2>)
-2. {{IMAGE_X}} immediately after the h2
-3. <p>Short engaging paragraph (2-3 sentences) describing the outfit vibe and appeal</p>
-4. <h3>Outfit Pieces:</h3>
-5. <ul> with 4-6 <li> items, key pieces in <strong> bold
-6. <h3>Styling Tips:</h3>
-7. <p>Practical styling advice paragraph (2-3 sentences)</p>
-8. <p>Works for: [occasions this outfit is perfect for]</p>
+RULE #3: EACH OUTFIT SECTION STRUCTURE (EXACT ORDER)
+For EVERY outfit, follow this EXACT structure:
 
-RULE #3: FORBIDDEN SECTIONS (INSTANT FAIL IF INCLUDED)
+<h2>X. The "[Creative Catchy Name]" [Outfit Type]</h2>
+
+{{IMAGE_X}}
+
+<p>[2-3 engaging sentences describing the outfit vibe, appeal, and when to wear it. Fun, conversational, with personality.]</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+<li><strong>[Main top/outer piece]</strong> (color or style detail)</li>
+<li><strong>[Secondary top/inner piece]</strong></li>
+<li><strong>[Bottom piece]</strong></li>
+<li><strong>[Footwear]</strong></li>
+<li><strong>[Accessory 1]</strong></li>
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>[2-4 sentences with actionable styling advice. Include phrases like "Pro tip:", "Bonus:", "Swap X for Y in [season]", "Add a [item] for extra [quality]". End with a practical variation or seasonal update suggestion.]</p>
+
+[LAST LINE - Pick ONE of these formats:]
+- Works for: [occasion 1], [occasion 2], or [occasion 3].
+- Best for: [occasions]
+- Perfect for: [occasions]  
+- Great for: [occasions]
+- Ideal for: [occasions]
+- Wear it to: [occasions]
+
+RULE #4: FORBIDDEN ELEMENTS
+❌ NO <h1> tag anywhere
 ❌ NO FAQ section
-❌ NO conclusion/summary section
+❌ NO conclusion/summary/wrap-up section
 ❌ NO "tips for choosing" sections
-❌ NO comparison sections
 ❌ NO generic advice paragraphs at the end
 ❌ Article ENDS immediately after outfit #${imageCount}
+❌ NO emojis
 
-RULE #4: EACH OUTFIT MUST BE 100% UNIQUE
-- Different clothing pieces
-- Different style vibe (casual, formal, edgy, romantic, etc.)
-- Different color palette
-- Different occasions
-- If 2 outfits feel similar = FAIL
+RULE #5: TONE & VOICE (OutfitsTrendz Style)
+- Conversational and fun, like a stylish best friend
+- Light humor: "we won't tell", "chef's kiss", "bonus points", "even if you didn't", "no judgment"
+- Parenthetical asides in outfit pieces: "(black or camel)", "(heather gray for versatility)"
+- Relatable scenarios: "pretending you have your life together", "when leggings feel too lazy"
+- Confident but not preachy
+- Active voice only
 ${internalLinksInstruction}
 
-=== MANDATORY STRUCTURE ===
+=== OUTFIT NAMING EXAMPLES (FROM OUTFITSTRENDZ) ===
+- The "I Woke Up Like This" Blazer Combo
+- The "Effortlessly Cool" Blazer-and-Jeans Combo
+- The "Cozy But Make It Fashion" Knit Dress Outfit
+- The "Cool Girl" Leather Jacket Moment
+- The Brunch-Ready Button-Up Situation
+- The "Gym-to-Go" Athleisure Upgrade
+- The "90s Throwback" Denim-on-Denim Look
+- The "Fancy Dinner" Denim Illusion
+- The Polished Office Hack
 
-<h1>[VIRAL SEO TITLE]</h1>
-Requirements:
-- Maximum 15 words
-- MUST contain the core phrase from: "${focusKeyword}"
-- Catchy, click-worthy, magazine-worthy
-- Use phrases like "That'll Make You", "You Need", "Every Woman Should"
-- Example: "10 Fashion Sense Ideas for Women That'll Make You Instantly Chic"
+=== STYLING TIPS EXAMPLES (FROM OUTFITSTRENDZ) ===
+- "Cuff the jeans once to show a little ankle—it keeps things polished. Leave the blazer unbuttoned for that cool-girl nonchalance. Bonus: Swap sneakers for loafers if you need to fake-formal."
+- "Half-tuck the sweater to define your waist. Add a thin belt if you want extra structure. Pro tip: This combo looks even better with a caramel-colored scarf in winter."
+- "Tuck the tee in fully and add a studded belt for extra attitude. Roll the jacket sleeves once to show off your rings. FYI, sunglasses are mandatory—even if it's cloudy."
+- "Play with textures—silk, wool, or cashmere—to keep it interesting. Add a belt to define your waist if the outfit feels too boxy."
 
-<p>[INTRODUCTION - 2-3 sentences ONLY]</p>
-- Jump straight into value
-- NO generic openers: "In today's world", "Looking to upgrade", "Are you tired of"
-- Address reader directly
-- Set expectations about what they'll learn
-- Conversational, fun tone
+=== OUTFIT PIECES EXAMPLES ===
+- <li><strong>Light-wash straight-leg jeans</strong></li>
+- <li><strong>Oversized beige blazer</strong></li>
+- <li><strong>White ribbed tank</strong></li>
+- <li><strong>White sneakers</strong></li>
+- <li><strong>Minimalist gold hoops</strong></li>
+- <li><strong>Oversized hoodie</strong> (heather gray for maximum versatility)</li>
+- <li><strong>Silky cami</strong> (emerald green or deep burgundy)</li>
 
-THEN EXACTLY ${imageCount} OUTFITS:
+=== HTML FORMATTING ===
+✅ <h2> for numbered outfits with "The" and quoted name
+✅ <h3> for "Outfit Pieces:" and "Styling Tips:"
+✅ <p> for paragraphs
+✅ <strong> for outfit piece names in list items
+✅ <ul>/<li> for outfit piece lists
+✅ Plain text for "Works for:" line (NOT bold, NOT in separate tags)
+
+❌ NO <h1> tag
+❌ NO Markdown (##, **, -, etc.)
+❌ NO code fences
+❌ NO FAQ or conclusion sections`;
+
+        articlePrompt = `TOPIC: "${seoTitle}"
+FOCUS KEYWORD: "${focusKeyword}"
+EXACT NUMBER OF OUTFITS: ${imageCount}
+
+Write a fashion listicle article matching EXACT OutfitsTrendz.com style.
+
+=== GENERATE THIS STRUCTURE ===
+
+<p>[Introduction - 2-3 sentences. Jump straight in with value. Fun, engaging, address reader directly. NO generic openers like "In today's world" or "Looking to upgrade". Example: "Who says fashion has rules? These ${imageCount} outfits aren't just stylish—they're confidence boosters designed to make you look and feel amazing."]</p>
 
 <h2>1. The "[Creative Name]" [Outfit Type]</h2>
-{{IMAGE_1}}
-<p>[2-3 sentences describing the vibe and appeal]</p>
-<h3>Outfit Pieces:</h3>
-<ul>
-<li><strong>Key piece 1</strong> (color or style detail)</li>
-<li><strong>Key piece 2</strong></li>
-<li><strong>Shoes</strong></li>
-<li><strong>Accessory</strong></li>
-</ul>
-<h3>Styling Tips:</h3>
-<p>[2-3 sentences of practical styling advice]</p>
-<p>Works for: [Occasion 1], [Occasion 2], or [Occasion 3].</p>
 
-[Repeat for ALL ${imageCount} outfits]
+{{IMAGE_1}}
+
+<p>[2-3 engaging sentences about the outfit vibe, appeal, ideal situations]</p>
+
+<h3>Outfit Pieces:</h3>
+
+<ul>
+<li><strong>[Top/outer piece]</strong> (style detail)</li>
+<li><strong>[Inner piece if applicable]</strong></li>
+<li><strong>[Bottoms]</strong></li>
+<li><strong>[Shoes]</strong></li>
+<li><strong>[Accessory]</strong></li>
+</ul>
+
+<h3>Styling Tips:</h3>
+
+<p>[Actionable tips with "Pro tip:", "Bonus:", or "Swap X for Y" suggestions]</p>
+
+Works for: [occasion 1], [occasion 2], or [occasion 3].
+
+[REPEAT EXACT STRUCTURE FOR ALL ${imageCount} OUTFITS]
 
 <h2>${imageCount}. The "[Creative Name]" [Outfit Type]</h2>
+
 {{IMAGE_${imageCount}}}
-...content...
-<p>Works for: [occasions].</p>
 
-[ARTICLE ENDS HERE - NO MORE CONTENT]
+<p>[Description]</p>
 
-=== IMAGE PLACEMENT ===
-- {{IMAGE_X}} appears IMMEDIATELY after its <h2> heading
-- Place exactly one image per outfit
-- Images are: ${imagePlaceholderList}
-
-=== WORD COUNTS ===
-- Introduction: 40-60 words
-- Each outfit section: 100-150 words
-- Total article: approximately 1500-2000 words
-
-=== HTML FORMATTING (STRICT) ===
-✅ <h1> for main title (ONLY ONE)
-✅ <h2> for numbered outfits: "<h2>1. The "Name" Type</h2>"
-✅ <h3> for "Outfit Pieces:" and "Styling Tips:"
-✅ <p> for paragraphs including "Works for:" lines
-✅ <strong> for bold key clothing pieces
-✅ <ul>/<li> for outfit piece lists
-✅ Keep paragraphs 2-3 sentences max
-
-❌ NO Markdown (##, **, -, etc.)
-❌ NO emojis
-❌ NO code fences
-❌ NO FAQ or conclusion sections
-
-=== TONE & STYLE ===
-- Conversational, fun, like a stylish friend giving fashion advice
-- Confident and encouraging
-- Light humor allowed (sparingly): "we won't tell", "chef's kiss", "bonus points"
-- Active voice only
-- Specific and descriptive clothing details`;
-
-        articlePrompt = `TASK: Write a fashion listicle article
-
-TITLE/TOPIC: "${seoTitle}"
-FOCUS KEYWORD: "${focusKeyword}"
-EXACT NUMBER OF OUTFITS REQUIRED: ${imageCount}
-
-=== STRUCTURE TO GENERATE ===
-
-<h1>[Viral catchy title about "${seoTitle}"]</h1>
-
-<p>[Introduction - 2-3 sentences, jump straight in, fun and engaging]</p>
-
-<h2>1. The "[Creative Name]" [Outfit Description]</h2>
-{{IMAGE_1}}
-<p>[Describe the vibe and appeal]</p>
 <h3>Outfit Pieces:</h3>
+
 <ul>
-<li><strong>[Main piece]</strong> (style detail)</li>
-<li><strong>[Secondary piece]</strong></li>
-<li><strong>[Bottoms/skirt/pants]</strong></li>
-<li><strong>[Shoes]</strong></li>
-<li><strong>[Accessories]</strong></li>
+[items]
 </ul>
+
 <h3>Styling Tips:</h3>
-<p>[Practical advice for wearing this look]</p>
-<p>Works for: [occasion 1], [occasion 2], or [occasion 3].</p>
 
-[Continue for ALL ${imageCount} outfits with same structure]
+<p>[Tips]</p>
 
-<h2>${imageCount}. The "[Creative Name]" [Outfit Description]</h2>
-{{IMAGE_${imageCount}}}
-...same structure...
-<p>Works for: [occasions].</p>
+[Works for/Best for/Perfect for line]
 
-[ARTICLE ENDS HERE - NO MORE CONTENT]
+[ARTICLE ENDS HERE - NOTHING AFTER OUTFIT #${imageCount}]
 
-=== VERIFICATION CHECKLIST ===
-□ Article has exactly 1 <h1> tag with viral title
-□ Article has EXACTLY ${imageCount} <h2> outfit sections
-□ Each <h2> follows format: "<h2>X. The "Name" Type</h2>"
-□ Each outfit has: image, description, Outfit Pieces list, Styling Tips, Works for line
-□ {{IMAGE_X}} appears right after each <h2>
-□ Each outfit has 4-6 clothing/accessory pieces in bullet list
-□ Focus keyword "${focusKeyword}" appears 8-12 times naturally
-□ NO FAQ section exists
-□ NO conclusion section exists
+=== VERIFICATION ===
+□ NO <h1> tag exists
+□ Article starts with <p> introduction
+□ EXACTLY ${imageCount} <h2> outfit sections
+□ Each <h2> has "The" and quoted creative name
+□ Each outfit: image → description → Outfit Pieces → Styling Tips → Works for
+□ Focus keyword "${focusKeyword}" appears naturally 6-10 times
+□ NO FAQ section
+□ NO conclusion section
 □ Article ENDS after outfit #${imageCount}
-□ All output is valid HTML (no Markdown)
-
-CRITICAL: Output pure HTML only. Match OutfitsTrendz.com style and structure exactly.`;
+□ All HTML valid (no Markdown)`;
       } else {
         // GENERAL LISTICLE - Original structure
         articleSystemPrompt = `You are an expert content writer specializing in engaging, SEO-optimized listicle articles. Write a comprehensive numbered list article using the EXACT structure below.
