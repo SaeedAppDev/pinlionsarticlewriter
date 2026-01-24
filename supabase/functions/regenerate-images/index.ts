@@ -34,24 +34,39 @@ Ultra photorealistic with natural imperfections. Natural daylight. Rich visible 
 
 ${noTextRuleSuffix}`;
     } else if (articleCategory === 'fashion') {
+      // Detect body type keywords from the prompt to ensure consistent model representation
+      const promptLower = prompt.toLowerCase();
+      const isPlusSize = promptLower.includes('plus size') || promptLower.includes('plus-size') || promptLower.includes('curvy') || promptLower.includes('fuller figure');
+      const isPetite = promptLower.includes('petite') || promptLower.includes('short women') || promptLower.includes('short woman');
+      const isTall = promptLower.includes('tall women') || promptLower.includes('tall woman');
+      
+      let bodyTypeDescription = '';
+      if (isPlusSize) {
+        bodyTypeDescription = 'BEAUTIFUL PLUS-SIZE/CURVY woman with fuller figure and natural curves';
+      } else if (isPetite) {
+        bodyTypeDescription = 'BEAUTIFUL PETITE woman with shorter stature';
+      } else if (isTall) {
+        bodyTypeDescription = 'BEAUTIFUL TALL woman with longer frame';
+      } else {
+        bodyTypeDescription = 'BEAUTIFUL woman';
+      }
+      
       realisticPrompt = `${noTextRulePrefix}
 
 Generate: ${prompt}
 
 Style: Professional fashion editorial photograph matching OutfitsTrendz.com quality. REAL photography showing full outfit on model, NOT illustration, NOT flat lay, NOT mannequin.
 
-CRITICAL REQUIREMENTS:
-- FACE MUST BE CLEARLY VISIBLE - show the model's full face with natural expression, do NOT crop or hide the face
-- Full body shot of model wearing the complete outfit from head to toe
-- Natural urban or lifestyle background with soft bokeh
-- Natural daylight or golden hour lighting with soft shadows
-- Model in confident, relaxed pose showing clothing naturally
-- Visible fabric textures, stitching details, and material quality
-- Natural skin with subtle makeup, beautiful facial features visible
-- All accessories and shoes visible in frame
-- Sharp focus on both face and clothing
-- Editorial street style photography quality
-- 8K ultra high resolution
+CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
+1. MODEL: ${bodyTypeDescription} - maintain this body type consistently
+2. FACE: The model's FACE MUST BE CLEARLY VISIBLE AND IN FOCUS - show full face with natural beautiful expression, confident smile or relaxed look, DO NOT crop, hide, or obscure the face in any way
+3. FULL BODY: Complete head-to-toe shot showing entire outfit including shoes - nothing cut off
+4. FRAMING: Camera positioned to capture full body from head to feet with face as a key focal point
+5. BACKGROUND: Natural urban or lifestyle setting with soft bokeh
+6. LIGHTING: Natural daylight or golden hour with soft flattering shadows
+7. POSE: Confident, relaxed pose showing clothing naturally on the body
+8. DETAILS: Visible fabric textures, stitching, material quality, all accessories
+9. QUALITY: 8K ultra high resolution, editorial street style photography
 
 ${noTextRuleSuffix}`;
     } else {

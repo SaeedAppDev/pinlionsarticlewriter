@@ -393,14 +393,29 @@ etc.`;
           `${subject} home office with organized workspace, natural light, comfortable seating, productive atmosphere, professional interior design photo`
         ];
       } else if (category === 'fashion') {
+        // Detect body type from subject to ensure consistent model representation
+        const subjectLower = subject.toLowerCase();
+        const isPlusSize = subjectLower.includes('plus size') || subjectLower.includes('plus-size') || subjectLower.includes('curvy') || subjectLower.includes('fuller figure');
+        const isPetite = subjectLower.includes('petite') || subjectLower.includes('short women') || subjectLower.includes('short woman');
+        const isTall = subjectLower.includes('tall women') || subjectLower.includes('tall woman');
+        
+        let modelDesc = 'Beautiful woman';
+        if (isPlusSize) {
+          modelDesc = 'Beautiful PLUS-SIZE/CURVY woman with fuller figure and natural curves';
+        } else if (isPetite) {
+          modelDesc = 'Beautiful PETITE woman with shorter stature';
+        } else if (isTall) {
+          modelDesc = 'Beautiful TALL woman with longer frame';
+        }
+        
         return [
-          `Beautiful woman with FACE CLEARLY VISIBLE wearing ${subject}, FULL BODY shot from head to toe showing complete outfit, natural urban street background with soft bokeh, golden hour lighting, confident relaxed pose with beautiful natural expression, visible fabric textures and clothing details, natural skin with subtle makeup, face and body both in sharp focus, editorial street style photography matching OutfitsTrendz.com quality, 8K resolution`,
-          `Stylish model with face shown showcasing ${subject}, standing against minimalist architectural backdrop, soft diffused natural daylight, FULL BODY visible including beautiful face with natural expression, clothing draping naturally, sharp focus on face and outfit details, magazine editorial fashion photography, Vogue quality`,
-          `Fashionable woman with radiant face visible in ${subject}, urban lifestyle setting with coffee shop or boutique background, warm natural lighting, candid confident pose showing beautiful facial features, visible stitching and fabric weave details, FULL BODY from head to toe, Harper's Bazaar street style quality`,
-          `${subject} styled on model with FACE CLEARLY SHOWN, outdoor setting with greenery or city view background, soft overcast lighting creating even illumination, full length view from head to feet showing face shoes and accessories, natural beautiful expression, editorial fashion blog photography`,
-          `Woman wearing ${subject}, bright airy indoor setting near large windows, soft natural window light from side, relaxed standing pose, clothing texture and color accuracy, clean minimal background, professional fashion influencer photography style`,
-          `${subject} complete look on model, brick wall or modern architecture background, late afternoon golden light, confident stylish pose, visible accessory details and fabric quality, editorial street fashion photography, 8K magazine quality`,
-          `Elegant woman showcasing ${subject}, sophisticated urban backdrop, professional fashion photography lighting, full outfit visible with shoe and bag details, natural skin texture, polished editorial aesthetic matching OutfitsTrendz.com style`
+          `${modelDesc} with FACE CLEARLY VISIBLE AND IN FOCUS wearing ${subject}, FULL BODY shot from head to toe showing complete outfit including shoes, natural urban street background with soft bokeh, golden hour lighting, confident relaxed pose with beautiful natural expression and smile, visible fabric textures and clothing details, natural skin with subtle makeup, face and body both in sharp focus, editorial street style photography matching OutfitsTrendz.com quality, 8K resolution`,
+          `${modelDesc} with face shown and natural expression showcasing ${subject}, standing against minimalist architectural backdrop, soft diffused natural daylight, FULL BODY visible from head to feet including beautiful face with confident look, clothing draping naturally, sharp focus on face and outfit details, magazine editorial fashion photography, Vogue quality`,
+          `${modelDesc} with radiant face visible in ${subject}, urban lifestyle setting with coffee shop or boutique background, warm natural lighting, candid confident pose showing beautiful facial features clearly, visible stitching and fabric weave details, FULL BODY from head to toe, Harper's Bazaar street style quality`,
+          `${modelDesc} styled in ${subject} with FACE CLEARLY SHOWN and natural smile, outdoor setting with greenery or city view background, soft overcast lighting creating even illumination, full length view from head to feet showing face shoes and accessories, beautiful natural expression, editorial fashion blog photography`,
+          `${modelDesc} wearing ${subject} with face visible and confident expression, bright airy indoor setting near large windows, soft natural window light from side, relaxed standing pose, FULL BODY head to toe, clothing texture and color accuracy, clean minimal background, professional fashion influencer photography style`,
+          `${modelDesc} in ${subject} complete look, face clearly visible with beautiful smile, brick wall or modern architecture background, late afternoon golden light, confident stylish pose showing full body head to toe, visible accessory details and fabric quality, editorial street fashion photography, 8K magazine quality`,
+          `${modelDesc} showcasing ${subject} with FACE IN SHARP FOCUS, sophisticated urban backdrop, professional fashion photography lighting, FULL BODY outfit visible from head to toe with shoe and bag details, natural skin texture, polished editorial aesthetic matching OutfitsTrendz.com style`
         ];
       }
       // DETAILED food prompts matching TastyWithTina.com quality
