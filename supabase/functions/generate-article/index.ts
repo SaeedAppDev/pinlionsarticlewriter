@@ -399,23 +399,24 @@ etc.`;
         const isPetite = subjectLower.includes('petite') || subjectLower.includes('short women') || subjectLower.includes('short woman');
         const isTall = subjectLower.includes('tall women') || subjectLower.includes('tall woman');
         
-        let modelDesc = 'Beautiful woman';
+        let modelDesc = 'beautiful woman';
         if (isPlusSize) {
-          modelDesc = 'Beautiful PLUS-SIZE/CURVY woman with fuller figure and natural curves';
+          modelDesc = 'beautiful plus-size curvy woman with fuller figure';
         } else if (isPetite) {
-          modelDesc = 'Beautiful PETITE woman with shorter stature';
+          modelDesc = 'beautiful petite woman';
         } else if (isTall) {
-          modelDesc = 'Beautiful TALL woman with longer frame';
+          modelDesc = 'beautiful tall woman';
         }
         
+        // Simple, direct prompts matching the reference image style - vertical street style with visible face
         return [
-          `${modelDesc} with FACE CLEARLY VISIBLE AND IN FOCUS wearing ${subject}, FULL BODY shot from head to toe showing complete outfit including shoes, natural urban street background with soft bokeh, golden hour lighting, confident relaxed pose with beautiful natural expression and smile, visible fabric textures and clothing details, natural skin with subtle makeup, face and body both in sharp focus, editorial street style photography matching OutfitsTrendz.com quality, 8K resolution`,
-          `${modelDesc} with face shown and natural expression showcasing ${subject}, standing against minimalist architectural backdrop, soft diffused natural daylight, FULL BODY visible from head to feet including beautiful face with confident look, clothing draping naturally, sharp focus on face and outfit details, magazine editorial fashion photography, Vogue quality`,
-          `${modelDesc} with radiant face visible in ${subject}, urban lifestyle setting with coffee shop or boutique background, warm natural lighting, candid confident pose showing beautiful facial features clearly, visible stitching and fabric weave details, FULL BODY from head to toe, Harper's Bazaar street style quality`,
-          `${modelDesc} styled in ${subject} with FACE CLEARLY SHOWN and natural smile, outdoor setting with greenery or city view background, soft overcast lighting creating even illumination, full length view from head to feet showing face shoes and accessories, beautiful natural expression, editorial fashion blog photography`,
-          `${modelDesc} wearing ${subject} with face visible and confident expression, bright airy indoor setting near large windows, soft natural window light from side, relaxed standing pose, FULL BODY head to toe, clothing texture and color accuracy, clean minimal background, professional fashion influencer photography style`,
-          `${modelDesc} in ${subject} complete look, face clearly visible with beautiful smile, brick wall or modern architecture background, late afternoon golden light, confident stylish pose showing full body head to toe, visible accessory details and fabric quality, editorial street fashion photography, 8K magazine quality`,
-          `${modelDesc} showcasing ${subject} with FACE IN SHARP FOCUS, sophisticated urban backdrop, professional fashion photography lighting, FULL BODY outfit visible from head to toe with shoe and bag details, natural skin texture, polished editorial aesthetic matching OutfitsTrendz.com style`
+          `Professional street style fashion photograph. Full body portrait of ${modelDesc} with beautiful face looking at camera, natural relaxed expression. She is wearing ${subject}. Vertical 2:3 portrait. Standing naturally on city sidewalk. Camera 10 feet away capturing entire body from top of head to shoes. Face is focal point with sharp focus on eyes. Soft bokeh urban background. Natural daylight. OutfitsTrendz.com editorial quality. 8K.`,
+          `Fashion editorial photograph. ${modelDesc} with face clearly visible, confident smile, wearing ${subject}. Full body head to toe in frame with space above and below. Standing on urban street. Natural daylight. Vertical portrait orientation. Face sharp and in focus. Professional street style photography. 8K resolution.`,
+          `Street style fashion photo. ${modelDesc} face visible with natural expression, modeling ${subject}. Complete full body shot from head to shoes. City sidewalk background with soft bokeh. Natural lighting. Vertical 2:3 aspect ratio. Face is the main focal point. Magazine quality fashion photography.`,
+          `Professional fashion portrait. ${modelDesc} with beautiful face shown, wearing ${subject}. Full length vertical shot capturing entire body and face. Standing confidently outdoors. Soft natural daylight. Urban background out of focus. Sharp focus on face and outfit. Editorial blog photography quality.`,
+          `Fashion blog photograph. ${modelDesc} face clearly visible and in focus, natural confident expression. Wearing ${subject}. Full body portrait from head to toe. Vertical orientation. City street background. Natural daylight. Professional OutfitsTrendz.com style photography. 8K.`,
+          `Editorial street style photo. ${modelDesc} with face and full body visible, wearing ${subject}. Standing on city sidewalk. Vertical 2:3 portrait capturing head to shoes. Face sharp in focus with natural expression. Bokeh urban background. Natural lighting. Magazine quality.`,
+          `Professional fashion photograph. ${modelDesc} face visible with confident look, modeling ${subject}. Full body vertical portrait. Standing outdoors on city street. Complete figure from head to toe in frame. Natural daylight. Soft background blur. OutfitsTrendz.com editorial style. 8K resolution.`
         ];
       }
       // DETAILED food prompts matching TastyWithTina.com quality
@@ -508,49 +509,21 @@ ${noTextRuleSuffix}`;
       const isPetite = promptLower.includes('petite') || promptLower.includes('short women') || promptLower.includes('short woman');
       const isTall = promptLower.includes('tall women') || promptLower.includes('tall woman');
       
-      let bodyType = 'BEAUTIFUL woman';
+      let bodyType = 'beautiful woman';
       if (isPlusSize) {
-        bodyType = 'BEAUTIFUL PLUS-SIZE/CURVY woman with fuller figure, natural curves, and confident presence';
+        bodyType = 'beautiful plus-size curvy woman with fuller figure';
       } else if (isPetite) {
-        bodyType = 'BEAUTIFUL PETITE woman with shorter stature';
+        bodyType = 'beautiful petite woman';
       } else if (isTall) {
-        bodyType = 'BEAUTIFUL TALL woman with longer frame';
+        bodyType = 'beautiful tall woman';
       }
       
+      // Simple, direct positive prompt matching reference image style
       realisticPrompt = `${noTextRulePrefix}
 
-SUBJECT: ${bodyType} wearing ${prompt}
+Professional street style fashion photograph. Full body portrait of ${bodyType} with beautiful face looking at camera, natural relaxed expression. She is wearing ${prompt}. 
 
-===== ABSOLUTE REQUIREMENTS - VIOLATION OF ANY MEANS COMPLETE FAILURE =====
-
-1. FACE VISIBILITY (CRITICAL - MOST IMPORTANT):
-   - The model's FACE MUST BE FULLY VISIBLE in the frame
-   - Face must be IN SHARP FOCUS with clear facial features
-   - Camera MUST capture from ABOVE the head (include hair/top of head in frame)
-   - Show natural beautiful expression: confident smile, relaxed look, or elegant poise
-   - Eyes, nose, mouth, and chin ALL clearly visible
-   - DO NOT crop at forehead, DO NOT hide face, DO NOT blur face
-   - Face should be a KEY FOCAL POINT of the photograph
-
-2. FULL BODY FRAMING (MANDATORY):
-   - Complete HEAD-TO-TOE shot with NOTHING cut off
-   - Must show: top of head, full face, torso, arms, hands, legs, feet, shoes
-   - Camera positioned far enough back to capture ENTIRE person
-   - Leave small margin of space above head and below feet
-   - Portrait orientation (3:4 or 2:3) preferred for full body
-
-3. BODY TYPE CONSISTENCY:
-   - Model MUST match: ${bodyType}
-   - Maintain this exact body type throughout
-   - Natural proportions, realistic representation
-
-4. PHOTOGRAPHY QUALITY:
-   - Professional fashion editorial photograph matching OutfitsTrendz.com
-   - REAL photography, NOT illustration, NOT 3D render, NOT AI art style
-   - Natural urban/lifestyle background with soft bokeh
-   - Golden hour or soft natural daylight lighting
-   - Visible fabric textures, stitching, material quality
-   - 8K ultra high resolution
+Vertical 2:3 portrait orientation. Model standing naturally on city sidewalk. Camera positioned 10 feet away capturing entire body from top of head to shoes with margin above and below. Face is the focal point - sharp focus on eyes, natural skin, confident expression. Soft bokeh urban background. Natural daylight. Clean composition. Professional fashion blog photography, OutfitsTrendz.com editorial quality. 8K resolution. Real photograph.
 
 ${noTextRuleSuffix}`;
     } else {
