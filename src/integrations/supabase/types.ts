@@ -48,6 +48,7 @@ export type Database = {
           content_html: string | null
           created_at: string
           error_message: string | null
+          generation_metadata: Json | null
           generation_progress: Json | null
           id: string
           item_count: number | null
@@ -62,6 +63,7 @@ export type Database = {
           content_html?: string | null
           created_at?: string
           error_message?: string | null
+          generation_metadata?: Json | null
           generation_progress?: Json | null
           id?: string
           item_count?: number | null
@@ -76,6 +78,7 @@ export type Database = {
           content_html?: string | null
           created_at?: string
           error_message?: string | null
+          generation_metadata?: Json | null
           generation_progress?: Json | null
           id?: string
           item_count?: number | null

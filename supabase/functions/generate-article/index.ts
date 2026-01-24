@@ -265,6 +265,37 @@ async function generateFallbackImage(
   }
 }
 
+// Calculate estimated cost for generation
+function calculateEstimatedCost(
+  aiProvider: string,
+  imageModel: string,
+  imageCount: number
+): number {
+  // Approximate costs (in USD)
+  let contentCost = 0;
+  let imageCost = 0;
+  
+  // Content generation costs
+  if (aiProvider === 'lovable') {
+    contentCost = 0.01; // Lovable AI bundled pricing
+  } else if (aiProvider === 'openai') {
+    contentCost = 0.05; // OpenAI GPT-5 approximate per article
+  }
+  
+  // Image generation costs per image
+  const imageCosts: { [key: string]: number } = {
+    'zimage': 0.003,      // z-image on Replicate
+    'flux-schnell': 0.003, // Flux schnell on Replicate
+    'seedream': 0.01,     // Seedream on Replicate
+    'nano-banana': 0.005, // Lovable AI Gemini image
+    'gpt-image': 0.04,    // OpenAI gpt-image
+  };
+  
+  imageCost = (imageCosts[imageModel] || 0.005) * imageCount;
+  
+  return Math.round((contentCost + imageCost) * 1000) / 1000;
+}
+
 // Analyze article content and generate specific image prompts using AI
 async function analyzeArticleForImagePrompts(
   articleContent: string,
@@ -553,14 +584,14 @@ STYLE: Matches professional food blogs like TastyWithTina.com - clean, bright, n
 This is a still life photograph. The food is cold and motionless. Pure clean photography with no effects.`;
     }
 
-    // Parse aspect ratio to get dimensions
+    // Parse aspect ratio to get dimensions - z-image requires dimensions divisible by 64, max 1024
     const getImageDimensions = (ar: string): { width: number; height: number } => {
       const ratioMap: { [key: string]: { width: number; height: number } } = {
         '1:1': { width: 1024, height: 1024 },
         '4:3': { width: 1024, height: 768 },
         '3:4': { width: 768, height: 1024 },
-        '16:9': { width: 1280, height: 720 },
-        '9:16': { width: 720, height: 1280 },
+        '16:9': { width: 1024, height: 576 },
+        '9:16': { width: 576, height: 1024 },
         '3:2': { width: 1024, height: 682 },
         '2:3': { width: 682, height: 1024 },
       };
@@ -1989,15 +2020,17 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
 
     // Step 6: Replace image placeholders (dynamic count)
     const getImageDimensions = (ar: string): { width: number; height: number } => {
+      // z-image model works best with dimensions divisible by 64 and max 1024
+      // Using smaller dimensions that are proven to work
       const dimensions: Record<string, { width: number; height: number }> = {
         '1:1': { width: 1024, height: 1024 },
-        '16:9': { width: 1920, height: 1080 },
+        '16:9': { width: 1024, height: 576 },
         '4:3': { width: 1024, height: 768 },
-        '3:2': { width: 1200, height: 800 },
-        '2:3': { width: 800, height: 1200 },
-        '9:16': { width: 1080, height: 1920 },
+        '3:2': { width: 1024, height: 682 },
+        '2:3': { width: 682, height: 1024 },
+        '9:16': { width: 576, height: 1024 },
         '3:4': { width: 768, height: 1024 },
-        '21:9': { width: 1680, height: 720 },
+        '21:9': { width: 1024, height: 438 },
       };
       return dimensions[ar] || { width: 1024, height: 768 };
     };
@@ -2043,13 +2076,28 @@ CRITICAL: Output pure HTML only. Do NOT use any Markdown syntax like asterisks (
       finalContent = finalContent.replace(brokenLinkPattern, '');
     }
 
+    // Build generation metadata for tracking
+    const generationMetadata = {
+      content_model: aiProvider === 'lovable' ? 'Lovable AI (Gemini)' : 'OpenAI GPT-5',
+      content_provider: aiProvider === 'lovable' ? 'Lovable AI' : 'OpenAI API',
+      image_model: normalizedImageModel,
+      image_provider: normalizedImageModel === 'nano-banana' ? 'Lovable AI' : 'Replicate',
+      images_generated: imageUrls.filter(u => u && u.length > 0).length,
+      total_images_attempted: imageCount,
+      aspect_ratio: effectiveAspectRatio,
+      estimated_cost: calculateEstimatedCost(aiProvider, normalizedImageModel, imageUrls.filter(u => u && u.length > 0).length),
+      generated_at: new Date().toISOString(),
+    };
+
+    console.log(`📊 Generation metadata:`, generationMetadata);
     console.log(`🎉 Article generated successfully for: ${seoTitle}`);
 
     // Update article/recipe with generated content and clear progress
     const updateData: Record<string, any> = { 
       status: 'completed', 
       error_message: null,
-      generation_progress: null  // Clear progress on completion
+      generation_progress: null,  // Clear progress on completion
+      generation_metadata: generationMetadata,
     };
     updateData[contentField] = finalContent;
     

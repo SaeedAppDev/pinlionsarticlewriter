@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Play, RefreshCw, Trash2, CheckCircle, Loader2, Clock, AlertCircle, RotateCcw, Zap } from 'lucide-react';
-
+import { GenerationNotification } from '@/components/GenerationNotification';
 import { format } from 'date-fns';
 
 interface GenerationProgress {
@@ -26,6 +26,18 @@ interface GenerationProgress {
   status?: string;
 }
 
+interface GenerationMetadata {
+  content_model: string;
+  content_provider: string;
+  image_model: string;
+  image_provider: string;
+  images_generated: number;
+  total_images_attempted: number;
+  aspect_ratio: string;
+  estimated_cost: number;
+  generated_at: string;
+}
+
 interface Article {
   id: string;
   title: string;
@@ -35,6 +47,14 @@ interface Article {
   error_message: string | null;
   created_at: string;
   generation_progress?: GenerationProgress | null;
+  generation_metadata?: GenerationMetadata | null;
+}
+
+interface CompletedNotification {
+  id: string;
+  articleId: string;
+  articleTitle: string;
+  metadata: GenerationMetadata;
 }
 
 const GENERATION_TIME_SECONDS = 30;
@@ -48,7 +68,9 @@ const Queue = () => {
   const [progress, setProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [currentProvider, setCurrentProvider] = useState<string>('loading');
+  const [notifications, setNotifications] = useState<CompletedNotification[]>([]);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const processedArticleIds = useRef<Set<string>>(new Set());
   const navigate = useNavigate();
 
   const startProgress = () => {
@@ -78,6 +100,37 @@ const Queue = () => {
     }, 500);
   };
 
+  // Handle completion notification for newly completed articles
+  const handleArticleCompleted = useCallback(async (articleId: string) => {
+    // Skip if we already processed this article
+    if (processedArticleIds.current.has(articleId)) return;
+    processedArticleIds.current.add(articleId);
+
+    // Fetch the completed article with metadata
+    const { data: article } = await supabase
+      .from('articles')
+      .select('id, title, generation_metadata')
+      .eq('id', articleId)
+      .single();
+
+    if (article?.generation_metadata) {
+      const metadata = article.generation_metadata as unknown as GenerationMetadata;
+      setNotifications(prev => [
+        ...prev,
+        {
+          id: `${articleId}-${Date.now()}`,
+          articleId: article.id,
+          articleTitle: article.title,
+          metadata,
+        }
+      ]);
+    }
+  }, []);
+
+  const dismissNotification = useCallback((notificationId: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  }, []);
+
   useEffect(() => {
     fetchArticles();
     fetchCurrentProvider();
@@ -87,7 +140,37 @@ const Queue = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'articles',
+        },
+        (payload) => {
+          const newStatus = (payload.new as any)?.status;
+          const oldStatus = (payload.old as any)?.status;
+          
+          // Check if article just completed
+          if (newStatus === 'completed' && oldStatus !== 'completed') {
+            handleArticleCompleted((payload.new as any).id);
+          }
+          
+          fetchArticles();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'articles',
+        },
+        () => {
+          fetchArticles();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
           schema: 'public',
           table: 'articles',
         },
@@ -100,7 +183,7 @@ const Queue = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [handleArticleCompleted]);
 
   const fetchCurrentProvider = async () => {
     try {
@@ -347,7 +430,20 @@ const Queue = () => {
   };
 
   return (
-    <div className="p-8">
+    <>
+      {/* Completion Notifications */}
+      {notifications.map((notification, index) => (
+        <div key={notification.id} style={{ transform: `translateY(${index * 10}px)` }}>
+          <GenerationNotification
+            articleId={notification.articleId}
+            articleTitle={notification.articleTitle}
+            metadata={notification.metadata}
+            onDismiss={() => dismissNotification(notification.id)}
+          />
+        </div>
+      ))}
+      
+      <div className="p-8">
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -517,7 +613,8 @@ const Queue = () => {
             </Table>
           )}
         </div>
-    </div>
+      </div>
+    </>
   );
 };
 
